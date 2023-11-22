@@ -188,6 +188,13 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
 
     }
 
+    public void StoreTargetWeightLossPounds(String InputWeight)
+    {
+        SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
+        jackie.PostValueToTargetWeightTable(InputWeight);
+        jackie.close();
+    }
+
     public java.util.Date getBreakfastTime()
     {
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);

@@ -77,6 +77,17 @@ public class Mif3BMR {
 
         }
 
+        if(bmidata.getHieghtUnits() == "Feet and Inches")
+        {
+            double hieghtIN = (double) bmidata.getHeightm();
+            Height = (double) (bmidata.getHeightm() * 100);
+
+            android.util.Log.d("new height units" , bmidata.getHieghtUnits());
+            //android.util.Log.d("new height " , bmidata.getClientHeight());
+
+
+        }
+
         if(Wunits == "pounds")
         {
             Weight = Weight / 2.2;

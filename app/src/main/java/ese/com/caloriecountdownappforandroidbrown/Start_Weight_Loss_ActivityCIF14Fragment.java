@@ -2,6 +2,8 @@ package ese.com.caloriecountdownappforandroidbrown;
 
 import android.content.Intent;
 import androidx.fragment.app.Fragment;
+
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -161,7 +163,11 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         android.util.Log.d("Checking Weight units: ",IN.getWeightUnits());
         IN.setCurrentWeight(editText70.getText().toString());
         IN.setTargetWeight(editText71.getText().toString());
+        addToSharedPref(IN.getTargetWeight());
         mTargetWeight = editText71.getText().toString();
+
+        SQLDatabase_Food_Items_CIF6 cif6 = new SQLDatabase_Food_Items_CIF6(getActivity());
+        cif6.PostValueToTargetWeightTable(mTargetWeight);
 
         android.util.Log.d("TargetWeight",IN.getTargetWeight());
 
@@ -212,17 +218,20 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
             double heightinmeters = ((feet * 30) + (inchesdouble * 2.54));
             float heightm = (float) heightinmeters;
+            int heihgtcm = (int) (heightm);
+            IN.setClientHeightinCM(heihgtcm);
 
             String answer = (new RoundingCIF13().IntToString(feet)) + "." + (new RoundingCIF13().IntToString(inches));
 
             IN.setClientHeight(answer);
-            IN.setHeightm(heightm);
+            IN.setHeightm(heightm/100);
         }
 
         if(Inches.isChecked())
         {
             IN.setHieghtUnits("Inches");
             IN.setClientHeight(editText77a.getText().toString());
+            IN.setClientHeightinCM((int) ((Float.parseFloat(IN.getClientHeight())) /0.393700787));
         }
 
         if(Meter.isChecked())
@@ -231,6 +240,7 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
             int meters = new RoundingCIF13().StringToInt(editText80a.getText().toString());
             int mcm = new RoundingCIF13().StringToInt(editText81a.getText().toString());
+            int cm = (meters * 100) + mcm;
 
             String answer = (new RoundingCIF13().IntToString(meters)) + "." + (new RoundingCIF13().IntToString(mcm));
 
@@ -240,6 +250,7 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
             android.util.Log.d("what units", IN.getWeightUnits());
 
             IN.setClientHeight(answer);
+            IN.setClientHeightinCM(cm);
         }
 
 
@@ -287,6 +298,7 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
     private HealthProfileCiF3 GetOpeningBalance(HealthProfileCiF3 IN)
     {
+        IN.CalculateBMI();
 
         return IN;
 
@@ -660,6 +672,11 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         {
             return 0;
         }
+    }
+
+    private void addToSharedPref(String input)
+    {
+       CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds(input);
     }
 
 }

@@ -8,7 +8,7 @@ import java.util.HashMap
  * Android template wizards.
  *
  * TODO: Replace all uses of this class before publishing your app.
- */
+ *
 object PlaceholderContent {
 
     /**
@@ -55,3 +55,4 @@ object PlaceholderContent {
         override fun toString(): String = content
     }
 }
+        */

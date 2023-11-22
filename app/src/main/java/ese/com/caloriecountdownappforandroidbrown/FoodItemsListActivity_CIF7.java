@@ -9,7 +9,7 @@ import android.os.Bundle;
 import androidx.fragment.app.FragmentManager;
 
 /**
- * Created by lokeke on 14/10/2015.
+ * Created by ESE on 14/10/2015.
  */
 public class  FoodItemsListActivity_CIF7 extends FragmentActivity
 {

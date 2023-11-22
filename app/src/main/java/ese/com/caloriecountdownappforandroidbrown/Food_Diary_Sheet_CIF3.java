@@ -31,6 +31,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private static int REQUEST_CODE_ADD_NEW_ITEM = 3;
     private static int REQUEST_CODE_SPELLINGITEMSLIST = 4;
     private static int REQUEST_CODE_RECALIBRATE = 5;
+    private static int REQUEST_CODE_JUSTADD = 6;
     private static final String TAG = "Calorie Countdown App";
     public static final String TOTAL_CREDIT_VALUE = "Total Credit Countup Value";
     public static final String SUMMATION_TEXT = "Report Summary";
@@ -47,6 +48,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Button mCancel2;
     private Button mAddNewItem;
     private Button mRecalibrate;
+    private Button mJustAdd;
 
     private Context mAppContext;
 
@@ -84,6 +86,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         mMultiSearchButton = (Button) findViewById(R.id.button4);
         mCancel = (Button) findViewById(R.id.button8);
         mCancel2 = (Button) findViewById(R.id.button9);
+        mJustAdd = (Button) findViewById(R.id.button6);
         mRecalibrate = (Button) findViewById(R.id.button11);
         mRecalibrate.setOnClickListener(new View.OnClickListener()
         {
@@ -91,6 +94,10 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             {
                launch_recalibrate();
             }
+        });
+        mJustAdd.setOnClickListener(new View.OnClickListener()
+        {
+            public void onClick(View v) {launch_JustAdd();}
         });
         mAddNewItem = (Button) findViewById(R.id.button3);
         mAddNewItem.setOnClickListener(new View.OnClickListener()
@@ -165,13 +172,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 mFoodItems = ShowFetch(mFoodItems);
 
                 android.util.Log.d("Multi-search", "We are below Show Fetch");
-
-
-
-
-
-
-
 
             }
         });
@@ -610,7 +610,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private ArrayList<Food_Item_CIF4> MultiSearch(Food_Item_CIF4 foodextracted)
     {
 
-
         //Alogrithm Engineering :
         // For each Food item in mFoodItems perform a Search
         //Builder :
@@ -687,8 +686,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             FoodItemsLab_CIF9.get(getApplicationContext()).appendmFoodItems(FetchedFoodItems);
 
         }
-
-
 
         return FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems();
     }
@@ -810,6 +807,12 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     {
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Recalibrate.class);
         startActivityForResult(i, REQUEST_CODE_RECALIBRATE);
+    }
+
+    private void launch_JustAdd()
+    {
+        Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Raw_Calories.class);
+        startActivityForResult(i, REQUEST_CODE_JUSTADD);
     }
 
 

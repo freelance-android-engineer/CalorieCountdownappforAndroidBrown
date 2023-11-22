@@ -177,9 +177,6 @@
 
 
 
-
-
-
                                                                     <item android:id="@+id/sub-submenuitem15" android:title="@string/Health_Data6a">
 
                                                                         <menu>
@@ -216,6 +213,12 @@
 
                                                                             <item android:id="@+id/action_stop_weightloss"
                                                                                 android:title="@string/action_stop_weightloss_title"/>
+
+
+                                                                            <item android:id="@+id/action_stop_weightlossb"
+                                                                                android:title="@string/action_stop_weightloss_titleb"/>
+
+
 
                                                                             <item android:id="@+id/action_Client_Guide"
                                                                                 android:title="@string/action_Client_Guide_title"/>

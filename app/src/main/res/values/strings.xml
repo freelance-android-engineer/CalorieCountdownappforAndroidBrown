@@ -25,6 +25,7 @@
 
     <string name="Debit_Button">Debit</string>
     <string name="action_start_weightloss_title">Start Weight Loss</string>
+    <string name="action_start_weightloss_titleb">Recalibrate</string>
     <string name="action_kitty">Kitty</string>
 
     <string name="Health">Health APIs</string>
@@ -83,9 +84,10 @@
 
 
     <string name="Health_Data3b">Walking Plan</string>
-    <string name="action_food_diary_credit_title">Credit / Food and Diet Diary </string>
-    <string name="action_fitness_log_debit_title"> Debit / Fitness and Activity Log</string>
+    <string name="action_food_diary_credit_title">Credit and Food and Diet Diary </string>
+    <string name="action_fitness_log_debit_title"> Debit and Fitness and Activity Log</string>
     <string name="action_stop_weightloss_title">Stop Weight Loss</string>
+    <string name="action_stop_weightloss_titleb">Recalibrate</string>
     <string name="action_Client_Guide_title">Using Calorie Countdown app</string>
     <string name="action_log_it_in_reminder_title">Change Notifications times </string>
     <string name="Log_it_in_1">Breakfast Time: (Use HHMM 24 Hour format)</string>
@@ -356,7 +358,10 @@
 "SNACK,Confectionery : Chocolate : Mars Bar : 40g,100,177,6.6,3.2,0,1.7,27,24,0.17,N,0,1\n" +
 "ING,Confectionery : Chocolate : Mars Bar : 40g,100,177,6.6,3.2,0,1.7,27,24,0.17,N,0,1\n" +
 "DRINK,Coke : Coca Cola : Coca-Cola : 250ml,100,110,0,,,,,,,N,,0.89\n" +
-"ING,Coke : Coca Cola : Coca-Cola : 250ml,100,110,0,,,,,N,,0.89\n" +
+"ING,Coke : Coca Cola : Coca-Cola : 250ml,100,110,0,,,,,,,N,,0.89\n" +
+ "ING, Amstel Bier : Beer : 440ml,100,137,0,,,,7.92,,0.03,N,,1\n" +
+        "ING, Amstel Bier : Beer : 330ml,100,102,0,,,,5.94,,0.02,N,,1\n" +
+        "ING,Red Leicester balsamic red onion mini flatbread : 148g,100,402,11.6,4.2,0,14.8,48.2,2.8,1.4,N,4.2,3.5\n" +
 "ING,Red Wine : half bottle,100,333,0,6,,,,,,,,\n" +
 "DRINK,Red Wine : half bottle,100,333,0,6,,,,,,,,\n" +
 "DRINK,Lime Cordial,100,5,0.4,0,0,0.4,0.4,0.4,0.06,Y,0.4,1\n" +
@@ -1756,7 +1761,118 @@
         "ING, Uba,100,315,1,0,0,21,52,0,0,N,0,1\n" +
         "ING, Stock Fish,100,327,1,0,0,78,0,0,0,N,0,1\n" +
         "ING, Stock Fish and Uba,100,650,1,0,0,99,52,0,0,N,0,1\n" +
+        "ING, Advocado,100,250,22,3,0,3,13,0,0,Y,10,1\n" +
         "ING, Fufu : Pounded Yam,100,550,0.2,0,0,2,37.4,0.7,0.011,Y,5.3,\n" +
+
+        "ING, Venti : Caramel Macchiato : Starbucks,100,310,9,6,0,13,44,42,0.19,N,,1\n" +
+        "ING, Scone,100,262,12.5,7.5,0,4.5,33.3,9.3,0.3129,N,0.8,1\n" +
+        "ING, Chicken Stuffing Sandwich : Tesco,100,348,13.9,1.5,0,16.5,33.7,1.5,0.1.07,N,11.3,2.99\n" +
+        "ING, jam doughnut,100,205,6.9,2.5,0,3.6,31.9,8.5,0.002,N,1.5,1\n" +
+        "ING, mousse,100,121,5.39,3.29,0,1.68,16.1,15.4,0.07,Y,0.35,1\n" +
+        "ING, Aduna Moringa,100,55,1.08,0.306,0,4.5,4.6,1.43,0.031,Y,4.32,1\n" +
+        "ING, Grated Cheddar Cheese : Tesco,100,,,,0,,37.4,0.7,0.011,Y,,1\n" +
+        "ING, Grated Mozzarella Cheese (30g) : Tesco,100,90,,,0,,37.4,0.7,0.011,Y,,1\n" +
+        "ING, Beef Mince Sauce Pasta sauce pasta sauce,100,250,20,,0,,,,,N,,1\n" +
+        "ING, BBQ Sauce BBQ sauce,100,70,,,0,,18,16,.290,N,,1\n" +
+        "ING, Tangerine,100,47.3,0,0,.7,11.7,9.3,0.0018,Y,1.6,1\n" +
+        "ING, Flapjack 65g : Starbucks,100,313,16.3,8.5,0,4.7,35.1,18.9,0.00029,Y,3.6,\n" +
+        "ING, Hot Dog,100,400,16.25,8.45,0,,,,,N,,1\n" +
+        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,313,16.25,8.45,0,4.76,35.1,18.85,0.3,Y,3.58,1\n" +
+        "ING, Cookies Biscuit : Milka Cookie Sensation Oreo Creme (26g),100,135,7.4,3.6,0,1.1,16,10,0.14,N,0.5,1\n" +
+
+        "ING, Cheddar Cheese : 30g,100,125,10.5,6.5,0,7.6,0,0,0.005,N,0,1\n" +
+        "ING, Jacket Potato, Cheddar Cheese with Butter : 280g,100,500,24.8,15.5,0,15.7,51.6,3.3,0.001,N,5.9,1\n" +
+        "ING, Orange Juice 500ml,100,175,2.5,0.5,0,3,40.5,40.5,0.0005,Y,2.5,1\n" +
+        "ING, Wholemeal Bread : 1 Slice 40g,100,87,1,0.2,0,3.8,16.8,1.1,0.0004,Y,2.4,1\n" +
+        "ING, Granola : 45g,100,184,4.1,0.5,0,3.6,31.5,10.8,0,Y,3.1,1\n" +
+        "ING, Chicken Sausage : One 40g,100,73,4.8,1.32,0,5.88,0.84,0.16,0.0008,N,0.76,1\n" +
+        "ING, Americano Medium,100,16,0.3,0.1,0,1.4,1.5,0.2,0.0008,N,0.3,1\n" +
+        "ING, Greggs : Sausage Roll,100,329,22,12,0,9.4,24,0,0.002,N,0,1\n" +
+        "ING, Banana and Pecan Loaf Cake : 80g,100,325,18,3.9,0,4.2,35,18,0.0004,N,0,1\n" +
+        "ING, 2 Pieces Chicken and 2 Wings : Fried Chicken,100,1037,42.3,12.3,0,77.4,84.5,8.3,0.0052,N,0,1\n" +
+        "ING, 2 Pieces Chicken : Fried Chicken,100,834,32.6,9.2,0,57.8,75,8.2,0.0042,N,0,1\n" +
+        "ING, Sardines : 25g,100,55,3.5,0.8,0,5.8,0,0,0.00025,Y,0,1\n" +
+        "ING, Croissant Medium (60g),100,224,11.8,5.9,0,5,26,3.2,0.0005,N,1.9,1\n" +
+        "ING, Blackcurrant Jam : 8g Level Tbsp,100,19,0,0,0,0,4.6,4.6,0,Y,0.3,1\n" +
+        "ING, Croissant : Chocalate and Hazelnut,100,329,17,8.6,0,7,37.9,10.4,0.00057,N,1.6,1\n" +
+        "ING, Pomegranate Crush Smoothie 150ml,100,100,0,0,0,0.8,15.5,14.5,0.000001,Y,0.5,1\n" +
+        "ING, Pomegranate Seeds 80g,100,44,0.4,0,0,1,9.6,0.5,0.000001,Y,0.5,1\n" +
+        "ING, Almond Milk 40ml,100,9,0.4,0,0,0.2,1,1,0.00006,Y,0.2,1\n" +
+        "ING, Cereal : Crunchy Nut Salted Caramel 45g,100,185,1.7,0.3,0,3.2,39,14.4,0.000041,Y,1.1,1\n" +
+        "ING, Cereal : Crunchy Nut 45g,100,200,1.7,0.3,0,3.2,39,14.4,0.000041,Y,1.1,1\n" +
+        "ING, Mackerel Fillets 160g,100,453,35.8,8.2,0,32.5,0,0,0.000066,Y,0,1\n" +
+        "ING, Spaghetti White 240g,100,338,1.4,0.2,0,10.6,75.6,2.4,0.00002,N,4.1,1\n" +
+        "ING, Hobgoblin Ruby Ale Beer 500ml,100,266,0,0,0,,,,,N,,1\n" +
+        "ING, Coconout Rice 125g,100,210,5.3,3.4,0,4.4,35,0.6,0.00002,Y,1.5,1\n" +
+        "ING, Onions fried 40g,100,38,2.1,0.1,0,0.5,4.5,3.4,0,Y,1.2,1\n" +
+        "ING, Mustard 5g,100,7,0.4,0,0,0.4,0.5,0.4,0.00037,Y,0.1,1\n" +
+
+        "ING, Prime Tropical Punch 500ml,100,25,0,0,0,0,6,2,0.00005,N,0,1\n" +
+        "ING, Whole Milk 40ml,100,25,1.4,0.9,0,1.4,1.8,1.8,0.00004,Y,0,1\n" +
+        "ING, Lemon and Poppyseed Muffin 75g,100,466,23,2.5,0,7.2,57,19,0.000066,N,0.9,1\n" +
+        "ING, Pink n White Wafers 85g,100,50,0.2,0.1,0,0.8,11.2,5.4,0.00003,N,0.2,1\n" +
+        "ING, Caramel Macchiato Venti,100,310,8,5,0,14.5,45,43,0.00045,N,0,1\n" +
+        "ING, Caramel Macchiato Grande,100,205,5.3,3.3,0,9.6,29.7,28.4,0.0003,N,0,1\n" +
+        "ING, Peach and Raspberry Overnight Oat : Pot,100,268,5.3,2.5,0,5,48,14,0.00008,Y,4,1\n" +
+        "ING, Starbucks Festive Feast Panini,100,515,17,2.7,0,29,60,5.4,0.0018,N,2.9,1\n" +
+        "ING, Subway Philly Steak Sub 6 Inch,100,281,5.3,1.6,0,20,38,1,0.0014,Y,1.9,1\n" +
+        "ING, Subway Philly Steak Sub Footlong,100,562,10.6,3.2,0,40,76,2,0.0028,Y,3.8,1\n" +
+        "ING, Greggs Bacon and Cheess Wrap Pastry,100,385,26,13,0,14,25,1,0.0016,N,0,1\n" +
+        "ING, Caffe Latte Medium,100,175,6.1,5.9,0,12.9,17.1,16.3,0.00042,N,0.2,1\n" +
+        "ING, Cheese and Pickle Sandwich,100,366,10,6.3,0,15,52,9.4,0.0014,N,4,1\n" +
+        "ING, Ham and Cheese Panini 185g,100,507,16,9.1,0,30,60,1.6,0.00322,N,0.2,1\n" +
+        "ING, Five Cheese Toastie 144g,100,345,12,7.6,0,17,41,3.7,0.0016,N,2.6,1\n" +
+        "ING, Tuna Melt Panini 187g,100,443,11,5.2,0,28.1,56.1,3.7,0.00181,N,3.9,1\n" +
+        "ING, Starbucks Tumeric Shot 100ml,100,42,0.5,0,0,0.5,8.9,8.9,0.00001,Y,0.5,1\n" +
+        "ING, Starbucks Fruit and Seed Porridge Topper,100,120,4.5,0.7,0,3.9,15,13,0.00008,Y,1.8,1\n" +
+
+        "ING, Starbucks Classic Oatmeal Pot 300g,100,233,6.3,3,0,10,33,8.7,0.00017,Y,2.1,1\n" +
+        "ING, Actimel Original 100g,100,27,0.1,0,0,2.7,3,3,0.0001,Y,0.2,1\n" +
+        "ING, Chicken Drumstick Roasted 100g,100,152,5.1,1.4,0,26.6,0,0,0.00043,Y,0,1\n" +
+        "ING, Wrigley's Hubba Bubba Bublle Gug 7g,100,20,0,0,0,0,5.1,4.8,0,N,0,1\n" +
+        "ING, Heinz Soup of the Day 200g,100,75,3.2,1.8,0,2.8,8.9,2,0.00101,Y,2,1\n" +
+        "ING, Baked Beans 208g,100,168,0.8,0.2,0,10,32.2,8.9,0.00124,Y,8.1,1\n" +
+        "ING, Biocol Skimmed Milk 250ml,100,93,0,0.3,0,8.5,13,13,0.00028,Y,0,1\n" +
+        "ING, Chicken tighs Roasted 125g,100,236,16.9,4.6,0,20.9,0,0,0.00024,N,0,1\n" +
+        "ING, Remedy Kombucha 250ml,100,7,1.2,0.2,0,1.2,3.5,0,0.00002,Y,1.2,1\n" +
+
+        "ING, Naked Green Machine Smoothie 300ml Kiwi Pineapple,100,150,0,0,0,0.3,36,30,0,Y,1.5,1\n" +
+        "ING, Toffee Nut Cookie,100,364,20,11,0,3.5,42,22,0.00013,N,0.9,1\n" +
+        "ING, Starbucks Mocha Frappucino Whole Milk Medium,100,356,16.1,11.3,0,5.4,47.1,46.1,0.00063,N,0.2,1\n" +
+        "ING, Starbucks Ham Sub Roll,100,425,13,4.5,0,23,53,4.5,0.0017,N,1.9,1\n" +
+        "ING, Oat Milk 240ml,100,130,7,0.5,0,1.9,14,6.7,0.00029,Y,1.9,1\n" +
+        "ING, 3 Piece Chicken Meal with Diet Coke,100,1389,,,0,0,,,,N,,1\n" +
+        "ING, Naked Ruby Machine Smoothie 300ml Raspberry Pomegranate,100,141,0,0,0,0.6,36,33,0,Y,1.5,1\n" +
+        "ING, Lemsip Max Lemon Sachet 4.8g,100,16,0,0,0,0,4,4,0,Y,0,1\n" +
+        "ING, McDonalds Hash Brown 57g,100,127,7.4,0.7,0,1.1,13,0.2,0.00064,N,1.2,1\n" +
+        "ING, Sprite Zero 330ml,100,3,0,0,0,0,0,0,0.0001,Y,0,1\n" +
+        "ING, McDonalds Cheesy Bacon Flatbread,100,278,12,6,0,14,28,2.5,0.0018,N,1.5,1\n" +
+        "ING, McDonalds Porridge with Golden Syrup,100,217,3,1.3,0,7.8,39,22,0.0003,Y,1.9,1\n" +
+        "ING, McDonalds Double Sausage and Egg McMuffin,100,551,32,12,0,35,28,3.7,0.0025,N,2.5,1\n" +
+        "ING, Apple Slices Bag 80g,100,46,0.4,0.1,0,0.4,9.7,9.7,0.00001,Y,2.2,1\n" +
+        "ING, McDonalds Carrot Bag 80g,100,34,0.2,0.1,0,0.5,6.2,5.8,0.00008,Y,2.4,1\n" +
+        "ING, Crisps Chips Kettie Sea Salt and Balsamic 40g,100,205,11.7,0.8,0,2.5,21.6,0.7,0.0007,N,1.7,1\n" +
+        "ING, Chicken Wing Small,100,84,5,1.4,0,9.8,0,0,0.00007,N,0,1\n" +
+
+        "ING, Crunchy Nut Chocolate Clusters 45g,100,208,7.7,2.3,0,3.6,30.2,14,0.00037,Y,1.6,1\n" +
+        "ING, Plums 65g,100,26,0.1,0,0,0.4,6.1,6.1,0,Y,0.8,1\n" +
+        "ING, Starbucks Milk Chocolate Bar 40g,100,223,14,8.4,0,2.8,21,20,0.0001,N,0.7,1\n" +
+        "ING, Real Hand Cooked Potato Crisps 35g,100,174,8.9,0.8,0,2.5,20.3,1.5,0.00035,N,1.3,1\n" +
+        "ING, Madri Lager 660ml,100,244,0,0,0,0,,,,N,,1\n" +
+        "ING, Peroni Nastro Azzurro Pint,100,239,0,0,0,1.7,18.2,0,0,N,0,1\n" +
+        "ING, Naked Blue Machine Smoothie 300ml Goji Berry Blackcurrant,100,150,0,0,0,0.3,36,30,0,Y,1.5,1\n" +
+        "ING, Pounded Yam 130kg,100,470,6,,0,4,103,,,N,,1\n" +
+        "ING, Tea Whole Milk 1 Sugar,100,46,1.3,0.8,0,1.4,6.9,6.9,0.00004,Y,0,1\n" +
+        "ING, Minestrone Soup 500ml,100,186,4.6,0.6,0,7,30,13,0.005,Y,8,1\n" +
+        "ING, Cocoyam Fufu 100g,100,357,0.1,0.1,0,4.6,83,3.7,0.00007,N,0,1\n" +
+        "ING, Lockets Extra Strong 4.5g,100,17,0,0,0,0,4.3,4.1,0,N,0,1\n" +
+        "ING, Sultana Scone One 60g,100,218,6.7,4.2,0,4.3,34.3,9.5,0.0006,N,1.3,1\n" +
+        "ING, Greggs Roast Chicken Mayo Baguette,100,467,12,1.5,0,26,62,4.9,0.0016,N,0,1\n" +
+
+        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
+        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
+        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
+
 
 
 
@@ -2125,6 +2241,7 @@
     <string name="title_activity_food_note_item_detail_host">FoodNoteItemDetailHostActivity</string>
     <string name="title_foodnoteitem_list">FoodNoteItems</string>
     <string name="title_foodnoteitem_detail">FoodNoteItem Detail</string>
+    <string name="title_activity_raw_calories">Raw_Calories</string>
 
 
 </resources>

@@ -11,6 +11,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.*;
+import java.lang.*;
 
 import java.util.ArrayList;
 
@@ -21,6 +22,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     //Create a global for populate that is checked if true of false or better
     // create a check if database populated private function
     // var knowledge time explosion job interview get knowledge
+
+    private int Unique_ID = 0;
 
     private final String TAG = " SQLite App Data";
 
@@ -1043,16 +1046,28 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     public String GetTargetWeight() {
+
+
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_TARGET_WEIGHT, null);
         cursor.moveToFirst();
         TargetWeightCursor countdownBalanceCursor = new TargetWeightCursor(cursor);
         if (countdownBalanceCursor.getCount() < 1) {
             countdownBalanceCursor.close();
-            return new String("January 2, 2001");
+            return new String("1");
         } else {
-            String repulse = GetTargetWeightCursor(countdownBalanceCursor);
-            countdownBalanceCursor.close();
-            return repulse;
+            try {
+                android.util.Log.d("Target weight Count", Integer.toString(countdownBalanceCursor.getCount()));
+                boolean bull = countdownBalanceCursor.moveToFirst();
+                String repulse = GetTargetWeightCursor(countdownBalanceCursor);
+                //countdownBalanceCursor.close();
+                return repulse;
+            }
+            catch(java.lang.IllegalStateException e) {
+                //Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+                //dialog.Showing("Please enter your Target weight using main menu");
+                return "0";
+            }
+            finally { countdownBalanceCursor.close();}
         }
     }
 
@@ -1367,8 +1382,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
 
     public long Insert_Target_Weight(String tw) {
+
+        deleteTargetWeightTable();
         ContentValues cv = new ContentValues();
+
+
+
+        Unique_ID = new Random().nextInt();
+        Unique_ID = Math.abs(Unique_ID);
+
+        cv.put("_id", Unique_ID);
         cv.put(COLUMUM_TARGET_WEIGHT_TARGETWEIGHT, tw);
+
         int affected = getWritableDatabase().delete(TABLE_TARGET_WEIGHT, null, null);
         return getWritableDatabase().insert(TABLE_TARGET_WEIGHT, null, cv);
     }
@@ -2388,6 +2413,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
+    public void PostValueToTargetWeightTable(String Input1)
+    {
+        long res = Insert_Target_Weight(Input1);
+    }
 
 
 
@@ -2395,6 +2424,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     {
         //Alogrithm Engineering -> Delete Row Where Meal_Type = 'Dummy"
         //Delete all Rows where Meal_type = Dummy.
+    }
+
+    private void deleteTargetWeightTable()
+    {
+        SQLiteDatabase db = getWritableDatabase();
+        db.execSQL("DELETE FROM target_weight");
+        db.close();
     }
 
 }

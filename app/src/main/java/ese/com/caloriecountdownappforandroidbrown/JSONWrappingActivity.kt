@@ -1,20 +1,26 @@
 package ese.com.caloriecountdownappforandroidbrown
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Bundle
 //import android.support.design.widget.FloatingActionButton
 //import android.support.design.widget.Snackbar
 //import android.support.v7.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatActivity
+
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.webkit.WebView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import java.net.URLEncoder
 import com.google.android.material.snackbar.Snackbar
+import org.jsoup.Jsoup
+import java.net.URLEncoder
+import java.net.URL
+import java.io.*
 
 
 class JSONWrappingActivity : AppCompatActivity() {
@@ -72,7 +78,21 @@ class JSONWrappingActivity : AppCompatActivity() {
                     val myWebView: WebView = findViewById(R.id.webview1)
                     myWebView.webViewClient = Google_Search_WebView_CiF000123fragmented_Object(this)
                     myWebView.loadUrl(url)
-                    myWebView.parse(url)
+
+                    val SDK_INT = Build.VERSION.SDK_INT
+                    if (SDK_INT > 8) {
+                        val policy = ThreadPolicy.Builder()
+                            .permitAll().build()
+                        StrictMode.setThreadPolicy(policy)
+                    }
+
+                   // val document: org.jsoup.nodes.Document = Jsoup.connect(url).userAgent("Mozilla/5.0")
+                     //   .timeout(30000).get()
+                    //val data: String = Jsoup.connect(url).ignoreContentType(true).execute().body();
+                    //
+
+
+
                     //val myWebView = android.webkit.WebView(this)
 
                     //myWebView.loadUrl("http://www.google.com")
@@ -84,7 +104,23 @@ class JSONWrappingActivity : AppCompatActivity() {
 
                    // val i = Intent(this, Google_Search_WebView_CiF000123fragmented_Object::class.java)
 
-                    Log.d("Multi-search", "We are below Intent")
+                    //Log.d("Multi-search", "We are below Intent")
+                    //val apiData: String = URL(url).readText()
+                    //
+
+
+
+                    val urlx: URL? = try {
+                        URL(url)
+                    }catch (e: java.net.MalformedURLException){
+                        Log.d("Exception", e.toString())
+                        null
+                    }
+
+                    if (urlx != null) {
+                        urlx.getString()?.let { it1 -> myWebView.parse(it1) }
+                    }
+
 
 
                     //startActivityForResult(i, this.REQUEST_CODE_WEB_SEARCH )
@@ -111,6 +147,22 @@ class JSONWrappingActivity : AppCompatActivity() {
     }
 }
 
-private fun WebView.parse(url: String) {
+fun URL.getString(): String? {
+    val stream = openStream()
+    return try {
+        val r = BufferedReader(InputStreamReader(stream))
+        val result = StringBuilder()
+        var line: String?
+        while (r.readLine().also { line = it } != null) {
+            result.append(line).appendLine()
+        }
+        result.toString()
+    }catch (e: IOException){
+        e.toString()
+    }
+}
 
+private fun WebView.parse(url: String)
+{
+    Log.d("JSOUP", url)
 }

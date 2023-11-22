@@ -43,10 +43,43 @@ public class Mif3BMIFunction {
 
 
                 try {
-                    //ht = ((double) Double.parseDouble(bmidata.getClientHeight()));
-                    //ht = ht * 0.393700787;
-                    //ht = this.round(ht);
-                    //bmidata.setClientHeight(Double.toString(ht));
+                    ht = bmidata.getClientHeightinCM();//((double) Double.parseDouble(bmidata.getClientHeightinCM()));
+                    ht = ht * 0.393700787;
+                    ht = this.round(ht);
+                    bmidata.setClientHeight(Double.toString(ht));
+                    bmidata.setClientHeight(bmidata.getClientHeight());
+                } catch (Exception dm) {
+                    ht = 0;
+                    //IDO ~> Alogrithm Engineering ~> Android : Dialog("Error with number format");
+                    Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                    display_dialog_cif11.WrongNumberFormatMsg();
+                    //See what happens.
+
+                }
+            }
+
+            if (bmidata.getHieghtUnits() == "Feet and Inches") {
+                // 1cm = .393700787 inches
+
+
+                try {
+                    String tht = bmidata.getClientHeight();
+                    String ht1 = tht.substring(0);
+                    String ht2 = tht.substring(2,(tht.length()-1));
+
+                    double hta = Double.parseDouble(ht1);
+                    hta = hta * 30;
+
+                    double htb = Double.parseDouble(ht2);
+                    htb = htb / 0.39370087;
+                    hta = hta + htb;
+                    int cm = (int) hta;
+
+                    bmidata.setClientHeightinCM(cm);//((double) Double.parseDouble(bmidata.getClientHeightinCM()));
+                    ht = bmidata.getClientHeightinCM();
+                    ht = ht * 0.393700787;
+                    ht = this.round(ht);
+                    bmidata.setClientHeight(Double.toString(ht));
                     bmidata.setClientHeight(bmidata.getClientHeight());
                 } catch (Exception dm) {
                     ht = 0;
@@ -92,6 +125,8 @@ public class Mif3BMIFunction {
     {
         return bmidata;
     }
+
+
     private double round(double in)
     {
         in = in * 100;

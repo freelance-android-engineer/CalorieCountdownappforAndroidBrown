@@ -5,15 +5,18 @@ import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.graphics.pdf.*;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -47,6 +50,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private static final int REQUEST_CODE_DIET_PLAN = 16;
     private static final int REQUEST_CODE_START_JOURNAL_ACTIVITY = 17;
     private static final int REQUEST_CODE_GET_FOOD_NOTE_ITEM = 18;
+    private static final int REQUEST_CODE_RECALIBRATION = 19;
+    private static final int REQUEST_CODE_PDFViewer = 20;
 
     private Button mCreditButton;
     private Button mDebitButton;
@@ -247,6 +252,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.action_stop_weightlossb)
+
+        {
+            Start_Recalibration();
+            return true;
+        }
+
         if (id == R.id.action_log_it_in_reminder)
 
         {
@@ -310,7 +322,28 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void Start_Client_Guide()
     {
-        ShootClientGuide();
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.PDFViewer.class);
+        this.startActivityForResult(i, REQUEST_CODE_PDFViewer);
+
+        //ShootClientGuide();
+
+        //File file = new File("ClientGuide001.pdf");
+        //Uri path = Uri.fromFile(file);
+
+        //Intent pdfOpenintent = new Intent(Intent.ACTION_VIEW);
+        //pdfOpenintent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        //pdfOpenintent.setDataAndType(path, "application/pdf");
+
+        //try
+        //{
+          //  startActivity(pdfOpenintent);
+        //}
+        //catch (ActivityNotFoundException e)
+        //{
+
+        //}
+
+
     }
 
     private void ShootClientGuide()
@@ -508,6 +541,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
             //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
             Countdown(DebitResult);
+            Store_Dayend(instance.Get_currentBalanceInt());
             Refresh();
         }
     }
@@ -544,6 +578,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
 
         }
+
+    private void Start_Recalibration()
+    {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Recalibrate.class);
+        this.startActivityForResult(i, REQUEST_CODE_RECALIBRATION);
+
+    }
 
 
         public void Start_Weight_Loss ()
@@ -597,7 +638,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
 
     public void Countup(int credit) {
-        //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
+        android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         String CountdownFigure = countdownbalance.getText().toString();
         CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) + credit);
@@ -686,6 +727,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         return data_model_adapter.StoreBalance(Balance);
     }
 
+    public long Store_Dayend(int data)
+    {
+        MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+        return data_model_adapter.StoreDayEndBalance(data);
+    }
+
     private Date add24(Date time)
     {
         //long OneMinute = (1000 * 60 * 60 * 24);
@@ -750,12 +797,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 //call new day and subtrack please
         mBalance_textview = (TextView)findViewById(R.id.textView);
         mBalance_textview.setText(mBalance_text);*/
-
-
-
-
-
-
 
 
 
@@ -956,13 +997,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-    private int Get_currentBalanceInt()
+    public int Get_currentBalanceInt()
     {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         return new RoundingCIF13().StringToInt(countdownbalance.getText().toString());
     }
 
-    private String Get_currentBalance()
+    public String Get_currentBalance()
     {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         return new String(countdownbalance.getText().toString());
@@ -976,8 +1017,23 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         mBalance_text = model_adapter.RetrieveBalance();
 
         android.util.Log.d("Set Balance = ", mBalance_text);
+        model_adapter.StoreTargetWeightLossPounds("249");
 
         countdownbalance.setText(mBalance_text);
+    }
+
+    private void Set_Balance(String input)
+    {
+        final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+
+
+        mBalance_text = input;
+
+        android.util.Log.d("Set Balance = ", mBalance_text);
+
+        countdownbalance.setText(mBalance_text);
+        StoreCountdownBalance(mBalance_text);
+        Kitty();
     }
 
     private void Refresh()
@@ -1125,6 +1181,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         return data_model_adapter.RetrieveBalance();
     }
 
+    public String RetrieveTargetWeightPounds() {
+
+        //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+        //return data_model_adapter.RetrieveTargetWeight();
+
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        return pref.getString("Target_Weight", null);
+
+
+    }
+
 
     public void DisplaySummaryString(String summary) {
         Log.d(TAG, summary);
@@ -1241,9 +1308,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         ResetDinnerTime = dtime;
     }
 
-    public void ChangeTextColor()
+    public void ChangeTextColor(String input)
     {
-
+       Set_Balance(input);
     }
 
     public void ChangeButtonColor()
@@ -1285,6 +1352,21 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     {
         return false;
     }
+
+    public void Store_Target_Weight_Pounds(String Input1)
+    {
+        //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+        //data_model_adapter.StoreTargetWeightLossPounds(Input1);
+
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        android.content.SharedPreferences.Editor editor = pref.edit();
+
+        editor.putString("Target_Weight", Input1);
+        editor.commit();
+
+    }
+
+
 
 
     class CurrentCalendar

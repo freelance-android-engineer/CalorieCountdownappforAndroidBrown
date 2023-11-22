@@ -1,19 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="ese.com.caloriecountdownappforandroidbrown">
+    package="ese.com.caloriecountdownappforandroidbrown"
+    tools:ignore="ImpliedTouchscreenHardware,MissingLeanbackLauncher,MissingLeanbackSupport">
 
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <uses-feature
-        android:name="android.hardware.touchscreen"
-        android:required="false" />
-    <uses-feature
-        android:name="android.software.leanback"
-        android:required="true" />
-
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+
+
+    <supports-screens
+        android:largeScreens="true"
+        android:normalScreens="true"
+        android:smallScreens="true"
+        android:resizeable="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true">
+
+    </supports-screens>
 
     <application
         android:allowBackup="true"
@@ -23,6 +29,17 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name=".PDFViewer"
+            android:exported="false" />
+        <activity
+            android:name=".Debit_Steps"
+            android:exported="false" />
+        <activity
+            android:name=".Raw_Calories"
+            android:exported="false"
+            android:label="@string/title_activity_raw_calories"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".FoodNoteItemDetailHostActivity"
             android:exported="false"
@@ -50,29 +67,10 @@
             android:exported="false"
             android:label="@string/title_activity_client_guide_acitivity"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity
-            android:name=".CalorieCountdownfromTVActivity"
-            android:banner="@drawable/app_icon_your_company"
-            android:exported="true"
-            android:icon="@drawable/app_icon_your_company"
-            android:label="@string/title_activity_calorie_countdownfrom_tvactivity"
-            android:logo="@drawable/app_icon_your_company"
-            android:screenOrientation="landscape">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".DetailsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".PlaybackActivity"
-            android:exported="false" />
-        <activity
-            android:name=".BrowseErrorActivity"
-            android:exported="false" />
+
+
+
         <!--
              You can find your app ID in the AdMob UI. For android:value,
             insert your own AdMob app ID in quotes, as shown below.

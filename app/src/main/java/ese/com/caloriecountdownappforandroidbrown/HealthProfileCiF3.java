@@ -4,7 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 /**
- * Created by lokeke on 23/02/2016.
+ * Created by ESE on 23/02/2016.
  */
 public class HealthProfileCiF3
 {
@@ -171,6 +171,8 @@ public class HealthProfileCiF3
 
 
     private int High_Heart_Rate_Notifications;
+
+    private int CMHeight;
 
 
     public void Set_High_Heart_Rate_Notifications(int INPUT)
@@ -863,6 +865,40 @@ public class HealthProfileCiF3
         {
             optionselected = IN;
         }
+
+        public void setClientHeightinCM(int IN) { CMHeight = IN;}
+
+        public int getClientHeightinCM(){return CMHeight;}
+
+        public void CalculateBMI()
+        {
+            double bmi = 1;
+            if(getWeightUnits() == "Kilograms"){
+             bmi = (Double.parseDouble(getCurrentWeight())) / ((getClientHeightinCM() * getClientHeightinCM()) * 703);}
+
+            if(getWeightUnits() == "pounds lbs"){
+                 bmi = ((Double.parseDouble(getCurrentWeight()))/2.2) / ((getClientHeightinCM() * getClientHeightinCM()) * 703);}
+
+            bmi = round(bmi);
+            setClientBMI(bmi);
+
+            IdealBMICiF19 ideal = new IdealBMICiF19();
+            setIdealBMI(ideal.GetIdealWeight(getClientHeightImperial())); //gives you ideal wieght, use 22 for ideal bmi
+
+            //Underweight = <18.5
+            //Normal weight = 18.5-24.9
+            //Overweight = 25-29.9
+            //Obesity = BMI of 30 or greater
+        }
+
+    private double round(double in)
+    {
+        in = in * 100;
+        int k = (int) in;
+        in = k;
+        in = in/100;
+        return in;
+    }
 
 
     }

@@ -24,10 +24,12 @@ import androidx.appcompat.widget.Toolbar;
 public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implements SensorEventListener {
 
     public static final String TOTAL_DEBIT_VALUE = "Total Debit Countdown Value";
+    public static int REQUEST_CODE_DEBIT_MAN = 1;
 
     private Button mDebit;
     private Button mSteps;
     private Button mCancel;
+    private Button mStepsManaul;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -59,6 +61,14 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         mDebit = (Button) findViewById(R.id.button12);
         mSteps = (Button) findViewById(R.id.button123);
         mCancel = (Button) findViewById(R.id.button13);
+        mStepsManaul = (Button) findViewById(R.id.button124);
+
+        mCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                weaselpop();
+            }
+        });
 
         mDebit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,6 +91,13 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 //Steps_Activity_CiF1003_fragment_box_Class get_Steps = new Steps_Activity_CiF1003_fragment_box_Class();
                 Update_with_Step_Count();
 
+            }
+        });
+
+        mStepsManaul.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchManual();
             }
         });
 
@@ -225,5 +242,17 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     public int Get_Step_Count()
     {
         return mStep_Count;
+    }
+
+    private void launchManual() {
+        Intent i = new Intent(Debit_Activity_CiF003_fragment_box.this, Debit_Steps.class);
+        startActivityForResult(i, REQUEST_CODE_DEBIT_MAN);
+
+    }
+
+    private void weaselpop()
+    {
+        setResult(1);
+        finish();
     }
 }

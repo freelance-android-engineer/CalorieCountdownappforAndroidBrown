@@ -233,6 +233,8 @@ public class IdealBMICiF19 {
                 WeightinKilograms = (float) (WeightinKilograms / 2.2);
                 android.util.Log.d("Inches Weight in KG2 = ", new RoundingCIF13().FloatToString(WeightinKilograms));
             }
+
+
         }
 
         if(IN.getHieghtUnits() == "Feet and Inches")
@@ -245,6 +247,15 @@ public class IdealBMICiF19 {
                 android.util.Log.d("feet Weight in KG1 = ", new RoundingCIF13().FloatToString(WeightinKilograms));
                 WeightinKilograms = (float) (WeightinKilograms / 2.2);
                 android.util.Log.d("feet Weight in KG2 = ", new RoundingCIF13().FloatToString(WeightinKilograms));
+            }
+
+            if(IN.getWeightUnits() == "kilograms")
+            {
+                android.util.Log.d("Last check HeightKGU", IN.getWeightUnits());
+                WeightinKilograms = (new RoundingCIF13().StringToFloat(IN.getCurrentWeight()));
+                android.util.Log.d("CM Weight in KG1b = ", new RoundingCIF13().FloatToString(HeightinMeters));
+                WeightinKilograms = (float) (WeightinKilograms);
+                android.util.Log.d("CM Weight in KG2b = ", new RoundingCIF13().FloatToString(WeightinKilograms));
             }
         }
 

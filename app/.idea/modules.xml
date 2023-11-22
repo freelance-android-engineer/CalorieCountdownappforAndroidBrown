@@ -3,8 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../CalorieCountdownAppforAndroidBrown.iml" filepath="$PROJECT_DIR$/../CalorieCountdownAppforAndroidBrown.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app.iml" filepath="$PROJECT_DIR$/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../picasso-2.71828/picasso-2.71828.iml" filepath="$PROJECT_DIR$/../picasso-2.71828/picasso-2.71828.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CalorieCountdownAppforAndroidBrown.app.iml" filepath="$PROJECT_DIR$/.idea/modules/CalorieCountdownAppforAndroidBrown.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1406084585/CalorieCountdownAppforAndroidBrown.picasso-2.71828.iml" filepath="$PROJECT_DIR$/.idea/modules/1406084585/CalorieCountdownAppforAndroidBrown.picasso-2.71828.iml" />
     </modules>
   </component>
 </project>
