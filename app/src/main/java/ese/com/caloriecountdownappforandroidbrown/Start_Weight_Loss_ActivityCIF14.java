@@ -1,8 +1,14 @@
 package ese.com.caloriecountdownappforandroidbrown;
 //import android.support.v7.app.ActionBarActivity;
+
+import static ese.com.caloriecountdownappforandroidbrown.R.*;
+
+import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.RadioButton;
 
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -26,65 +32,90 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_start__weight__loss__activity_cif14);
+        setContentView(layout.activity_start__weight__loss__activity_cif14);
 
         FragmentManager fm = getSupportFragmentManager();
 
-        Fragment fragment = fm.findFragmentById(R.id.fragment);
+        Fragment fragment = fm.findFragmentById(id.fragment);
 
         if(fragment == null)
         {
             fragment = new Start_Weight_Loss_ActivityCIF14Fragment();
-            fm.beginTransaction().add(R.id.fragment,fragment).commit();
+            fm.beginTransaction().add(id.fragment,fragment).commit();
         }
 
     }
 
-    public void onRadioButtonClicked(View v)
-    {
-        CM = (EditText) findViewById(R.id.edit_text72);
+    @SuppressLint("NonConstantResourceId")
+    public void onRadioButtonClicked(View v) {
+        CM = (EditText) findViewById(id.edit_text72);
         display_dialog_cif11 = new Display_Dialog_CIF11();
         display_dialog_cif11.Set_mAppContext(this);
-        boolean checked = ((android.widget.RadioButton) v).isChecked();
+        boolean checked = ((RadioButton) v).isChecked();
 
-        switch(v.getId())
-        {
-            case R.id.CM1:
-                if(checked)
-                {
-                    functionCM1(v);
-                }
-                break;
+        if (v.getId() == id.CM1) {
 
-            case R.id.Inches1:
-                if(checked)
-                {
+            if (checked) {
+                functionCM1(v);
+            } else if (v.getId() == id.Inches1) {
+                if (checked) {
                     functionInches1(v);
+                } else if (v.getId() == id.Feet1) {
+                    if (checked) {
+                        functionFeet1(v);
+                    } else if (v.getId() == id.Meters1) {
+                        if (checked) {
+                            functionMeters1(v);
+                        }
+                    }
                 }
-                break;
-
-            case R.id.Feet1:
-                if(checked)
-                {
-                    functionFeet1(v);
-                }
-                break;
-
-            case R.id.Meters1:
-                if(checked)
-                {
-                    functionMeters1(v);
-                }
-                break;
-
+            }
+        } else {
+            //throw new IllegalStateException("Unexpected value: " + v.getId());
         }
+
+
     }
+    /*switch(v.getId())
+    {
+        case id.CM1:
+            if(checked)
+            {
+                functionCM1(v);
+            }
+            break;
+
+        case id.Inches1:
+            if(checked)
+            {
+                functionInches1(v);
+            }
+            break;
+
+        case id.Feet1:
+            if(checked)
+            {
+                functionFeet1(v);
+            }
+            break;
+
+        case id.Meters1:
+            if(checked)
+            {
+                functionMeters1(v);
+            }
+            break;
+
+        default:
+            throw new IllegalStateException("Unexpected value: " + v.getId());
+    }
+} */
 
     private void functionCM1(View view)
     {
 
 
-        mCMEdit = (EditText) findViewById(R.id.edit_text76a);
+        mCMEdit = (EditText) findViewById(id.edit_text76a);
 
         if(mCMEdit.length() < 1)
         {
@@ -94,7 +125,7 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
         {
             double Centi = convertFrmCM2CM(mCMEdit);
             CM.setText(new RoundingCIF13().IntToString((int)Centi));
-            android.util.Log.d("functionCM1",new RoundingCIF13().IntToString((int)Centi));
+            Log.d("functionCM1",new RoundingCIF13().IntToString((int)Centi));
         }
 
 
@@ -104,7 +135,7 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
 
     private void functionInches1(View view)
     {
-        mInchesEdit = (EditText) findViewById(R.id.edit_text77a);
+        mInchesEdit = (EditText) findViewById(id.edit_text77a);
 
         if(mInchesEdit.length() < 1)
         {
@@ -115,15 +146,15 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
         {
             double Inches = convertFrmInches2CM(mInchesEdit);
             CM.setText(new RoundingCIF13().IntToString((int)Inches));
-            android.util.Log.d("functionInches1",new RoundingCIF13().IntToString((int)Inches));
+            Log.d("functionInches1",new RoundingCIF13().IntToString((int)Inches));
         }
 
     }
 
     private void functionFeet1(View view)
     {
-        mFeetEdit1 = (EditText) findViewById(R.id.edit_text78a);
-        mFeetEdit2 = (EditText) findViewById(R.id.edit_text79a);
+        mFeetEdit1 = (EditText) findViewById(id.edit_text78a);
+        mFeetEdit2 = (EditText) findViewById(id.edit_text79a);
 
         if(mFeetEdit1.length() < 1)
         {
@@ -138,15 +169,15 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
         {
             double Feet = convertFrmFeet2CM(mFeetEdit1, mFeetEdit2);
             CM.setText(new RoundingCIF13().DoubleToString(Feet));
-            android.util.Log.d("functionFeet1",new RoundingCIF13().IntToString((int)Feet));
+            Log.d("functionFeet1",new RoundingCIF13().IntToString((int)Feet));
         }
 
     }
 
     private void functionMeters1(View view)
     {
-        mMetersEdit1 = (EditText) findViewById(R.id.edit_text80a);
-        mMetersEdit2 = (EditText) findViewById(R.id.edit_text81a);
+        mMetersEdit1 = (EditText) findViewById(id.edit_text80a);
+        mMetersEdit2 = (EditText) findViewById(id.edit_text81a);
 
         if(mMetersEdit1.length() < 1)
         {
@@ -162,7 +193,7 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
         {
             double Meters = convertFrmMeters2CM(mMetersEdit1, mMetersEdit2);
             CM.setText(new RoundingCIF13().DoubleToString(Meters));
-            android.util.Log.d("functionMeters1",new RoundingCIF13().IntToString((int)Meters));
+            Log.d("functionMeters1",new RoundingCIF13().IntToString((int)Meters));
         }
 
     }
