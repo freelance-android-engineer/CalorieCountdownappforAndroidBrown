@@ -1869,14 +1869,99 @@
         "ING, Sultana Scone One 60g,100,218,6.7,4.2,0,4.3,34.3,9.5,0.0006,N,1.3,1\n" +
         "ING, Greggs Roast Chicken Mayo Baguette,100,467,12,1.5,0,26,62,4.9,0.0016,N,0,1\n" +
 
+        "ING, Krispy Kreme Original Glazed Ring Doughnut 51g,100,195,7.9,3.8,0,3,27,12,0.24,N,1.2,1\n" +
+        "ING, Krispy Kreme Lotus Biscoff Doughnut 94g,100,392,21,8.5,0,5.6,47,17,0.47,N,2.4,1\n" +
+        "ING, Krispy Kreme Nutty Chocolatta Doughnut 87g,100,370,20,9.7,0,6.1,42,17,0.38,N,2.3,1\n" +
+        "ING, Krispy Kreme Chocolate Dreamcake Doughnut 92g,100,364,17,8.7,0,5.2,49,23,0.37,N,2,1\n" +
+        "ING, Krispy Kreme Strawberries and Kreme Doughnut 92g,100,349,17,8.3,0,4.8,46,20,0.4,N,1.7,1\n" +
+        "ING, Krispy Kreme Chocolate Sprinkles Doughnut 51g,100,195,7.9,3.8,0,3,26.6,12,0.24,N,1.2,1\n" +
+        "ING, Krispy Kreme Glazed Raspberry Doughnut 89g,100,310,12,6,0,4.8,47,22,0.42,N,1.9,1\n" +
+        "ING, Krispy Kreme Cookies and Kreme Doughnut 84g,100,354,15.8,7.8,0,3.6,49.9,29.3,0.3,N,1.1,1\n" +
+        "ING, Krispy Kreme Doughnut Bites,100,96,4.4,0,0,1.5,12.8,4.3,0.1,N,0.5,1\n" +
+        "ING, Krispy Kreme Vegan Caramel Iced Ring Doughnut,100,255,10,5,0,3.3,38.4,20.9,0.28,N,1.1,1\n" +
+        "ING, Mini Original Glazed Doughnut Krispy Kreme 6 Doughnuts,100,100,4.1,0,0,1.6,0,6.3,0.12,N,0.6,1\n" +
+        "ING, Krispy Kreme Vegan Choclate Custard Doughnut 88g,100,302,13,6.8,0,4.8,42,17,0.35,N,1.4,1\n" +
+        "ING, Krispy Kreme Salted Caramel Doughnut 95g,100,372,16,8,0,5,52,26,0.41,N,1,1\n" +
+        "ING, Krispy Kreme Strawberry Iced Ring Doughnut 66g,100,261,11,5.6,0,3.2,38,21,0.26,N,0.9,1\n" +
+        "ING, Mini Chocolate Sprinkles Doughnut Krispy Kreme 6 Doughnuts,100,130,4.7,0,0,1.6,0,10.9,0.11,N,0.4,1\n" +
+        "ING, Krispy Kreme Original Filled Kreme Doughnut 73g,100,300,14,6.3,0,3.4,41,23,0.29,N,1.1,1\n" +
+        "ING, Krispy Kreme Friends Ring Doughnut 66g,100,260,10,4.9,0,3.4,38,23,0.25,N,1.4,1\n" +
+        "ING, Mini Strawberry Sprinkles 6 Doughnut,100,135,5.2,0,0,1.6,0,10,0.12,N,0.4,1\n" +
+        "ING, Krispy Kreme Cookie Kreme Shake with Oreo 340ml,100,398,13.6,7.4,0,8.2,62.5,46.6,0.6,N,3.4,1\n" +
+        "ING, Krispy Kreme Origianl Glazed Doughnut Bites 12g,100,48,2.2,1.1,0,0.8,6.5,2.2,0.05,N,0.2,1\n" +
+        "ING, Krispy Kreme We Were On a Coffee Break Doughnut 83g,100,337,13.2,6.1,0,3.3,51,35,0.29,N,1.2,1\n" +
+        "ING, Krispy Kreme Brookie Doughnut 82g,100,354,17,6.8,0,3.9,45,25,0.37,N,1.6,1\n" +
+        "ING, Krispy Kreme Trifle Doughnut 86g,100,308,16,9,0,4.7,38,15,0.34,N,1.4,1\n" +
+        "ING, Krispy Kreme Latte Semi-Skimmed Milk 12oz,100,105,3.6,2.2,0,7.8,11.2,9.8,0.02,N,0.3,1\n" +
+        "ING, Krispy Kreme Latte Semi-Skimmed Milk 16oz,100,159,5.5,3.4,0,11.8,16.9,14.8,0.03,N,0.4,1\n" +
+        "ING, Krispy Kreme Vegan Fudge Brownie Bliss Doughnut 94g,100,352,14,7.1,0,5.5,52,27,0.37,N,2,1\n" +
+        "ING, Krispy Kreme Biscoff Iced Doughnut 62g,100,260,12,4.7,0,3.4,33,16,0.3,N,1.3,1\n" +
+        "ING, Krispy Kreme White Choc Kreme Doughnut 87.5g,100,374,19.9,10.6,0,4.9,44.4,21,0.36,N,1.6,1\n" +
+        "ING, Krispy Kreme Vegan Cookie and Kreme Doughnut 82g,100,341,15,6.8,0,3.5,48,28,0.36,N,1.4,1\n" +
+        "ING, Krispy Kreme Doughnuts Sharer Dozen Nutty Chocolatta,100,369,20.2,9.7,0,6.1,42.1,16.5,0.38,N,2.4,1\n" +
+        "ING, Krispy Kreme The Saltire Doughnut,100,358,16,7.7,0,4.6,49,26,0.36,N,1.4,1\n" +
+        "ING, Krispy Kreme Chocolate Kreme Shake,100,361,10.2,5.7,0,8.7,59.6,51.4,0.43,N,3.4,1\n" +
+        "ING, Krispy Kreme Chocolate Orange Doughnut 95g,100,373,16.7,8.2,0,5.3,50.7,25.7,0.37,N,2,1\n" +
+        "ING, Krispy Kreme Vegan Salted Caramel Doughnut,100,394,16.9,0,0,5.3,,27.5,0.43,N,1.1,1\n" +
+        "ING, Krispy Kreme Original Filled Choco Dream Ring Doughnut 73g,100,286,12,5.6,0,3.5,40,24,0.29,N,1.8,1\n" +
+        "ING, Krispy Kreme Caramel Kreme Shake with Biscoff 340ml,100,420,12.5,6.8,0,8.8,69,57.4,0.6,N,2,1\n" +
+        "ING, Krispy Kreme Flat White (Semi-Skimmed Milk) 8oz,100,67,2.2,1.4,0,4.9,7.3,5.9,0.02,N,0.2,1\n" +
+        "ING, Krispy Kreme Houw You Doin Doughnut 77g,100,305,12,5.6,0,3.1,45,29,0.26,N,1.2,1\n" +
+        "ING, Krispy Kreme Cappuccino (Semi-Skimmed Milk) 12oz,100,113,3.7,2.4,0,8.1,12.6,10.9,0.02,N,0.4,1\n" +
+        "ING, Krispy Kreme Latte (Skimmed Milk) 12oz,100,80,0.7,0.3,0,7.7,11.3,9.9,0.02,N,0.3,1\n" +
+        "ING, Krispy Kreme Strawberry Iced Ring Doughnut,100,397,16.5,0,0,4.8,,31.5,0.39,N,1.4,1\n" +
+        "ING, Krispy Kreme Doughnuts Sharer Dozen Berry Burst,100,196,8.8,4.4,0,3.3,26.5,9.5,23.41,N,1,1\n" +
+
+        "ING, Alpen Orignal Recipe Cereal Muesli 45g,100,168,2.5,0.4,0,5,30,9.5,0.13,N,3.5,1\n" +
+        "ING, 5 alive Berry Blast 250ml,100,130,0,0,0,0,32,25,0,Y,,1\n" +
+        "ING, Admiral Yogurt Yoghurt Drink half-a-cup,100,260,13,5,0,5,31,5,0.66,Y,0,1\n" +
+        "ING, Chivita exotic Pineapple and Coconut Nectar 315ml,100,167,0,0,0,0.63,41.58,32.45,,Y,,1\n" +
+         "ING, Chivita exotic Pineapple and Coconut Nectar 125ml,100,66,0,0,0,0.25,16.5,12.88,,Y,,1\n" +
+        "ING, Pineapple and Orange Juice 250ml,100,108,0,0,0,1.2,24.2,24.2,0.02,Y,1.2,1\n" +
+        "ING, granada whole grain cookies,100,90,12.75,5.8,0,3.8,30.2,16,0.4,N,1.6,1\n" +
+        "ING, 7 to 7 Choco Biscuit 25g,100,122,5,,0,1.4,18,,,N,0.55,1\n" +
+        "ING, Digestives White Chocolate 15.5g,100,78,3.8,2,0,0.9,9.9,4.6,0.14,N,0.4,1\n" +
+        "ING, Choco Rings Chocolaty Biscuits 15.5,100,70,1.9,,0,1.02,12.15,,,N,0,1\n" +
+        "ING, Pineapple Juice 250ml,100,95,0,0,0,0,24.25,0,0.025,Y,,1\n" +
+        "ING, Lucozade Energy Original 380ml,100,142,0,0,0,0,33.9,17.1,0.34,N,,1\n" +
+        "ING, Baked Coconut Chips Cocoa (Chocolate) 20g,100,115,6,6,0,1,12,5,0.1,Y,,1\n" +
+        "ING, Baked Coconut Chips Cinnamon 20g,100,115,6,6,0,1,12,5,0.1,Y,,1\n" +
+
+        "ING, Melon Slice 320g,100,58,0.3,0.1,0,1,13.8,13.8,0.06,Y,1.3,1\n" +
+        "ING, Greek Style Unsweetened Yogurt 400g,100,496,38.4,26,0,16.4,21.6,19.2,0.92,Y,2,1\n" +
+        "ING, KFC 1 Piece of Chicken,100,300,19.4,4.1,0,19.2,8.1,0.3,0.98,N,,1\n" +
+        "ING, KFC Yam Fries 10 fries,100,149,10.8,0.9,0.2,0.8,12.4,3.1,0.104,N,1.7,1\n" +
+        "ING, KFC 1 Jollof Rice 1 cup,100,393,15.2,1.2,0.4,5.3,58.3,2.8,0.48,N,1.7,1\n" +
+        "ING, Pepsi 50cl,100,210,0,0,0,0,58,58,0.045,N,,1\n" +
+        "ING, Pepsi 60cl,100,255,0,0,0,0,70,70,0.053,N,,1\n" +
+        "ING, Chicken Suya One Whole,100,800,48,14,0,120,0,0,2,Y,0,1\n" +
+        "ING, Yogurt Drink or Yoghurt Drink 250ml,100,207.5,6.25,0,0,5.25,32.5,0,0,Y,0,1\n" +
+
+        "ING, Chivita Active Zest Mixed Fruit Drink 125ml,100,57.5,0,0,0,0,15,13.75,0.0024,Y,,1\n" +
+        "ING, Milo 180ml,100,113,0.76,0.3,0,3,22.7,11.8,0.104,Y,0.9,1\n" +
+        "ING, Limca 60cl,100,128,0,0,0,0,31.2,31.2,0.036,N,,1\n" +
+        "ING, Rich Tea Biscuits 1 8.3g,100,38,1.3,0.6,0,0.6,5.9,1.5,0.07,N,0.2,1\n" +
+        "ING, Sausage Roll,100,340,10,3,0,14,37,4,0.7,N,1,1\n" +
+        "ING, Chicken Pie,100,531,27.6,0,0,23.5,44.7,0,,N,,1\n" +
+        "ING, Chicken Salad HyTaste,100,600,31.5,18.1,0,50.5,13.3,5.9,2.6,Y,5.4,1\n" +
+        "ING, Mango Juice 250ml,100,128,0.8,0.2,0,1.5,30,25,0.02,Y,0.8,1\n" +
+        "ING, Orange Juice 250ml,100,83,0,0,0,1.5,20.2,20.2,0.02,Y,1.2,1\n" +
+        "ING, Orange Juice Drink 250ml,100,50,0,0,0,0.8,11,11,0,Y,0.2,1\n" +
+        "ING, Ovaltine,100,108,2.7,1.7,0,2.8,17.5,9,0.41,N,0.6,1\n" +
+        "ING, Pineapple Slice 80g,100,36,0.1,0,0,0.4,9.1,9.1,0,Y,1,1\n" +
         "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
-        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
-        "ING, Gluten Free Fruit and Nut Bar 65g : Starbucks,100,400,,,0,4.76,,,,N,,1\n" +
+
+        "ING, French Fries 105g,100,305,14.9,2.6,0,3.7,41.7,0.6,0.5,N,4,1\n" +
+        "ING, Chicken Burger,100,406,14,4.2,0,16.2,30.4,7.2,1.82,N,1.7,1\n" +
+        "ING, Beef Burger 260g,100,742,42,19,0,52,38,11,3.2,N,2.9,1\n" +
+        "ING, Pizza Slice One Generic,100,200,6.3,2.4,0,8.1,17.8,1.1,0.67,N,1.2,1\n" +
+        "ING, Star Radler Citrus 45cl,100,212,0.2,0.1,0,0.3,42.75,33.75,0.035,N,,1\n" +
+        "ING, Curry Sauce,100,96,6.9,2.5,0,1.9,6.2,4.4,1,N,2,1\n" +
+
+        "ING,Safflower Oil : 15ml,100,124,13.8,1.7,0,0,0,0,0,N,0,1.25\n"
 
 
 
-
-"ING,Safflower Oil : 15ml,100,124,13.8,1.7,0,0,0,0,0,N,0,1.25\n"
 
 
 
