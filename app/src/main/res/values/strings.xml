@@ -1957,6 +1957,12 @@
         "ING, Pizza Slice One Generic,100,200,6.3,2.4,0,8.1,17.8,1.1,0.67,N,1.2,1\n" +
         "ING, Star Radler Citrus 45cl,100,212,0.2,0.1,0,0.3,42.75,33.75,0.035,N,,1\n" +
         "ING, Curry Sauce,100,96,6.9,2.5,0,1.9,6.2,4.4,1,N,2,1\n" +
+        "ING, Spring Roll,100,129,7,0.6,0,2.3,13.4,1.8,0.32,N,1.5,1\n" +
+        "ING, Chicken Wing One,100,129,7.6,2.2,0,15.1,0,0,0.1,Y,0,1\n" +
+        "ING, Onion and Tomato Sauce,100,60,1,0.1,0,1.4,4.5,3.1,0.46,Y,1,1\n" +
+        "ING, Salad Dressing Honey and Mustard,100,33,2.3,0.2,0,0.1,2.8,2.7,0.17,Y,0.4,1\n" +
+        "ING, Salad Dressing Caesar Salad,100,59,6.1,0.4,0,0.2,0.7,0.4,0.22,Y,0.1,1\n" +
+        "ING, Tiger Nut Milk 500ml,100,245,6,1.5,0,2.5,45,15,0.25,Y,0.0,1\n" +
 
         "ING,Safflower Oil : 15ml,100,124,13.8,1.7,0,0,0,0,0,N,0,1.25\n"
 
