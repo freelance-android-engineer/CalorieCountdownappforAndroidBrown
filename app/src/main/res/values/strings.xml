@@ -113,7 +113,7 @@
     <string name="search">Multi Search</string>
     <string name="weight">Add Food item Weight</string>
     <string name="just">Just Add Raw Calories</string>
-    <string name='guesstimate'>Guesstimate Calories</string>
+    <string name="guesstimate">Guesstimate Calories</string>
     <string name="countdown_debit">Countdown       Debit</string>
     <string name="countup_credit">Credit</string>
 
@@ -306,6 +306,7 @@
 "ING,Confectionery : Chocolate : Lindt Linder :,100g,100622,47,36,0,4.6,44,43,0.14,N,0,1.8\n" +
 "ING,Baby Spinach : 110g : half pack,100,33,0.9,0.1,0,3.1,1.7,1.7,0.4,Y,3,1\n" +
 "ING,Banana : 150g,100,135,0.2,0,0,1.8,30.5,27.2,0.0009,Y,2.1,1.75\n" +
+
 "SNACK,Porridge Oatmeal Bar : Stoats : 50g,100,221,11.3,5.3,0,25.8,11.2,0.01,Y,2.7,0.85\n" +
 "ING,Porridge Oatmeal Bar : Stoats : 50g,100,221,11.3,5.3,0,25.8,11.2,0.01,Y,2.7,0.85\n" +
 "EATOUT,Takeaway : Fish and  Chips : extra Cheese Salt and Ketchup,100,2000,0,,,,,,,N,,\n" +
@@ -1589,7 +1590,8 @@
         "ING,Whiskey : Whisky : One Shot 25ml,100,110,,,,,,,N,,,1\n" +
         "ING,Fried Plantain : One Slice,100,68,3.6,0.5,0,0.4,9.7,4.6,0.01,Y,0.7,1\n" +
         "ING,Plantain : 100g, 100,166,0.2,0.1,0,0.8,31,14,0.05,Y,2.3,1\n" +
-        "ING,Plantain Chips : 13,100,90,4.5,1.5,0,1,11,11,0.2,Y,0,1\n" +
+        "ING,Plantain Chips : 13,100,90,4.5,1.5,0,1,11,11,0.2,Y,0.6,1\n" +
+        "ING,Plantain Chips : 42g,100,218,9,3,0,3,30,1.5,0.1,Y,3,1\n" +
         "ING,Fruit and Nut Mix : 30g,100,122,6.4.0.9,0,5.6,7.9,7.8,0.05,Y,5,1\n" +
         "ING,Pudding and Dessert : Ganache : Salted Caramel and Belgian Chocolate : Per Pot,100,322,25,15,0,3.6,21,18,0.49,N,0.7,1\n" +
         "ING,Pudding and Dessert : Melting Middle Chocolate Pudding : Per Pot : 135g,100,473,25.9,16.6,0,7.4,51,34.7,0.3,N,2.7,1\n" +
@@ -1916,7 +1918,7 @@
         "ING, 5 alive Berry Blast 250ml,100,130,0,0,0,0,32,25,0,Y,,1\n" +
         "ING, Admiral Yogurt Yoghurt Drink half-a-cup,100,260,13,5,0,5,31,5,0.66,Y,0,1\n" +
         "ING, Chivita exotic Pineapple and Coconut Nectar 315ml,100,167,0,0,0,0.63,41.58,32.45,,Y,,1\n" +
-         "ING, Chivita exotic Pineapple and Coconut Nectar 125ml,100,66,0,0,0,0.25,16.5,12.88,,Y,,1\n" +
+        "ING, Chivita exotic Pineapple and Coconut Nectar 125ml,100,66,0,0,0,0.25,16.5,12.88,,Y,,1\n" +
         "ING, Pineapple and Orange Juice 250ml,100,108,0,0,0,1.2,24.2,24.2,0.02,Y,1.2,1\n" +
         "ING, granada whole grain cookies,100,90,12.75,5.8,0,3.8,30.2,16,0.4,N,1.6,1\n" +
         "ING, 7 to 7 Choco Biscuit 25g,100,122,5,,0,1.4,18,,,N,0.55,1\n" +
@@ -1935,6 +1937,7 @@
         "ING, Pepsi 50cl,100,210,0,0,0,0,58,58,0.045,N,,1\n" +
         "ING, Pepsi 60cl,100,255,0,0,0,0,70,70,0.053,N,,1\n" +
         "ING, Chicken Suya One Whole,100,800,48,14,0,120,0,0,2,Y,0,1\n" +
+        "ING, Legend Extra Stout : 750ml,100,480,0.5,0.35,0,3.2,41.6,8,0.24,Y,,1\n" +
         "ING, Yogurt Drink or Yoghurt Drink 250ml,100,207.5,6.25,0,0,5.25,32.5,0,0,Y,0,1\n" +
 
         "ING, Chivita Active Zest Mixed Fruit Drink 125ml,100,57.5,0,0,0,0,15,13.75,0.0024,Y,,1\n" +
@@ -1960,9 +1963,12 @@
         "ING, Spring Roll,100,129,7,0.6,0,2.3,13.4,1.8,0.32,N,1.5,1\n" +
         "ING, Chicken Wing One,100,129,7.6,2.2,0,15.1,0,0,0.1,Y,0,1\n" +
         "ING, Onion and Tomato Sauce,100,60,1,0.1,0,1.4,4.5,3.1,0.46,Y,1,1\n" +
+
         "ING, Salad Dressing Honey and Mustard,100,33,2.3,0.2,0,0.1,2.8,2.7,0.17,Y,0.4,1\n" +
         "ING, Salad Dressing Caesar Salad,100,59,6.1,0.4,0,0.2,0.7,0.4,0.22,Y,0.1,1\n" +
-        "ING, Tiger Nut Milk 500ml,100,245,6,1.5,0,2.5,45,15,0.25,Y,0.0,1\n" +
+
+        "ING, Tiger Nut Milk 500ml,100,245,6,1.5,0,2.5,45,15,0.25,Y,0,1\n" +
+        "ING, Ribena Carton 250ml,100,53,0,0,0,0,11.8,11.5,0.15,N,0,1\n" +
 
         "ING,Safflower Oil : 15ml,100,124,13.8,1.7,0,0,0,0,0,N,0,1.25\n"
 
@@ -1974,7 +1980,7 @@
     </string>
 
     <string name="Volume4e">
-        "XRWGLEF,Indomie Noodles : with Vegetables end,100,650,,,,,,,,,,\n"
+        "XRWGLEF, Indomie Noodles : with Vegetables egg,100,650,,,,,,,,,,\n"
 
 
 

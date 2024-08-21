@@ -29,6 +29,7 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
 
     private Button mOpenAccount;
+    private Button mCancel;
     private HealthProfileCiF3 mAccount;
     private Display_Dialog_CIF11 display_dialog_cif11;
 
@@ -46,6 +47,13 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         display_dialog_cif11 = new Display_Dialog_CIF11();
         mAccount = new HealthProfileCiF3();
 
+        mCancel = (Button) v.findViewById(R.id.button15);
+        mCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                goBack();
+            }
+        });
         mOpenAccount = (Button) v.findViewById(R.id.button14);
         mOpenAccount.setOnClickListener(new View.OnClickListener()
         {
@@ -677,6 +685,11 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
     private void addToSharedPref(String input)
     {
        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds(input);
+    }
+
+    private void goBack()
+    {
+        getActivity().finish();
     }
 
 }

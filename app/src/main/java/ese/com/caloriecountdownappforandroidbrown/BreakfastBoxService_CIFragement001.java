@@ -26,7 +26,7 @@ public class BreakfastBoxService_CIFragement001 extends Service
     private NotificationCompat.Builder mBuilder;
     private Date mBreakfastNotificationTime;
 
-    private AlarmManager mAlarmManager;
+    private android.app.AlarmManager mAlarmManager;
     private PendingIntent alarmIntent;
     private Context goey;
 
