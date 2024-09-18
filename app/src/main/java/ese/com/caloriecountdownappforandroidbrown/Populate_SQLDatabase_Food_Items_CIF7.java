@@ -48,6 +48,7 @@ public class Populate_SQLDatabase_Food_Items_CIF7
     String Volume5a;
     String Volume6a;
     String Volume7a;
+    String Volume4ff;
     String[] Data_Volume;
 
     Context mContext;
@@ -82,8 +83,9 @@ public class Populate_SQLDatabase_Food_Items_CIF7
         Volume1a = mContext.getResources().getString(R.string.Volume4d);
         Volume2a = mContext.getResources().getString(R.string.Volume4e);
         Volume3c = mContext.getResources().getString(R.string.Volume3c);
+        Volume4ff = mContext.getResources().getString(R.string.Volume4ff);
 
-        Data_Volume = new String[11];
+        Data_Volume = new String[12];
 
 
         Data_Volume[0] = Volume1;
@@ -96,6 +98,7 @@ public class Populate_SQLDatabase_Food_Items_CIF7
         Data_Volume[7] = Volume1a;
         Data_Volume[8] = Volume2a;
         Data_Volume[9] = Volume3c;
+        Data_Volume[10] = Volume4ff;
         //Data_Volume[9] = "End_of_File";
 
 
