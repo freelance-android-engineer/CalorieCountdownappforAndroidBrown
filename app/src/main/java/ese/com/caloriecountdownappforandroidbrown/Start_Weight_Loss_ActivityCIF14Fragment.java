@@ -331,6 +331,8 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         //these are packed into an intent and shot off for The Bridge CIF1 to receive
         //unpack the data and reset a new special tread similar to this still for next Alarm, capish?
 
+        data_model_adapter.StoreDayEndBalance(IN.getStartCountdown() - 100);
+
         Intent i2 = new Intent();
         android.util.Log.d("Debugging", "We are about to shoot intent1");
         i2.putExtra(OPENING_BALANCE, IN.getStartCountdown());
