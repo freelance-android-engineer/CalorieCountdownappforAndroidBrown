@@ -53,6 +53,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private static final int REQUEST_CODE_RECALIBRATION = 19;
     private static final int REQUEST_CODE_PDFViewer = 20;
 
+    private CountdownToZeroDayCiF1004 mDaysToZero;
+    private java.util.Date mBalanceLastUpdated;
+
     private Button mCreditButton;
     private Button mDebitButton;
 
@@ -724,6 +727,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public long StoreCountdownBalance(String Balance)
     {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+        data_model_adapter.StoreDayEndBalance(Integer.parseInt(Balance) - 100);
         return data_model_adapter.StoreBalance(Balance);
     }
 
