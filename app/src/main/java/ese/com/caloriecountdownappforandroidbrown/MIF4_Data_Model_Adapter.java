@@ -344,8 +344,6 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
     {
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(c);
         return jackie.GetBtime();
-
-
     }
 
     public int Retrieve_Ltime(Context c)
@@ -360,9 +358,6 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
     {
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(c);
         return jackie.GetDtime();
-
-
-
     }
 
 

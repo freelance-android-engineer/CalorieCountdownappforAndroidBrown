@@ -74,6 +74,11 @@
             android:exported="false"
             android:theme="@android:style/Theme.Translucent" />
 
+        <activity android:name=".FoodNoteTableActivity"
+            android:exported="false">
+        </activity>
+
+
 
         <!--
              You can find your app ID in the AdMob UI. For android:value,
