@@ -1,4 +1,11 @@
 buildscript {
+    allprojects {
+        repositories {
+            google() // Google Maven Repository
+            mavenCentral() // Maven Central Repository
+        }
+    }
+
     repositories {
         google()
         jcenter()
@@ -10,7 +17,7 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle'
-        classpath 'com.android.tools.build:gradle:8.4.2'
+        classpath 'com.android.tools.build:gradle:8.5.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
     }
 }
@@ -63,7 +70,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.4.2'
+        classpath 'com.android.tools.build:gradle:8.5.1'
 
     }
 }
@@ -101,4 +108,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'com.github.barteksc:android-pdf-viewer:3.2.0-beta.1'
+    implementation 'com.github.erkutaras:ShowcaseView:1.5.0'
+    implementation 'com.github.mreram:showcaseview:1.4.1'
 }

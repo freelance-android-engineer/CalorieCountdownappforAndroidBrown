@@ -6,27 +6,39 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.graphics.pdf.*;
 
+import com.erkutaras.showcaseview.ShowcaseManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+
+import smartdevelop.ir.eram.showcaseviewlib.GuideView;
+import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
+import smartdevelop.ir.eram.showcaseviewlib.config.Gravity;
+import smartdevelop.ir.eram.showcaseviewlib.config.PointerType;
+import smartdevelop.ir.eram.showcaseviewlib.listener.GuideListener;
 
 public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
@@ -79,6 +91,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private static Context appContext;
     public static MyCallBack mCallback;
+    TextView countdownbalance ;
+    Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -86,10 +100,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ccd__gui__cd__cif1);
 
+
+
         instance = this;
 
-       mCallback = new MyCallBack()
-       {
+        mCallback = new MyCallBack()
+        {
             @Override
             public void refreshMainActivity()
             {
@@ -106,10 +122,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //instance.Start_Cycle(); //Only after "Start_Weight_Loss_Used_For_First_Time!
         appContext = getApplicationContext();
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setIcon(R.drawable.ic_launcher7);
+
+        countdownbalance = (TextView) findViewById(R.id.textView);
 
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -122,6 +140,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                         .setAction("Update", null).show();
             }
         });
+
+
 
         mCreditButton = (Button) findViewById(R.id.button2);
         mDebitButton = (Button) findViewById(R.id.button);
@@ -136,6 +156,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 //CancelAlarm();
             }
         });
+
+
 
         mDebitButton.setOnClickListener(new View.OnClickListener()
         {
@@ -154,63 +176,306 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
         //if(value)
         //{
-            //Start_Weight_LossPlus24();
+        //Start_Weight_LossPlus24();
         //}
 
         //Start_Weight_Loss();
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    private void showGuideOnOverflowMenu(Toolbar toolbar) {
+        for (int i = 0; i < toolbar.getChildCount(); i++) {
+            View child = toolbar.getChildAt(i);
+            if (child.getClass().getSimpleName().equals("OverflowMenuButton")) {
+                new GuideView.Builder(this)
+                        .setTitle("Overflow Menu")
+                        .setContentText("This is the overflow menu.")
+                        .setTargetView(child)
+                        .setGravity(Gravity.center)
+                        .setDismissType(DismissType.anywhere)
+                        .build()
+                        .show();
+                return;
+            }
+        }
+        Log.e("GuideView", "Overflow menu button not found.");
+    }
+
+
+    private void openBalance(){
+        new GuideView.Builder(this)
+                .setTitle("What is Balance")
+                .setContentText("Count down balance indicates your Calorie intake in kCal")
+                .setPointerType(PointerType.arrow)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(countdownbalance)//optional - default dismissible by TargetView
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(new GuideListener() {
+                    @Override
+                    public void onDismiss(View view) {
+                        new Handler().post(() -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                openCredit();
+                            }
+                        });
+                    }
+                })
+                .build()
+                .show();
+    }
+
+
+    private void openDebit(){
+        new GuideView.Builder(this)
+                .setTitle("Debit")
+                .setContentText("Debit allows you to Add or Remove calorie Intake")
+                .setPointerType(PointerType.arrow)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(mDebitButton)//optional - default dismissible by TargetView
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(new GuideListener() {
+                    @Override
+                    public void onDismiss(View view) {
+                        showPopupMenu(toolbar);
+                    }
+                })
+                .build()
+                .show();
+    }
+
+    private void openCredit(){
+        new GuideView.Builder(this)
+                .setTitle("Credit")
+                .setContentText("Credit allows you to add the daily credit intake")
+                .setPointerType(PointerType.arrow)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(mCreditButton)//optional - default dismissible by TargetView
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(new GuideListener() {
+                    @Override
+                    public void onDismiss(View view) {
+                        new Handler().post(() -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                openDebit();
+                            }
+                        });
+                    }
+                })
+                .build()
+                .show();
+    }
+
 
     //protected void onCreate(Bundle savedInstanceState) {
-        //super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_ccdgui__cif1);
+    //super.onCreate(savedInstanceState);
+    //setContentView(R.layout.activity_ccdgui__cif1);
 
 
-        //mCreditButton = (Button) findViewById(R.id.button2);
-        //mDebitButton = (Button) findViewById(R.id.button);
-        //mCreditButton.setOnClickListener(new View.OnClickListener() {
+    //mCreditButton = (Button) findViewById(R.id.button2);
+    //mDebitButton = (Button) findViewById(R.id.button);
+    //mCreditButton.setOnClickListener(new View.OnClickListener() {
 
-            //@Override
-            //public void onClick(View v) {
-                //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-                //data_model_adapter.setSex(true);
-
-
-          //      StartFoodDiaryAidSheetCIF3();
-                //CancelAlarm();
-
-        //    }
-        //});
-        //mDebitButton.setOnClickListener(new View.OnClickListener() {
-
-            //@Override
-            //public void onClick(View v) {
-            //    StartDebitActivityCIF13();
-          //  }
-        //});
+    //@Override
+    //public void onClick(View v) {
+    //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+    //data_model_adapter.setSex(true);
 
 
-        //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        //countdownbalance.setText(RetrieveCountdownBalance());
+    //      StartFoodDiaryAidSheetCIF3();
+    //CancelAlarm();
 
-        //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
-        //if(value)
-       // {
-            //Start_Weight_LossPlus24();
-     //   }
+    //    }
+    //});
+    //mDebitButton.setOnClickListener(new View.OnClickListener() {
+
+    //@Override
+    //public void onClick(View v) {
+    //    StartDebitActivityCIF13();
+    //  }
+    //});
+
+
+    //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+    //countdownbalance.setText(RetrieveCountdownBalance());
+
+    //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
+    //if(value)
+    // {
+    //Start_Weight_LossPlus24();
+    //   }
 
 
 
 
-   // }
+    // }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_ccd__gui__cd__cif1, menu);
+
+        MenuItem overflowItem = menu.findItem(R.id.action_overflow);
+        View overflowView = overflowItem.getActionView();
+
+        View customView = overflowItem.getActionView();
+
+        if (customView != null) {
+            customView.setOnClickListener(v -> showPopupMenu(v));
+        }
+
+        if (overflowView != null) {
+            new GuideView.Builder(this)
+                    .setTitle("Main Menu")
+                    .setContentText("Click on this icon first to start your Journey")
+                    .setPointerType(PointerType.arrow)
+                    .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                    .setTargetView(overflowView)
+                    .setGravity(Gravity.center)
+                    .setDismissType(DismissType.anywhere)
+                    .setGuideListener(new GuideListener() {
+                        @Override
+                        public void onDismiss(View view) {
+                            openBalance();
+                        }
+                    })
+                    .build()
+                    .show();
+        } else {
+            Log.e("GuideView", "Custom overflow menu view not found.");
+        }
         return true;
+    }
+
+    private void showPopupMenu(View anchor) {
+        PopupMenu popupMenu = new PopupMenu(this, anchor);
+
+        // Inflate the menu for the popup
+        popupMenu.getMenuInflater().inflate(R.menu.overflow_menu_file, popupMenu.getMenu());
+
+        // Handle menu item clicks
+        popupMenu.setOnMenuItemClickListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.action_settings) {
+                return true;
+            }
+
+
+            //noinspection SimplifiableIfStatement
+            if (id == R.id.sub_submenuitem1) {
+
+                StartWebCalculatorFragment2();
+
+                return true;
+            }
+
+            if (id == R.id.sub_submenuitem91) {
+
+                StartFoodDiaryNotes();
+
+                return true;
+            }
+
+            if (id == R.id.sub_submenuitem2) {
+
+                Start_Native_Calculator();
+
+                return true;
+            }
+
+            if (id == R.id.action_start_weightloss)
+
+            {
+                Start_Weight_Loss_ActivityCIF4();
+                return true;
+            }
+
+            if (id == R.id.action_stop_weightlossb)
+
+            {
+                Start_Recalibration();
+                return true;
+            }
+
+            if (id == R.id.action_log_it_in_reminder)
+
+            {
+                Start_Notification_ActivityCIF5();
+                return true;
+            }
+
+            if (id == R.id.submenu3)
+
+            {
+                Start_Diet_Plan_Activity();
+                return true;
+            }
+
+            if (id == R.id.submenu6)
+
+            {
+                Populate_SQLite_Database();
+                return true;
+            }
+
+            if (id == R.id.submenu9)
+
+            {
+                De_Populate_SQLite_Database();
+
+                return true;
+            }
+
+            if (id == R.id.submenu7)
+
+            {
+                Clear_SQLite_Database();
+                return true;
+            }
+
+            if (id == R.id.submenu2a)
+
+            {
+                Start_Journal_Activity_CiF115();
+                return true;
+            }
+
+            if (id == R.id.action_fitness_log_debit) // Physical Activity Debit
+            {
+                StartDebitActivityCIF13();
+
+            }
+
+            if (id == R.id.action_Client_Guide) // Physical Activity Debit
+            {
+                Start_Client_Guide();
+            }
+
+            return true;
+
+        });
+        popupMenu.setGravity(android.view.Gravity.END);
+        // Show the popup menu
+        popupMenu.show();
+
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        return super.onMenuOpened(featureId, menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Get Toolbar and MenuItem
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -218,6 +483,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+
+
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -316,10 +583,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             Start_Client_Guide();
         }
 
-
-
-
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -339,7 +602,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         //try
         //{
-          //  startActivity(pdfOpenintent);
+        //  startActivity(pdfOpenintent);
         //}
         //catch (ActivityNotFoundException e)
         //{
@@ -456,7 +719,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
             }
             else
-                {
+            {
 
                 ResetBreakfastTime = new Date();
                 ResetLunchTime = new Date();
@@ -465,9 +728,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 vitals = "It's empty mate";
                 openingbalance = 0;
 
-                }
+            }
 
-                //Start_Day_End();
+            //Start_Day_End();
 
         }
 
@@ -550,37 +813,37 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-        private void StartWebCalculatorFragment2 ()
-        {
+    private void StartWebCalculatorFragment2 ()
+    {
 
-            Uri uri = Uri.parse(webadress);
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            startActivity(intent);
+        Uri uri = Uri.parse(webadress);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
 
-            //CancelAlarm();
+        //CancelAlarm();
 
+    }
+
+
+    private void Start_Native_Calculator ()
+    {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setComponent(new android.content.ComponentName(CALCULATOR_PACKAGE_NAME, CALCULATOR_CLASS_NAME));
+        try {
+            this.startActivity(intent);
+        } catch (android.content.ActivityNotFoundException noSuchActivity) {
+            // handle exception where calculator intent filter is not registered
         }
+    }
 
+    private void Start_Weight_Loss_ActivityCIF4 ()
+    {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Start_Weight_Loss_ActivityCIF14.class);
+        this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
 
-        private void Start_Native_Calculator ()
-        {
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            intent.setComponent(new android.content.ComponentName(CALCULATOR_PACKAGE_NAME, CALCULATOR_CLASS_NAME));
-            try {
-                this.startActivity(intent);
-            } catch (android.content.ActivityNotFoundException noSuchActivity) {
-                // handle exception where calculator intent filter is not registered
-            }
-        }
-
-        private void Start_Weight_Loss_ActivityCIF4 ()
-        {
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Start_Weight_Loss_ActivityCIF14.class);
-            this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
-
-        }
+    }
 
     private void Start_Recalibration()
     {
@@ -590,55 +853,55 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-        public void Start_Weight_Loss ()
-        {
-            //Alogrithm Engineering ~> Android (Black ~> Builder) : This is Lego Box for where 5pm Magic Occurs :
+    public void Start_Weight_Loss ()
+    {
+        //Alogrithm Engineering ~> Android (Black ~> Builder) : This is Lego Box for where 5pm Magic Occurs :
 
-            //MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
-            //dayEndSetAlarm.NewDayEndSetAlarm(new Date(), this);
+        //MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
+        //dayEndSetAlarm.NewDayEndSetAlarm(new Date(), this);
 
-        }
+    }
 
-        public void Start_Day_End()
-        {
-            //android.util.Log.d("Day END inside Bridge","Day end cfwd Started");
+    public void Start_Day_End()
+    {
+        //android.util.Log.d("Day END inside Bridge","Day end cfwd Started");
 
-            //mBalance = 76702;
-            //mBalance_text = "76,702";
+        //mBalance = 76702;
+        //mBalance_text = "76,702";
 
-            //mBalance_textview = (TextView)findViewById(R.id.textView);
-            //mBalance_textview.setText(mBalance_text);
+        //mBalance_textview = (TextView)findViewById(R.id.textView);
+        //mBalance_textview.setText(mBalance_text);
 
 
-            //New_Day_1();
-        }
+        //New_Day_1();
+    }
 
-        public void Start_Notification_ActivityCIF5()
-        {
-            //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
+    public void Start_Notification_ActivityCIF5()
+    {
+        //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
 
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, Log_It_In_CIF15.class);
-            this.startActivityForResult(i, REQUEST_CODE_LOG_IT_IN);
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, Log_It_In_CIF15.class);
+        this.startActivityForResult(i, REQUEST_CODE_LOG_IT_IN);
 
-        }
+    }
 
     public void Start_Day_End_ActivityCIF5a()
     {
         //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
 
-       //Intent i = new Intent(CCD_GUI_CD_CIF1.this, Day_END_CIF15a.class);
+        //Intent i = new Intent(CCD_GUI_CD_CIF1.this, Day_END_CIF15a.class);
         // this.startActivityForResult(i, REQUEST_CODE_NEW_DAY);
 
     }
 
-        public void Start_Diet_Plan_Activity()
-        {
-            //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
+    public void Start_Diet_Plan_Activity()
+    {
+        //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
 
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, Diet_Plan_Activity_fragment008Fragment.class);
-            this.startActivityForResult(i, REQUEST_CODE_DIET_PLAN);
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, Diet_Plan_Activity_fragment008Fragment.class);
+        this.startActivityForResult(i, REQUEST_CODE_DIET_PLAN);
 
-        }
+    }
 
     public void Countup(int credit) {
         android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
@@ -651,19 +914,19 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-        private void OpenAccount ( int OpeningBalance)
-        {
-            //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
-            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-            String CountdownFigure = countdownbalance.getText().toString();
-            CountdownFigure = new RoundingCIF13().IntToString(OpeningBalance);
+    private void OpenAccount ( int OpeningBalance)
+    {
+        //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
+        final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+        String CountdownFigure = countdownbalance.getText().toString();
+        CountdownFigure = new RoundingCIF13().IntToString(OpeningBalance);
 
-            CountdownFigure = Strip_Comma(CountdownFigure);
+        CountdownFigure = Strip_Comma(CountdownFigure);
 
-            countdownbalance.setText(CountdownFigure);
-            StoreCountdownBalance(CountdownFigure);
+        countdownbalance.setText(CountdownFigure);
+        StoreCountdownBalance(CountdownFigure);
 
-        }
+    }
 
     private boolean ResetAlarm(Date b, Date l, Date d, Date m, Date e, Date mm)
     {
@@ -1015,6 +1278,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void Set_currentBalance()
     {
+
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         MIF4_Data_Model_Adapter model_adapter = new MIF4_Data_Model_Adapter(this);
 
@@ -1314,7 +1578,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public void ChangeTextColor(String input)
     {
-       Set_Balance(input);
+        Set_Balance(input);
     }
 
     public void ChangeButtonColor()
