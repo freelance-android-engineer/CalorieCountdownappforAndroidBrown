@@ -32,7 +32,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     private static final String TABLE_FOODITEMS = "food_items";
 
-
     private static final String TABLE_COUNTDOWN_BALANCE = "countdown_balances";
     private static final String COLUMN_COUNTDOWN_BALANCE_ID = "balance_id";
     private static final String COLUMN_COUNTDOWN_BALANCE_DATE = "balance_date";
@@ -378,7 +377,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     private static final String TABLE_FAVOURITE_FOOD_ITEMS_TABLE = "favourites_table";
 
-
+    private static final String TABLE_QUICK_FOOD_NOTE = "quick_food_note";
+    private static final String COLUMN_QUICK_FOOD_NOTE_ID = "note_id";
+    private static final String COLUMN_QUICK_FOOD_NOTE_DATE = "note_date";
+    private static final String COLUMN_QUICK_FOOD_NOTE_FOOD = "note_food";
+    private static final String COLUMN_QUICK_FOOD_NOTE_CALORIES = "note_calories";
+    private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
 
 
 
@@ -723,10 +727,21 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         }
 
-
-        //Create Food / Drinks Item Table
-
-
+        //Quick Food Note
+        try {
+            android.util.Log.d("Table creation", "Table quick note creation start");
+            String CREATE_QUICK_FOOD_NOTE_TABLE = "CREATE TABLE " + TABLE_QUICK_FOOD_NOTE + " ("
+                    + COLUMN_QUICK_FOOD_NOTE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_QUICK_FOOD_NOTE_DATE + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_FOOD + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_CALORIES + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_QUANTITY + " TEXT)";
+            db.execSQL(CREATE_QUICK_FOOD_NOTE_TABLE);
+            android.util.Log.d("Table creation", "created" + TABLE_QUICK_FOOD_NOTE);
+        } catch (Exception e) {
+            android.util.Log.d("Table creation", "Table creation in catch block");
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -1720,7 +1735,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.d("Data Layer", "Insert Opening Success! " + new RoundingCIF13().IntToString((int) res));
         }
 
-
     }
 
     public void PostBreakfastTransaction(Breakfast_Box_CIF17 bt) {
@@ -2433,6 +2447,27 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void insertFoodNote(String date, String food, String calories, String quantity) {
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Insert Note function called");
+        SQLiteDatabase db = this.getWritableDatabase();
+        android.util.Log.d("INSERT ALL FOOD NOTES", "getWritableDatabase called");
+        ContentValues values = new ContentValues();
+        android.util.Log.d("INSERT ALL FOOD NOTES", "ContentValues");
+        values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
+        values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, food);
+        values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
+        values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
+        db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted");
+        db.close();
+    }
+
+    public Cursor getAllFoodNotes() {
+        android.util.Log.d("GET ALL FOOD NOTES", "getAllFoodNotes CAlled");
+        SQLiteDatabase db = this.getReadableDatabase();
+        android.util.Log.d("GET ALL FOOD NOTES", "getReadableDatabase call done");
+        return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE, null);
+    }
 }
 
 

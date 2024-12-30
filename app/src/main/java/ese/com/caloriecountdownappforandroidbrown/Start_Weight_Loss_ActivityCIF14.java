@@ -127,10 +127,6 @@ public class Start_Weight_Loss_ActivityCIF14 extends FragmentActivity
             CM.setText(new RoundingCIF13().IntToString((int)Centi));
             Log.d("functionCM1",new RoundingCIF13().IntToString((int)Centi));
         }
-
-
-
-
     }
 
     private void functionInches1(View view)
