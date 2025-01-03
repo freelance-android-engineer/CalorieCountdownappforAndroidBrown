@@ -2468,6 +2468,21 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         android.util.Log.d("GET ALL FOOD NOTES", "getReadableDatabase call done");
         return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE, null);
     }
+
+    public int getTotalCalories() {
+        int totalCalories = 0;
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_QUICK_FOOD_NOTE_CALORIES + ") FROM " + TABLE_QUICK_FOOD_NOTE, null);
+        if (cursor.moveToFirst()) {
+            totalCalories = cursor.getInt(0);
+            android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
+        }
+        cursor.close();
+        db.close();
+        android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
+        return totalCalories;
+    }
+
 }
 
 
