@@ -55,7 +55,9 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             android:text="@string/Credit_Button"
             android:textColor="@color/green"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:background="@color/bg_yellow"
+            />
 
         <Button
             android:id="@+id/button"
@@ -69,7 +71,8 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             android:text="@string/Debit_Button"
             android:textColor="@color/green"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:background="@color/bg_green"/>
     </RelativeLayout>
 
 
