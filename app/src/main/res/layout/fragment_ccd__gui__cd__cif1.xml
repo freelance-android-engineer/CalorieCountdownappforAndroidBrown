@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -14,10 +13,10 @@ xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/whitepeacock22"
-        android:paddingBottom="@dimen/activity_vertical_margin"
         android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingBottom="@dimen/activity_vertical_margin"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -41,7 +40,6 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             android:textStyle="normal" />
 
 
-
         <Button
             android:id="@+id/button2"
             android:layout_width="144dp"
@@ -53,29 +51,24 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             android:fontFamily="sans-serif-light"
             android:padding="8sp"
             android:text="@string/Credit_Button"
-            android:textColor="@color/green"
+            android:textColor="@color/bg_yellow"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:background="@color/bg_yellow"
-            />
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/button"
             android:layout_width="144dp"
             android:layout_height="wrap_content"
 
-            android:layout_alignParentBottom="true"
             android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
             android:layout_marginEnd="79dp"
             android:fontFamily="sans-serif-light"
             android:text="@string/Debit_Button"
-            android:textColor="@color/green"
+            android:textColor="@color/bg_green"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:background="@color/bg_green"/>
+            android:textStyle="bold" />
     </RelativeLayout>
-
-
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
