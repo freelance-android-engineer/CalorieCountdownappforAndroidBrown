@@ -9,7 +9,7 @@
     <color name="search_opaque">#ffaa3f</color>
     <color name="selected_background">#ffaa3f</color>
     <color name="default_background">#3d3d3d</color>
-    <color name="bg_yellow">#FFEB3B</color>
-    <color name="bg_green">#37B43D</color>
+    <color name="bg_yellow">#FFC107</color>
+    <color name="bg_green">#4CAF50</color>
 
 </resources>
