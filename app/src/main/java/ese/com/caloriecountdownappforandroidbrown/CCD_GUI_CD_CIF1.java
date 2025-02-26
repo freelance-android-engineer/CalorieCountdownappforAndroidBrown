@@ -1,30 +1,47 @@
 package ese.com.caloriecountdownappforandroidbrown;
+
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-
+import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.TextView;
-
+//import com.erkutaras.showcaseview.ShowcaseManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-
 import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
-
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import ese.com.caloriecountdownappforandroidbrown.ui.debitactivitycif13.PreferencesHelper;
+import smartdevelop.ir.eram.showcaseviewlib.GuideView;
+import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
+import smartdevelop.ir.eram.showcaseviewlib.config.Gravity;
+import smartdevelop.ir.eram.showcaseviewlib.config.PointerType;
+import smartdevelop.ir.eram.showcaseviewlib.listener.GuideListener;
+
+//import smartdevelop.ir.eram.showcaseviewlib.GuideView;
+//import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
+//import smartdevelop.ir.eram.showcaseviewlib.config.Gravity;
+//import smartdevelop.ir.eram.showcaseviewlib.config.PointerType;
+//import smartdevelop.ir.eram.showcaseviewlib.listener.GuideListener;
 
 public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
@@ -77,20 +94,21 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private static Context appContext;
     public static MyCallBack mCallback;
+    TextView countdownbalance;
+    Toolbar toolbar;
+    private PreferencesHelper preferencesHelper;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ccd__gui__cd__cif1);
 
+
         instance = this;
 
-       mCallback = new MyCallBack()
-       {
+        mCallback = new MyCallBack() {
             @Override
-            public void refreshMainActivity()
-            {
+            public void refreshMainActivity() {
                 CCD_GUI_CD_CIF1.this.recreate();
 
                 //"OR"
@@ -104,30 +122,30 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //instance.Start_Cycle(); //Only after "Start_Weight_Loss_Used_For_First_Time!
         appContext = getApplicationContext();
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setIcon(R.drawable.ic_launcher7);
 
+        countdownbalance = (TextView) findViewById(R.id.textView);
+        preferencesHelper = new PreferencesHelper(this);
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener()
-        {
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 Snackbar.make(view, "Update your Food Diary", Snackbar.LENGTH_LONG)
                         .setAction("Update", null).show();
             }
         });
 
+
         mCreditButton = (Button) findViewById(R.id.button2);
         mDebitButton = (Button) findViewById(R.id.button);
-        mCreditButton.setOnClickListener(new View.OnClickListener()
-        {
+        mCreditButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
                 //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
                 //data_model_adapter.setSex(true);
                 StartFoodDiaryAidSheetCIF3();
@@ -135,11 +153,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             }
         });
 
-        mDebitButton.setOnClickListener(new View.OnClickListener()
-        {
+
+        mDebitButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
                 StartDebitActivityCIF13();
                 //Set_currentBalance();
             }
@@ -152,63 +169,280 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
         //if(value)
         //{
-            //Start_Weight_LossPlus24();
+        //Start_Weight_LossPlus24();
         //}
 
         //Start_Weight_Loss();
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+
+    private void showGuideOnOverflowMenu(Toolbar toolbar) {
+        for (int i = 0; i < toolbar.getChildCount(); i++) {
+            View child = toolbar.getChildAt(i);
+            if (child.getClass().getSimpleName().equals("OverflowMenuButton")) {
+                new GuideView.Builder(this)
+                        .setTitle("Overflow Menu")
+                        .setContentText("This is the overflow menu.")
+                        .setTargetView(child)
+                        .setGravity(Gravity.center)
+                        .setDismissType(DismissType.anywhere)
+                        .build()
+                        .show();
+                return;
+            }
+        }
+        Log.e("GuideView", "Overflow menu button not found.");
+    }
+
+
+    private void openBalance() {
+        new GuideView.Builder(this)
+                .setTitle("What is Balance")
+                .setContentText("Count down balance indicates your Calorie intake in kCal")
+                .setPointerType(PointerType.circle)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(countdownbalance)//optional - default dismissible by TargetView
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(new GuideListener() {
+                    @Override
+                    public void onDismiss(View view) {
+                        new Handler().post(() -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                openCredit();
+                            }
+                        });
+                    }
+                })
+                .build()
+                .show();
+    }
+
+
+    private void openDebit() {
+        new GuideView.Builder(this)
+                .setTitle("Debit")
+                .setContentText("Debit allows you to Add or Remove calorie Intake")
+                .setPointerType(PointerType.circle)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(mDebitButton)
+                .setDismissType(DismissType.anywhere)
+//                .setGuideListener(view -> showPopupMenu(view))
+                .build()
+                .show();
+    }
+
+    private void openCredit() {
+        new GuideView.Builder(this)
+                .setTitle("Credit")
+                .setContentText("Credit allows you to add the daily credit intake")
+                .setPointerType(PointerType.circle)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(mCreditButton)
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(view -> new Handler().post(() -> {
+                    if (!isFinishing() && !isDestroyed()) {
+                        openDebit();
+                    }
+                }))
+                .build()
+                .show();
+    }
 
     //protected void onCreate(Bundle savedInstanceState) {
-        //super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_ccdgui__cif1);
+    //super.onCreate(savedInstanceState);
+    //setContentView(R.layout.activity_ccdgui__cif1);
 
 
-        //mCreditButton = (Button) findViewById(R.id.button2);
-        //mDebitButton = (Button) findViewById(R.id.button);
-        //mCreditButton.setOnClickListener(new View.OnClickListener() {
+    //mCreditButton = (Button) findViewById(R.id.button2);
+    //mDebitButton = (Button) findViewById(R.id.button);
+    //mCreditButton.setOnClickListener(new View.OnClickListener() {
 
-            //@Override
-            //public void onClick(View v) {
-                //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-                //data_model_adapter.setSex(true);
-
-
-          //      StartFoodDiaryAidSheetCIF3();
-                //CancelAlarm();
-
-        //    }
-        //});
-        //mDebitButton.setOnClickListener(new View.OnClickListener() {
-
-            //@Override
-            //public void onClick(View v) {
-            //    StartDebitActivityCIF13();
-          //  }
-        //});
+    //@Override
+    //public void onClick(View v) {
+    //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+    //data_model_adapter.setSex(true);
 
 
-        //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        //countdownbalance.setText(RetrieveCountdownBalance());
+    //      StartFoodDiaryAidSheetCIF3();
+    //CancelAlarm();
 
-        //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
-        //if(value)
-       // {
-            //Start_Weight_LossPlus24();
-     //   }
+    //    }
+    //});
+    //mDebitButton.setOnClickListener(new View.OnClickListener() {
+
+    //@Override
+    //public void onClick(View v) {
+    //    StartDebitActivityCIF13();
+    //  }
+    //});
 
 
+    //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+    //countdownbalance.setText(RetrieveCountdownBalance());
+
+    //boolean value = getIntent().getBooleanExtra(NewDayCountdown.START_WEIGHT_LOSS,false);
+    //if(value)
+    // {
+    //Start_Weight_LossPlus24();
+    //   }
 
 
-   // }
+    // }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
+    public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_ccd__gui__cd__cif1, menu);
+
+        MenuItem overflowItem = menu.findItem(R.id.action_overflow);
+        View overflowView = overflowItem.getActionView();
+
+        View customView = overflowItem.getActionView();
+
+        if (customView != null) {
+            customView.setOnClickListener(v -> showPopupMenu(v));
+        }
+
+        if (overflowView != null) {
+            if (preferencesHelper.isFirstRun()) {
+                new GuideView.Builder(this)
+                        .setTitle("Main Menu")
+                        .setContentText("Click on this icon first to start your Journey")
+                        .setPointerType(PointerType.circle)
+                        .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                        .setTargetView(overflowView)
+                        .setGravity(Gravity.center)
+                        .setDismissType(DismissType.anywhere)
+                        .setGuideListener(new GuideListener() {
+                            @Override
+                            public void onDismiss(View view) {
+                                openBalance();
+                            }
+                        })
+                        .build()
+                        .show();
+                preferencesHelper.markGuideAsShown();
+            }
+        } else {
+            Log.e("GuideView", "Custom overflow menu view not found.");
+        }
         return true;
+    }
+
+    private void showPopupMenu(View anchor) {
+        PopupMenu popupMenu = new PopupMenu(this, anchor);
+
+        // Inflate the menu for the popup
+        popupMenu.getMenuInflater().inflate(R.menu.overflow_menu_file, popupMenu.getMenu());
+
+        // Handle menu item clicks
+        popupMenu.setOnMenuItemClickListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.action_settings) {
+                return true;
+            }
+
+
+            //noinspection SimplifiableIfStatement
+            if (id == R.id.sub_submenuitem1) {
+
+                StartWebCalculatorFragment2();
+
+                return true;
+            }
+
+            if (id == R.id.sub_submenuitem91) {
+
+                StartFoodDiaryNotes();
+
+                return true;
+            }
+
+            if (id == R.id.sub_submenuitem2) {
+
+                Start_Native_Calculator();
+
+                return true;
+            }
+
+            if (id == R.id.action_start_weightloss) {
+                Start_Weight_Loss_ActivityCIF4();
+                return true;
+            }
+
+            if (id == R.id.action_stop_weightlossb) {
+                Start_Recalibration();
+                return true;
+            }
+
+            if (id == R.id.action_log_it_in_reminder) {
+                Start_Notification_ActivityCIF5();
+                return true;
+            }
+
+            if (id == R.id.submenu3) {
+                Start_Diet_Plan_Activity();
+                return true;
+            }
+
+            if (id == R.id.submenu6) {
+                Populate_SQLite_Database();
+                return true;
+            }
+
+            if (id == R.id.submenu9) {
+                De_Populate_SQLite_Database();
+
+                return true;
+            }
+
+            if (id == R.id.submenu7) {
+                Clear_SQLite_Database();
+                return true;
+            }
+
+            if (id == R.id.submenu2a) {
+                Start_Journal_Activity_CiF115();
+                return true;
+            }
+
+            if (id == R.id.action_fitness_log_debit) // Physical Activity Debit
+            {
+                StartDebitActivityCIF13();
+
+            }
+
+            if (id == R.id.action_Client_Guide) // Physical Activity Debit
+            {
+                Start_Client_Guide();
+            }
+
+            return true;
+
+        });
+        popupMenu.setGravity(android.view.Gravity.END);
+        // Show the popup menu
+        popupMenu.show();
+
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        return super.onMenuOpened(featureId, menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Get Toolbar and MenuItem
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -216,6 +450,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+
+
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -246,59 +482,43 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             return true;
         }
 
-        if (id == R.id.action_start_weightloss)
-
-        {
+        if (id == R.id.action_start_weightloss) {
             Start_Weight_Loss_ActivityCIF4();
             return true;
         }
 
-        if (id == R.id.action_stop_weightlossb)
-
-        {
+        if (id == R.id.action_stop_weightlossb) {
             Start_Recalibration();
             return true;
         }
 
-        if (id == R.id.action_log_it_in_reminder)
-
-        {
+        if (id == R.id.action_log_it_in_reminder) {
             Start_Notification_ActivityCIF5();
             return true;
         }
 
-        if (id == R.id.submenu3)
-
-        {
+        if (id == R.id.submenu3) {
             Start_Diet_Plan_Activity();
             return true;
         }
 
-        if (id == R.id.submenu6)
-
-        {
+        if (id == R.id.submenu6) {
             Populate_SQLite_Database();
             return true;
         }
 
-        if (id == R.id.submenu9)
-
-        {
+        if (id == R.id.submenu9) {
             De_Populate_SQLite_Database();
 
             return true;
         }
 
-        if (id == R.id.submenu7)
-
-        {
+        if (id == R.id.submenu7) {
             Clear_SQLite_Database();
             return true;
         }
 
-        if (id == R.id.submenu2a)
-
-        {
+        if (id == R.id.submenu2a) {
             Start_Journal_Activity_CiF115();
             return true;
         }
@@ -314,15 +534,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             Start_Client_Guide();
         }
 
-
-
-
-
         return super.onOptionsItemSelected(item);
     }
 
-    private void Start_Client_Guide()
-    {
+    private void Start_Client_Guide() {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.PDFViewer.class);
         this.startActivityForResult(i, REQUEST_CODE_PDFViewer);
 
@@ -337,7 +552,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         //try
         //{
-          //  startActivity(pdfOpenintent);
+        //  startActivity(pdfOpenintent);
         //}
         //catch (ActivityNotFoundException e)
         //{
@@ -347,8 +562,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    private void ShootClientGuide()
-    {
+    private void ShootClientGuide() {
 
         File file = new File(filepath);
         Uri path = Uri.fromFile(file);
@@ -357,30 +571,23 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         pdfOpenintent.setDataAndType(path, "application/pdf");
         try {
             startActivity(pdfOpenintent);
-        }
-        catch (ActivityNotFoundException e) {
+        } catch (ActivityNotFoundException e) {
 
         }
 
     }
 
 
-
     @Override
     protected void onActivityResult(int requestcode, int resultcode, Intent data) {
         super.onActivityResult(requestcode, resultcode, data);
 
-        try
-        {
-            if (data == null)
-            {
+        try {
+            if (data == null) {
                 Log.d(TAG, "Sorry Mate, Intent is null Baby!");
                 return;
             }
-        }
-
-        catch (Exception c)
-        {
+        } catch (Exception c) {
 
         }
 
@@ -417,13 +624,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
 
 
-
         if (requestcode == REQUEST_CODE_LOG_IT_IN) {
             String vitals;
             int openingbalance;
 
-            if (data != null)
-            {
+            if (data != null) {
                 openingbalance = data.getIntExtra(Start_Weight_Loss_ActivityCIF14Fragment.OPENING_BALANCE, 1);
 
                 //ResetBreakfastTime = new RoundingCIF13().StringToDate(data.getStringExtra(Log_It_In_CIF15Fragment.ResultBreakfastTime));
@@ -437,11 +642,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 SResetMidnight = (data.getStringExtra(Log_It_In_CIF15Fragment.ResultMidnight));
 
 
-
-                android.util.Log.d("Supreme_Money_Shot RestB", SResetBreakfastTime );
-                android.util.Log.d("Supreme_Money_Shot RestL", SResetLunchTime );
-                android.util.Log.d("Supreme_Money_Shot RestD", SResetDinnerTime );
-                android.util.Log.d("Supreme_Money_Shot RestN", SResetMidnight );
+                android.util.Log.d("Supreme_Money_Shot RestB", SResetBreakfastTime);
+                android.util.Log.d("Supreme_Money_Shot RestL", SResetLunchTime);
+                android.util.Log.d("Supreme_Money_Shot RestD", SResetDinnerTime);
+                android.util.Log.d("Supreme_Money_Shot RestN", SResetMidnight);
 
                 ResetBreakfastTime = myStringToDate(SResetBreakfastTime);
                 ResetLunchTime = myStringToDate(SResetLunchTime);
@@ -451,10 +655,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 ResetAlarmTimer(ResetBreakfastTime, ResetLunchTime, ResetDinnerTime, ResetMidnight);
 
 
-
-            }
-            else
-                {
+            } else {
 
                 ResetBreakfastTime = new Date();
                 ResetLunchTime = new Date();
@@ -463,9 +664,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 vitals = "It's empty mate";
                 openingbalance = 0;
 
-                }
+            }
 
-                //Start_Day_End();
+            //Start_Day_End();
 
         }
 
@@ -474,55 +675,52 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
             try {
 
-                android.util.Log.d("Credit_Value, Pos 1", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 1", "We are in Start of Request Food Diary");
 
 
                 int CreditResult = data.getIntExtra(Food_Diary_Sheet_CIF3.TOTAL_CREDIT_VALUE, 1);
 
-                android.util.Log.d("Credit_Value, Pos 2", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 2", "We are in Start of Request Food Diary");
 
                 String Summation = data.getStringExtra(Food_Diary_Sheet_CIF3.SUMMATION_TEXT);
                 //How it for Countdown Screen, get App ready ready for use, might have to look in Intent
 
-                android.util.Log.d("Credit_Value, Pos 3", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 3", "We are in Start of Request Food Diary");
 
                 mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
                 mSummation.Set_mCurrentBalance(Get_currentBalance());
                 Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
                 display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
 
-                android.util.Log.d("Credit_Value, Pos 4", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 4", "We are in Start of Request Food Diary");
 
                 long res_of_balance_store = Record_Food_Journal(mSummation.Get_mFoodItems());
 
-                String display_string = "This are the results of storing Balance to SQLite : "  +  new RoundingCIF13().LongToString(res_of_balance_store);
+                String display_string = "This are the results of storing Balance to SQLite : " + new RoundingCIF13().LongToString(res_of_balance_store);
 
                 display_dialog_cif11.Showing(display_string);
 
-                android.util.Log.d("Credit_Value, Pos 5", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 5", "We are in Start of Request Food Diary");
 
                 Log.d("1st RecordJ Fi name", mSummation.Get_mFoodItems().get(0).Get_food_item_name());
 
-                android.util.Log.d("Credit_Value, Pos 6", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 6", "We are in Start of Request Food Diary");
 
                 display_dialog_cif11.SummaryBoxShowing(mSummation);
-                android.util.Log.d("Credit_Value, Pos 7", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 7", "We are in Start of Request Food Diary");
                 mSummation.reset();
-                android.util.Log.d("Credit_Value, Pos 8", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 8", "We are in Start of Request Food Diary");
                 //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
                 Countup(CreditResult);
-                android.util.Log.d("Credit_Value, Pos 9", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 9", "We are in Start of Request Food Diary");
                 Refresh();
-                android.util.Log.d("Credit_Value, Pos 10", "We are in Start of Request Food Diary" );
+                android.util.Log.d("Credit_Value, Pos 10", "We are in Start of Request Food Diary");
 
 
-                if(isItDayEnd())
-                {
+                if (isItDayEnd()) {
                     New_Day_2();
                 }
-            }
-            catch(NullPointerException e)
-            {
+            } catch (NullPointerException e) {
                 Log.d("Countdown", "Null Pointer Sent Back" + e.toString());
             }
         }
@@ -548,98 +746,89 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-        private void StartWebCalculatorFragment2 ()
-        {
+    private void StartWebCalculatorFragment2() {
 
-            Uri uri = Uri.parse(webadress);
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            startActivity(intent);
+        Uri uri = Uri.parse(webadress);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
 
-            //CancelAlarm();
+        //CancelAlarm();
 
+    }
+
+
+    private void Start_Native_Calculator() {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setComponent(new android.content.ComponentName(CALCULATOR_PACKAGE_NAME, CALCULATOR_CLASS_NAME));
+        try {
+            this.startActivity(intent);
+        } catch (android.content.ActivityNotFoundException noSuchActivity) {
+            // handle exception where calculator intent filter is not registered
         }
+    }
 
+    private void Start_Weight_Loss_ActivityCIF4() {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Start_Weight_Loss_ActivityCIF14.class);
+        this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
 
-        private void Start_Native_Calculator ()
-        {
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            intent.setComponent(new android.content.ComponentName(CALCULATOR_PACKAGE_NAME, CALCULATOR_CLASS_NAME));
-            try {
-                this.startActivity(intent);
-            } catch (android.content.ActivityNotFoundException noSuchActivity) {
-                // handle exception where calculator intent filter is not registered
-            }
-        }
+    }
 
-        private void Start_Weight_Loss_ActivityCIF4 ()
-        {
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Start_Weight_Loss_ActivityCIF14.class);
-            this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
-
-        }
-
-    private void Start_Recalibration()
-    {
+    private void Start_Recalibration() {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Recalibrate.class);
         this.startActivityForResult(i, REQUEST_CODE_RECALIBRATION);
 
     }
 
 
-        public void Start_Weight_Loss ()
-        {
-            //Alogrithm Engineering ~> Android (Black ~> Builder) : This is Lego Box for where 5pm Magic Occurs :
+    public void Start_Weight_Loss() {
+        //Alogrithm Engineering ~> Android (Black ~> Builder) : This is Lego Box for where 5pm Magic Occurs :
 
-            //MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
-            //dayEndSetAlarm.NewDayEndSetAlarm(new Date(), this);
+        //MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
+        //dayEndSetAlarm.NewDayEndSetAlarm(new Date(), this);
 
-        }
+    }
 
-        public void Start_Day_End()
-        {
-            //android.util.Log.d("Day END inside Bridge","Day end cfwd Started");
+    public void Start_Day_End() {
+        //android.util.Log.d("Day END inside Bridge","Day end cfwd Started");
 
-            //mBalance = 76702;
-            //mBalance_text = "76,702";
+        //mBalance = 76702;
+        //mBalance_text = "76,702";
 
-            //mBalance_textview = (TextView)findViewById(R.id.textView);
-            //mBalance_textview.setText(mBalance_text);
+        //mBalance_textview = (TextView)findViewById(R.id.textView);
+        //mBalance_textview.setText(mBalance_text);
 
 
-            //New_Day_1();
-        }
+        //New_Day_1();
+    }
 
-        public void Start_Notification_ActivityCIF5()
-        {
-            //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
-
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, Log_It_In_CIF15.class);
-            this.startActivityForResult(i, REQUEST_CODE_LOG_IT_IN);
-
-        }
-
-    public void Start_Day_End_ActivityCIF5a()
-    {
+    public void Start_Notification_ActivityCIF5() {
         //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
 
-       //Intent i = new Intent(CCD_GUI_CD_CIF1.this, Day_END_CIF15a.class);
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, Log_It_In_CIF15.class);
+        this.startActivityForResult(i, REQUEST_CODE_LOG_IT_IN);
+
+    }
+
+    public void Start_Day_End_ActivityCIF5a() {
+        //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
+
+        //Intent i = new Intent(CCD_GUI_CD_CIF1.this, Day_END_CIF15a.class);
         // this.startActivityForResult(i, REQUEST_CODE_NEW_DAY);
 
     }
 
-        public void Start_Diet_Plan_Activity()
-        {
-            //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
+    public void Start_Diet_Plan_Activity() {
+        //Alogrithm Engineering ~> Android ( Black ~> Builder -> (re)Load... -> www.ese-edet.eu ) : This is Lego Box for where ___ Occurs :
 
-            Intent i = new Intent(CCD_GUI_CD_CIF1.this, Diet_Plan_Activity_fragment008Fragment.class);
-            this.startActivityForResult(i, REQUEST_CODE_DIET_PLAN);
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, Diet_Plan_Activity_fragment008Fragment.class);
+        this.startActivityForResult(i, REQUEST_CODE_DIET_PLAN);
 
-        }
+    }
 
     public void Countup(int credit) {
-        android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
+        android.util.Log.d("Countdown", "Consider Countdown Updated Token");
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         String CountdownFigure = countdownbalance.getText().toString();
         CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) + credit);
@@ -649,25 +838,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-        private void OpenAccount ( int OpeningBalance)
-        {
-            //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
-            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-            String CountdownFigure = countdownbalance.getText().toString();
-            CountdownFigure = new RoundingCIF13().IntToString(OpeningBalance);
+    private void OpenAccount(int OpeningBalance) {
+        //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
+        final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+        String CountdownFigure = countdownbalance.getText().toString();
+        CountdownFigure = new RoundingCIF13().IntToString(OpeningBalance);
 
-            CountdownFigure = Strip_Comma(CountdownFigure);
+        CountdownFigure = Strip_Comma(CountdownFigure);
 
-            countdownbalance.setText(CountdownFigure);
-            StoreCountdownBalance(CountdownFigure);
+        countdownbalance.setText(CountdownFigure);
+        StoreCountdownBalance(CountdownFigure);
 
-        }
+    }
 
-    private boolean ResetAlarm(Date b, Date l, Date d, Date m, Date e, Date mm)
-    {
+    private boolean ResetAlarm(Date b, Date l, Date d, Date m, Date e, Date mm) {
 
-        try
-        {
+        try {
             SpecialThreadCIF15 speetread = new SpecialThreadCIF15(getApplicationContext());
 
             speetread.Set_RBreakfastTime(b);
@@ -680,10 +866,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
             speetread.start();
             return true;
-        }
-
-        catch(Exception c)
-        {
+        } catch (Exception c) {
             //Make exception more specifit
             //Catch the right name of exception that is thrown if thread already running e.g.
             //if already set in Start Weight Loss Menuitem. and tell user by displaying on screen
@@ -693,58 +876,51 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    private void ResetAlarmTimer(Date resetBreakfastTime, Date resetLunchTime, Date resetDinnerTime, Date resetMidnight)
-    {
+    private void ResetAlarmTimer(Date resetBreakfastTime, Date resetLunchTime, Date resetDinnerTime, Date resetMidnight) {
 
         resetBreakfastTime = add24(resetBreakfastTime); //?
         resetLunchTime = add24(resetLunchTime);
         resetDinnerTime = add24(resetDinnerTime);
         resetMidnight = add24(resetMidnight);
 
-        if(ResetAlarm(resetBreakfastTime, resetLunchTime, resetDinnerTime, resetMidnight, resetLunchTime, resetDinnerTime))
-        {
+        if (ResetAlarm(resetBreakfastTime, resetLunchTime, resetDinnerTime, resetMidnight, resetLunchTime, resetDinnerTime)) {
             ;
         }
 
-        this.ResetAlarm( plus24hour(resetBreakfastTime),plus24hour(resetLunchTime),plus24hour(resetDinnerTime),plus24hour(resetMidnight),plus24hour(resetLunchTime), plus24hour(resetDinnerTime));
+        this.ResetAlarm(plus24hour(resetBreakfastTime), plus24hour(resetLunchTime), plus24hour(resetDinnerTime), plus24hour(resetMidnight), plus24hour(resetLunchTime), plus24hour(resetDinnerTime));
 
     }
 
-    public Date ProperMidnight()
-    {
+    public Date ProperMidnight() {
         int hour = 5;
         int minute = 0;
 
         Calendar Greg = Calendar.getInstance();
         Greg.set(Calendar.HOUR, hour);
         Greg.set(Calendar.MINUTE, minute);
-        Greg.set(Calendar.AM_PM,Calendar.PM);
+        Greg.set(Calendar.AM_PM, Calendar.PM);
         return Greg.getTime();
     }
 
-    public long StoreCountdownBalance(String Balance)
-    {
+    public long StoreCountdownBalance(String Balance) {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         data_model_adapter.StoreDayEndBalance(Integer.parseInt(Balance) - 100);
         return data_model_adapter.StoreBalance(Balance);
     }
 
-    public long Store_Dayend(int data)
-    {
+    public long Store_Dayend(int data) {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         return data_model_adapter.StoreDayEndBalance(data);
     }
 
-    private Date add24(Date time)
-    {
+    private Date add24(Date time) {
         //long OneMinute = (1000 * 60 * 60 * 24);
         //time.setTime(time.getTime() + (OneMinute * 3000));
         return time;
 
     }
 
-    private Date plus24hour(Date time)
-    {
+    private Date plus24hour(Date time) {
         long OneMinute = (1000 * 60 * 60 * 24);
         time.setTime(time.getTime() + (OneMinute * 3000));
         return time;
@@ -761,8 +937,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    private void StartFoodDiaryNotes()
-    {
+    private void StartFoodDiaryNotes() {
         android.util.Log.d("Pre Food Diary Notes", "number2");
 //        Intent i = new Intent(CCD_GUI_CD_CIF1.this, FoodNoteItemDetailHostActivity.class);
 //        android.util.Log.d("Pre Food Diary Notes", "number3");
@@ -783,7 +958,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(System.currentTimeMillis());
         calendar.set(Calendar.HOUR_OF_DAY, new RoundingCIF13().StringToInt(hour));
-        calendar.set(Calendar.MINUTE,new RoundingCIF13().StringToInt(minute));
+        calendar.set(Calendar.MINUTE, new RoundingCIF13().StringToInt(minute));
 
         Date result = new Date(calendar.getTimeInMillis());
 
@@ -791,8 +966,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     @Override
-    public void recreate()
-    {
+    public void recreate() {
         /*android.util.Log.d("Main", "We have been recreated, now delete this");
         //Simply get new Balance and display.
 
@@ -805,17 +979,14 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         mBalance_textview.setText(mBalance_text);*/
 
 
-
         //super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_ccd__gui__cd__cif1);
 
         instance = this;
 
-        mCallback = new MyCallBack()
-        {
+        mCallback = new MyCallBack() {
             @Override
-            public void refreshMainActivity()
-            {
+            public void refreshMainActivity() {
                 CCD_GUI_CD_CIF1.this.recreate();
 
                 //"OR"
@@ -889,66 +1060,54 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-    public interface MyCallBack
-    {
+    public interface MyCallBack {
         public void refreshMainActivity();
     }
 
-    private void StartDebitActivityCIF13()
-    {
+    private void StartDebitActivityCIF13() {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, Debit_Activity_CiF003_fragment_box.class);
         this.startActivityForResult(i, REQUEST_CODE_START_DEBIT_ACTIVITY);
     }
 
-    private void Start_Journal_Activity_CiF115()
-    {
+    private void Start_Journal_Activity_CiF115() {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, Journal_Activity_CiF0115_fragment_box.class);
         this.startActivityForResult(i, REQUEST_CODE_START_JOURNAL_ACTIVITY);
     }
 
 
-    private void NewDay()
-    {
+    private void NewDay() {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(this);
         String currentBalance = data_model_adapter.RetrieveBalance();
         mBalance = new RoundingCIF13().StringToInt(currentBalance);
-        if(data_model_adapter.getSex() == "MALE")
-        {
+        if (data_model_adapter.getSex() == "MALE") {
             mBalance = mBalance - 2000;
         }
-        if(data_model_adapter.getSex() == "FEMALE")
-        {
+        if (data_model_adapter.getSex() == "FEMALE") {
             mBalance = mBalance - 2000;
-        }
-        else
-        {
+        } else {
             mBalance = mBalance - 2000;
         }
         data_model_adapter.StoreBalance(new RoundingCIF13().IntToString(mBalance));
         data_model_adapter.StoreDayEndBalance((mBalance - 350 + 2570));
     }
 
-    private void New_Day_1()
-    {
+    private void New_Day_1() {
         NewDay();
     }
 
 
-    private boolean Populate_SQLite_Database()
-    {
+    private boolean Populate_SQLite_Database() {
         Populate_SQLDatabase_Food_Items_CIF7 Gen_Pop = new Populate_SQLDatabase_Food_Items_CIF7(this);
         return Gen_Pop.Populate();
 
     }
 
-    private boolean De_Populate_SQLite_Database()
-    {
+    private boolean De_Populate_SQLite_Database() {
         Populate_SQLDatabase_Food_Items_CIF7 Gen_Pop = new Populate_SQLDatabase_Food_Items_CIF7(this);
         return Gen_Pop.De_Populate_Database();
     }
 
-    private void Clear_SQLite_Database()
-    {
+    private void Clear_SQLite_Database() {
         Populate_SQLDatabase_Food_Items_CIF7 Gen_Pop = new Populate_SQLDatabase_Food_Items_CIF7(this);
         Gen_Pop.Delete_Database();
     }
@@ -960,21 +1119,18 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         int dayend = data_model_adapter.RetriveDayEnd();
         int currentbalance = Get_currentBalanceInt();
         int kit = currentbalance - dayend;
-        if(kit < 0)
-        {
+        if (kit < 0) {
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
             display_dialog_cif11.Showing(KittyMinus(kit));
         }
 
-        if(kit == 0)
-        {
+        if (kit == 0) {
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
             display_dialog_cif11.Showing(KittyZero(kit));
         }
-        if(kit > 0)
-        {
+        if (kit > 0) {
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
             display_dialog_cif11.Showing(KittyPlus(kit));
@@ -982,41 +1138,36 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    private String KittyMinus(int in)
-    {
+    private String KittyMinus(int in) {
         int kit = Math.abs(in);
         String out = "You have " + new RoundingCIF13().IntToString(kit) + " Calories left in the Kitty for the meals left in the day.";
         return out;
     }
 
-    private String KittyZero(int in)
-    {
+    private String KittyZero(int in) {
         String out = "You have no Calories to eat left in your Kitty, Do not eat or exercise for the rest of the day, you are on track for Weight loss. ";
         return out;
     }
 
-    private String KittyPlus(int in)
-    {
-        int walkminutes = (int) in/7;
+    private String KittyPlus(int in) {
+        int walkminutes = (int) in / 7;
         String out = "You now need to Walk for " + new RoundingCIF13().IntToString(walkminutes) + " minutes to be on track for Weight Loss, only dispose of the dialog once you have performed.";
         return out;
     }
 
 
-    public int Get_currentBalanceInt()
-    {
+    public int Get_currentBalanceInt() {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         return new RoundingCIF13().StringToInt(countdownbalance.getText().toString());
     }
 
-    public String Get_currentBalance()
-    {
+    public String Get_currentBalance() {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         return new String(countdownbalance.getText().toString());
     }
 
-    private void Set_currentBalance()
-    {
+    private void Set_currentBalance() {
+
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         MIF4_Data_Model_Adapter model_adapter = new MIF4_Data_Model_Adapter(this);
 
@@ -1028,8 +1179,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         countdownbalance.setText(mBalance_text);
     }
 
-    private void Set_Balance(String input)
-    {
+    private void Set_Balance(String input) {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
 
 
@@ -1042,13 +1192,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Kitty();
     }
 
-    private void Refresh()
-    {
+    private void Refresh() {
         getWindow().getDecorView().findViewById(R.id.fragment).invalidate();
     }
 
-    private long Record_Food_Journal(ArrayList<Food_Item_CIF4> INPUT)
-    {
+    private long Record_Food_Journal(ArrayList<Food_Item_CIF4> INPUT) {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(this);
         data_model_adapter.Record_Food_Journal(INPUT);
         return data_model_adapter.StoreBalance(mBalance_text);
@@ -1176,10 +1324,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         String CountdownFigure = countdownbalance.getText().toString();
         CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) - debit);
         countdownbalance.setText((mBalance_text = CountdownFigure));
-        StoreCountdownBalance((mBalance_text =CountdownFigure));
+        StoreCountdownBalance((mBalance_text = CountdownFigure));
         Kitty();
     }
-
 
 
     public String RetrieveCountdownBalance() {
@@ -1202,6 +1349,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void DisplaySummaryString(String summary) {
         Log.d(TAG, summary);
     }
+
     public void DisplaySummaryInt(int in) {
         Log.d(TAG, new RoundingCIF13().IntToString(in));
     }
@@ -1216,8 +1364,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    public void UpdateCountdownUI()
-    {
+    public void UpdateCountdownUI() {
         mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
         //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
         DisplaySummaryString(mSummation.GetSummaryString()); //Toast, alert or dialog
@@ -1228,15 +1375,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-    public void Start_Weight_LossPlus24()
-    {
+    public void Start_Weight_LossPlus24() {
         MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
         dayEndSetAlarm.NewDayEndSetAlarm(add24(new Date()), this);
 
     }
 
-    public void Start_Weight_Loss_CancelAlarm()
-    {
+    public void Start_Weight_Loss_CancelAlarm() {
         MIF1NewDayEndSetAlarm dayEndSetAlarm = new MIF1NewDayEndSetAlarm();
         dayEndSetAlarm.CancelAlarm();
     }
@@ -1252,9 +1397,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-
-    private void SetNewDayAlarm(int h, int m, int d, int mon, int yr)
-    {
+    private void SetNewDayAlarm(int h, int m, int d, int mon, int yr) {
         //Alogrithm Engineering ~> Android :
         //Here you prime AlarmManager to first shoot newdaycountdown intent at 9pm the same day
         //then it will continue to reset it self.
@@ -1284,67 +1427,54 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         i.setAction(ACTION_STORE_BALANCE);
         PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC, (System.currentTimeMillis()+ KalendTime),intervalmillis, pi);
+        alarmManager.setRepeating(AlarmManager.RTC, (System.currentTimeMillis() + KalendTime), intervalmillis, pi);
         Log.d("Countdown", "Alarm Manager Set Yeah verify");
 
     }
 
-    public void New_Day_2()
-    {
+    public void New_Day_2() {
         //Calendar event emitted & Admob & 77p & B x G = ¢#∞§€¡@!£5.57 + WWW.ESE-EDET.EU & Numbers 7v7
     }
 
-    public void setResetDayEnd()
-    {
+    public void setResetDayEnd() {
 
     }
 
-    public void setResetBreakfastTime(Date btime)
-    {
+    public void setResetBreakfastTime(Date btime) {
         ResetBreakfastTime = btime;
     }
 
-    public void setResetLunchTime(Date ltime)
-    {
+    public void setResetLunchTime(Date ltime) {
         ResetLunchTime = ltime;
     }
 
-    public void setResetDinnerTime(Date dtime)
-    {
+    public void setResetDinnerTime(Date dtime) {
         ResetDinnerTime = dtime;
     }
 
-    public void ChangeTextColor(String input)
-    {
-       Set_Balance(input);
+    public void ChangeTextColor(String input) {
+        Set_Balance(input);
     }
 
-    public void ChangeButtonColor()
-    {
-
-    }
-
-    public void ChangeBackgroundImage()
-    {
+    public void ChangeButtonColor() {
 
     }
 
-    public void Recalibrate()
-    {
+    public void ChangeBackgroundImage() {
 
     }
 
-    private void ResetAlarmTimer(ObjectWithAllTheTimesCIF10 obj)
-    {
+    public void Recalibrate() {
+
+    }
+
+    private void ResetAlarmTimer(ObjectWithAllTheTimesCIF10 obj) {
         ResetAlarmTimer(obj.getResetBreakfastTime(), obj.getResetLunchTime(), obj.getResetDinnerTime(), obj.getResetDayEnd());
     }
 
-    private String Strip_Comma(String INPUT)
-    {
-        for(int c = 0; c < INPUT.length(); c++)
-        {
-            if(INPUT.charAt(c) == ',')
-            {
+    private String Strip_Comma(String INPUT) {
+        for (int c = 0; c < INPUT.length(); c++) {
+            if (INPUT.charAt(c) == ',') {
                 StringBuffer IN = new StringBuffer(INPUT);
                 IN.deleteCharAt(c);
                 return IN.toString();
@@ -1354,13 +1484,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         return INPUT;
     }
 
-    private boolean isItDayEnd()
-    {
+    private boolean isItDayEnd() {
         return false;
     }
 
-    public void Store_Target_Weight_Pounds(String Input1)
-    {
+    public void Store_Target_Weight_Pounds(String Input1) {
         //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         //data_model_adapter.StoreTargetWeightLossPounds(Input1);
 
@@ -1373,10 +1501,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-
-
-    class CurrentCalendar
-    {
+    class CurrentCalendar {
         private java.util.Calendar Kalends;
         public int Hour;
         public int Minute;
@@ -1385,8 +1510,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         public int Year;
 
 
-        public CurrentCalendar()
-        {
+        public CurrentCalendar() {
             Kalends = Calendar.getInstance();
             Kalends.setTimeInMillis(System.currentTimeMillis() + 180000);
             //Kalends.set(Calendar.HOUR, 17);
@@ -1399,18 +1523,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
 
 
-
-
-
     }
-
-
-
-
-
-
-
-
 
 
 }
