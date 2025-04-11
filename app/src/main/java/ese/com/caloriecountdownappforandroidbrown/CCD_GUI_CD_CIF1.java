@@ -2,6 +2,7 @@ package ese.com.caloriecountdownappforandroidbrown;
 
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -13,7 +14,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,13 +26,16 @@ import android.widget.TextView;
 //import com.erkutaras.showcaseview.ShowcaseManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
 import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+
 import ese.com.caloriecountdownappforandroidbrown.ui.debitactivitycif13.PreferencesHelper;
 import smartdevelop.ir.eram.showcaseviewlib.GuideView;
 import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
@@ -187,8 +193,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             View child = toolbar.getChildAt(i);
             if (child.getClass().getSimpleName().equals("OverflowMenuButton")) {
                 new GuideView.Builder(this)
-                        .setTitle("Overflow Menu")
-                        .setContentText("This is the overflow menu.")
+                        .setTitle(getString(R.string.guide_title_overflow))
+                        .setContentText(getString(R.string.guide_content_overflow))
                         .setTargetView(child)
                         .setGravity(Gravity.center)
                         .setDismissType(DismissType.anywhere)
@@ -203,8 +209,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void openBalance() {
         new GuideView.Builder(this)
-                .setTitle("What is Balance")
-                .setContentText("Count down balance indicates your Calorie intake in kCal")
+                .setTitle(getString(R.string.guide_title_balance))
+                .setContentText(getString(R.string.guide_content_balance))
                 .setPointerType(PointerType.circle)
                 .setTitleTypeFace(Typeface.DEFAULT_BOLD)
                 .setTargetView(countdownbalance)//optional - default dismissible by TargetView
@@ -226,8 +232,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void openDebit() {
         new GuideView.Builder(this)
-                .setTitle("Debit")
-                .setContentText("Debit allows you to Add or Remove calorie Intake")
+                .setTitle(getString(R.string.guide_title_debit))
+                .setContentText(getString(R.string.guide_content_debit))
                 .setPointerType(PointerType.circle)
                 .setTitleTypeFace(Typeface.DEFAULT_BOLD)
                 .setTargetView(mDebitButton)
@@ -239,8 +245,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void openCredit() {
         new GuideView.Builder(this)
-                .setTitle("Credit")
-                .setContentText("Credit allows you to add the daily credit intake")
+                .setTitle(getString(R.string.guide_title_credit))
+                .setContentText(getString(R.string.guide_content_credit))
                 .setPointerType(PointerType.circle)
                 .setTitleTypeFace(Typeface.DEFAULT_BOLD)
                 .setTargetView(mCreditButton)
@@ -297,9 +303,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_ccd__gui__cd__cif1, menu);
-
         MenuItem overflowItem = menu.findItem(R.id.action_overflow);
         View overflowView = overflowItem.getActionView();
 
@@ -309,30 +313,62 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             customView.setOnClickListener(v -> showPopupMenu(v));
         }
 
-        if (overflowView != null) {
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (preferencesHelper.isFirstRun()) {
-                new GuideView.Builder(this)
-                        .setTitle("Main Menu")
-                        .setContentText("Click on this icon first to start your Journey")
-                        .setPointerType(PointerType.circle)
-                        .setTitleTypeFace(Typeface.DEFAULT_BOLD)
-                        .setTargetView(overflowView)
-                        .setGravity(Gravity.center)
-                        .setDismissType(DismissType.anywhere)
-                        .setGuideListener(new GuideListener() {
-                            @Override
-                            public void onDismiss(View view) {
-                                openBalance();
-                            }
-                        })
-                        .build()
-                        .show();
-                preferencesHelper.markGuideAsShown();
+                appDescriptionDialog(() -> {
+                    if (overflowView != null) {
+                        showGuideView(overflowView);
+                    } else {
+                        Log.e("GuideView", "Overflow menu view not found.");
+                    }
+                    preferencesHelper.markGuideAsShown();
+                });
             }
-        } else {
-            Log.e("GuideView", "Custom overflow menu view not found.");
-        }
+        }, 500);
         return true;
+    }
+
+
+    private void showGuideView(View overflowView) {
+        new GuideView.Builder(this)
+                .setTitle(getString(R.string.guide_title_main_menu))
+                .setContentText(getString(R.string.guide_content_main_menu))
+                .setPointerType(PointerType.circle)
+                .setTitleTypeFace(Typeface.DEFAULT_BOLD)
+                .setTargetView(overflowView)
+                .setGravity(Gravity.center)
+                .setDismissType(DismissType.anywhere)
+                .setGuideListener(view -> openBalance())
+                .build()
+                .show();
+    }
+
+
+    public void appDescriptionDialog(Runnable onDismiss) {
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.guide_dialog, null);
+
+        TextView title = view.findViewById(R.id.dialog_title);
+        TextView message = view.findViewById(R.id.dialog_message);
+        Button okButton = view.findViewById(R.id.dialog_ok_button);
+
+        message.setText(getString(R.string.Get_Started_Primer_Tutorial));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(view)
+                .setCancelable(false)
+                .create();
+
+        okButton.setOnClickListener(v -> {
+            dialog.dismiss();
+
+            // Delay to ensure dialog is fully dismissed before executing the guide
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (onDismiss != null) onDismiss.run();
+            }, 250); // Slight delay for smoother UX
+        });
+
+        dialog.show();
     }
 
     private void showPopupMenu(View anchor) {
@@ -347,6 +383,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             int id = item.getItemId();
 
             if (id == R.id.action_settings) {
+                return true;
+            }
+
+            if (id == R.id.quick_start_guide) {
+                appDescriptionDialog(null);
                 return true;
             }
 
@@ -950,10 +991,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
 
-    private Date myStringToDate(String editText)
-    {
-        String hour = editText.substring(0,2);
-        String minute = editText.substring(2,4);
+    private Date myStringToDate(String editText) {
+        String hour = editText.substring(0, 2);
+        String minute = editText.substring(2, 4);
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(System.currentTimeMillis());

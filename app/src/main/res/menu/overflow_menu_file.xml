@@ -9,6 +9,10 @@
         android:title="@string/action_settings"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/quick_start_guide"
+        android:orderInCategory="100"
+        android:title="@string/quick_start_guide" />
 
 
     <item android:id="@+id/action_start_weightloss"

@@ -7,6 +7,7 @@
     <string name="app_name3">\tEnergy Burnt</string>
     <string name="splash">Calorie Countdown app</string>
     <string name="action_settings">Settings</string>
+    <string name="quick_start_guide">Quick Start Guide</string>
     <string name="spellchecker_name">Spell_Checker_GranularFragment</string>
     <string name="subtype_generic">English</string>
 
@@ -2373,6 +2374,25 @@
     <string name="title_foodnoteitem_detail">FoodNoteItem Detail</string>
     <string name="title_activity_raw_calories">Raw_Calories</string>
 
+    <!-- Guide Texts   -->
+    <string name="guide_title_overflow">Overflow Menu</string>
+    <string name="guide_content_overflow">This is the overflow menu.</string>
+    <string name="guide_title_balance">What is Balance</string>
+    <string name="guide_content_balance">This is your Countdown Balance, the entire user challenge is to count this number down to zero after you use the Start Weight Menuitem.</string>
+    <string name="guide_title_debit">Debit</string>
+    <string name="guide_content_debit">This is the Debit button, it decreases your Countdown Balance by converting all your physical activity into “Points”, these Points are the debited from your Balance, which causes it to decreases. You can also use it to make adjustments to your Countdown Balance.</string>
+    <string name="guide_title_credit">Credit</string>
+    <string name="guide_content_credit">This is the Credit button, it increases your Countdown Balance by converting what you eat and drink into “Points”, these Points are the credited to your Balance, which causes it to increase.</string>
+    <string name="guide_title_main_menu">Main Menu</string>
+    <string name="guide_content_main_menu">Click on this icon first to start your Journey</string>
+    <string name="Quick_Start_Title">Quick Start</string>
+    <string name="Get_Started_Primer_Tutorial">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec odio ipsum. Suspendisse cursus malesuada facilisis. Nunc consectetur, libero at mattis pharetra, sem lorem tincidunt ligula, nec fermentum dolor purus non diam. Maecenas non purus in odio varius ultrices. Curabitur ut nisi a quam fermentum porttitor. Sed suscipit convallis ligula, vel dictum massa porttitor ut. Integer sit amet mi nec urna consequat porttitor. Sed nec libero id quam tincidunt eleifend vitae eu nulla.
+    Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Fusce vestibulum felis vel sapien dignissim, sed consequat magna fermentum. Morbi eget sem nec ligula tristique facilisis. Sed fringilla, enim ut hendrerit gravida, lorem felis vehicula nisl, ut viverra velit purus et nulla. Vivamus sagittis est at mi viverra, ac lacinia tortor pretium. Cras at arcu orci. Pellentesque vulputate erat nec diam varius hendrerit. Praesent volutpat congue dolor vel facilisis. Donec quis tincidunt erat.
+    Aliquam erat volutpat. Nulla eu sapien vehicula, mattis est nec, blandit odio. Ut scelerisque fringilla lacinia. Nulla non suscipit ante. Duis in dui id eros accumsan dapibus. Cras in tincidunt sapien. Etiam nec sem non turpis sodales lacinia. Aenean interdum nisi ac purus pretium, non fermentum leo faucibus. Integer at justo quam. Pellentesque a purus lorem. Nunc pulvinar velit a nulla laoreet, sed feugiat magna posuere. Proin in leo ac elit porta tincidunt. Vivamus mattis felis nec dolor porta, sed sodales turpis tristique.
+    Integer feugiat, justo sit amet maximus sodales, velit sem faucibus orci, id pulvinar metus erat a orci. Suspendisse ac sodales eros. Pellentesque rhoncus purus quis est tincidunt, nec cursus lorem fringilla. Vestibulum mattis dolor sed nisl sodales, vel ultricies est congue. Aenean consequat libero quis tortor convallis rutrum. Vivamus ut bibendum ligula. Curabitur vitae feugiat ante, ac viverra tellus. Donec in arcu at erat fringilla tincidunt. In non ipsum sem. Nulla facilisi. Integer cursus velit et metus dapibus, sed imperdiet risus posuere.
+    Sed sed varius justo. Etiam nec erat ac mauris feugiat pulvinar. Donec blandit justo id dui vulputate tristique. Phasellus faucibus felis id tortor fringilla, sed accumsan justo varius. Mauris eget justo non ligula suscipit bibendum. Pellentesque in mi justo. Fusce porttitor blandit urna, vel hendrerit erat. Cras nec nunc sit amet ante rutrum finibus ac sit amet dolor. Vivamus a semper nulla, in vulputate tellus. Ut a laoreet orci, et iaculis massa. Proin nec turpis in ligula sodales posuere.
+</string>
 
 </resources>
 
