@@ -2373,6 +2373,9 @@
     <string name="title_foodnoteitem_list">FoodNoteItems</string>
     <string name="title_foodnoteitem_detail">FoodNoteItem Detail</string>
     <string name="title_activity_raw_calories">Raw_Calories</string>
+    <string name="gemini_api_key">AIzaSyDxf6npAwiHO2b7uM3eE4TYKl7oJXbnaYQ</string>
+    <string name="ai">AI</string>
+    <string name="processing">Processing…</string>
 
     <!-- Guide Texts   -->
     <string name="guide_title_overflow">Overflow Menu</string>

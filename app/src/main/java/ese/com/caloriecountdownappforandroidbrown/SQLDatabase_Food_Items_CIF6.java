@@ -201,7 +201,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_FOODITEMS_CATEGORY = "category";
 
 
-
     private static final String TABLE_HEALTH_PROFILE_TABLE = "health_profile";
     private static final String COLUMN_VITALS_ID = "vitals_id";
     private static final String COLUMN_Client_ACCOUNT_NAME = "client_account_name";
@@ -209,7 +208,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_Client_BMI = "client_bmi";
     private static final String COLUMN_Client_BODYFAT = "client_bodyfat";
     private static final String COLUMN_Client_BMR = "client_bmr";
-    private static final String COLUMN_Client_VITALS_STRING ="client_vitals_string";
+    private static final String COLUMN_Client_VITALS_STRING = "client_vitals_string";
     private static final String COLUMN_Client_OPENING_BALANCE = "client_opening_balance";
     private static final String COLUMN_Client_HEIGHT_CM = "client_height_cm";
     private static final String COLUMN_Client_EMAIL = "client_email";
@@ -372,7 +371,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_ZINC = "Zinc";
 
 
-
     private static final String TABLE_CACHE_TABLEX = "cache_tablex";
 
     private static final String TABLE_FAVOURITE_FOOD_ITEMS_TABLE = "favourites_table";
@@ -385,8 +383,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
 
 
-
-
     private Context mContext;
 
     //or onCreate
@@ -396,9 +392,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         mContext = context;
 
         SQLiteDatabase db = getWritableDatabase();
-        if(db == null)
-        {
-            android.util.Log.d("app","For Some reason the database is not opening...");
+        if (db == null) {
+            android.util.Log.d("app", "For Some reason the database is not opening...");
             return;
 
         }
@@ -429,20 +424,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         }
 
-        try
-        {
+        try {
             db.execSQL("CREATE table if not exists health_profile (" + "_id integer primary key autoincrement, " +
 
-            "vitals_id, integer, " +
-            "client_account_name varchar(100)," +
-            "client_dob float, " +
-            "client_bmi integer, " +
-            "client_bmr integer, " +
-            "client_bodyfat integer," +
-            "client_vitals_string varchar(150), " +
-            "client_opening_balance integer, " +
-            "client_height_cm integer, " +
-            "client_email varchar(100)," +
+                    "vitals_id, integer, " +
+                    "client_account_name varchar(100)," +
+                    "client_dob float, " +
+                    "client_bmi integer, " +
+                    "client_bmr integer, " +
+                    "client_bodyfat integer," +
+                    "client_vitals_string varchar(150), " +
+                    "client_opening_balance integer, " +
+                    "client_height_cm integer, " +
+                    "client_email varchar(100)," +
                     "client_gender varchar(50)," +
                     "client_start_weight integer," +
                     "client_target_weight integer," +
@@ -459,7 +453,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     "high_heart_rate_notification integer, " +
                     "irregular_heart_rhythm_notification integer, " +
                     "low_heart_rate_notification integer, " +
-                     "walking_heart_rate integer, " +
+                    "walking_heart_rate integer, " +
                     "heart_rate integer, " +
                     "rest_heart_rate integer, " +
                     "respiratory_rate integer, " +
@@ -476,9 +470,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     "manual_data_sources integer) ");
 
 
-        }
-        catch (SQLException alreadyexist)
-        {
+        } catch (SQLException alreadyexist) {
 
         }
 
@@ -613,8 +605,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         {
             db.execSQL("Create table if not exists lunch_time (" + "_id integer primary key autoincrement, " +
                     "lunch_time integer)");
-        } catch (SQLException alreadyexist)
-        {
+        } catch (SQLException alreadyexist) {
 
         }
 
@@ -763,7 +754,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         list = Query_Specific_Food_Items_Table(fooditemname);
 
         //See Results of Query for Matches
-       // Check_Results(list);
+        // Check_Results(list);
 
         return list;
     }
@@ -797,7 +788,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public ArrayList<Food_Item_CIF4> Query_Specific_Food_Items_Table(String food_item_name) {
         //Alogrithm Engineering : Get cursor pointing row and columns
 
-        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_FOODITEMS + " WHERE " + COLUMN_FOODITEMS_FOOD_ITEM_NAME + " LIKE " + "'" + "%"+food_item_name+"%" + "'", null);
+        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_FOODITEMS + " WHERE " + COLUMN_FOODITEMS_FOOD_ITEM_NAME + " LIKE " + "'" + "%" + food_item_name + "%" + "'", null);
         cursor.moveToFirst();
         FoodItemsCursor foodItemCursor = new FoodItemsCursor(cursor);
         Log.d("Calorie Countdown", "Check to state of Cursor");
@@ -874,9 +865,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public Transactions_CIF22 Get_All_Transactions(Date start, Date end)
-    {
-        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_TRANSACTIONS_TABLE + " WHERE " + COLMUM_TRANSACTIONS_DATE + " >= " + "'" + start.getTime() + "'" + " AND " + COLMUM_TRANSACTIONS_DATE +" <= " + "'" + end.getTime() + "'", null);
+    public Transactions_CIF22 Get_All_Transactions(Date start, Date end) {
+        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_TRANSACTIONS_TABLE + " WHERE " + COLMUM_TRANSACTIONS_DATE + " >= " + "'" + start.getTime() + "'" + " AND " + COLMUM_TRANSACTIONS_DATE + " <= " + "'" + end.getTime() + "'", null);
         cursor.moveToFirst();
         Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
         if (TransactionCursor.getCount() < 1) {
@@ -888,22 +878,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public Transactions_CIF22 Really_Get_All_Transactions()
-    {
+    public Transactions_CIF22 Really_Get_All_Transactions() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_TRANSACTIONS_TABLE, null);
         cursor.moveToFirst();
         Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
         Transactions_CIF22 OUTPUT;
         ArrayList<Breakfast_Box_CIF17> OUTPUTb;
 
-        if (TransactionCursor.getCount() < 1)
-        {
+        if (TransactionCursor.getCount() < 1) {
             Log.d(TAG, "NOTHING FOUND IN Transaction DATABASE");
             TransactionCursor.close();
             return new Transactions_CIF22();
-        }
-        else
-        {
+        } else {
             try {
                 Log.d(TAG, "CONTENTS IN Transaction DATABASE");
                 OUTPUT = GetTransactions(TransactionCursor);
@@ -936,9 +922,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 //BoxCIF17 OUTPUTc = Transform_Breakfast_Box_to_Box(OUTPUTb);
                 //long Transaction_ID = OUTPUTc.Get_Transaction_ID();
                 //OUTPUT.add_BOX_to_Line(Transaction_ID, OUTPUTc);
-            }
-            catch(Exception x)
-            {
+            } catch (Exception x) {
                 Toast.makeText(mContext, "Meal Box is empty aborting function", Toast.LENGTH_SHORT);
             }
 
@@ -948,8 +932,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public BoxCIF17 Get_Meal_items(long Transaction_ID)
-    {
+    public BoxCIF17 Get_Meal_items(long Transaction_ID) {
         return new BoxCIF17();
     }
 
@@ -1010,10 +993,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 countdownBalanceCursor.close();
                 return repulse;
             }
-        }
-        catch(Exception e)
-        {
-            android.util.Log.d("app","database must have failed to open");
+        } catch (Exception e) {
+            android.util.Log.d("app", "database must have failed to open");
             return "1000";
         }
     }
@@ -1076,13 +1057,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 String repulse = GetTargetWeightCursor(countdownBalanceCursor);
                 //countdownBalanceCursor.close();
                 return repulse;
-            }
-            catch(java.lang.IllegalStateException e) {
+            } catch (java.lang.IllegalStateException e) {
                 //Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
                 //dialog.Showing("Please enter your Target weight using main menu");
                 return "0";
+            } finally {
+                countdownBalanceCursor.close();
             }
-            finally { countdownBalanceCursor.close();}
         }
     }
 
@@ -1141,14 +1122,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return dc;
     }
 
-    public HealthProfileCiF3 GetHealthProfile_CIF3(SHealth_Cursor_241 bc)
-    {
+    public HealthProfileCiF3 GetHealthProfile_CIF3(SHealth_Cursor_241 bc) {
         HealthProfileCiF3 dc = bc.Get_HealthProfileCIF3();
         return dc;
     }
 
-    public ArrayList<Breakfast_Box_CIF17> GetBoxes(Meal_Items_Cursor mc)
-    {
+    public ArrayList<Breakfast_Box_CIF17> GetBoxes(Meal_Items_Cursor mc) {
         ArrayList<Breakfast_Box_CIF17> dc = mc.Get_Meal_Box_Action();
         return dc;
     }
@@ -1245,23 +1224,20 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return repulse;
     }
 
-    private String GetBreakfastCursor(BreakfastCursor obcursor)
-    {
+    private String GetBreakfastCursor(BreakfastCursor obcursor) {
         String repulse = obcursor.getBreakfast();
         obcursor.close();
         return repulse;
     }
 
 
-    private ArrayList<Food_Item_CIF4> GetFoodItemII(FoodItemsCursor food_cursor)
-    {
+    private ArrayList<Food_Item_CIF4> GetFoodItemII(FoodItemsCursor food_cursor) {
         Food_Item_CIF4 food_match;
         ArrayList<Food_Item_CIF4> relist = new ArrayList<Food_Item_CIF4>();
 
 
-
         //for(int c = 0; c < food_cursor.getCount(); c++)
-       // {
+        // {
         //food_match = food_cursor.getFood_Item();
         //relist.add(food_match);
         //return relist;
@@ -1269,7 +1245,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         //while(food_cursor.isAfterLast() == false)
         //{
 
-        for(int c = 0; c < food_cursor.getCount(); c++) {
+        for (int c = 0; c < food_cursor.getCount(); c++) {
 
             food_match = new Food_Item_CIF4();
 
@@ -1315,9 +1291,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         //}
 
 
-
         //reloop here ESE
-    //}
+        //}
         food_cursor.close();
         //getReadableDatabase().clone()
 
@@ -1402,7 +1377,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
 
 
-
         Unique_ID = new Random().nextInt();
         Unique_ID = Math.abs(Unique_ID);
 
@@ -1440,8 +1414,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return getWritableDatabase().insert(TABLE_BREAKFAST_TRANSACTIONS_TABLE, null, cv);
     }
 
-    public long Insert_TransactionTable(Transaction_CIF52 transaction_type)
-    {
+    public long Insert_TransactionTable(Transaction_CIF52 transaction_type) {
 
         ContentValues cv = new ContentValues();
         cv.put(COLUMN_TRANSACTIONS_ID, new RoundingCIF13().LongToString(transaction_type.Get_Transaction_id()));
@@ -1451,11 +1424,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cv.put(COLUMUM_TRANSACTIONS_MEAL_TYPE, transaction_type.Get_Transaction_Meal_Type());
         Log.d("INSERT", transaction_type.Get_Transaction_Meal_Type());
         cv.put(COLUMUM_TRANSACTIONS_MEAL_TYPE_ID, new RoundingCIF13().LongToString(transaction_type.Get_Transaction_Meal_Type_ID()));
-        Log.d("INSERT",new RoundingCIF13().LongToString(transaction_type.Get_Transaction_Meal_Type_ID()) );
+        Log.d("INSERT", new RoundingCIF13().LongToString(transaction_type.Get_Transaction_Meal_Type_ID()));
         cv.put(COLUMUM_TRANSACTIONS_AMOUNT, new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Amount()));
-        Log.d("INSERT",  new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Amount()));
+        Log.d("INSERT", new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Amount()));
         cv.put(COLUMUM_TRANSACTIONS_BALANCE, new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Balance()));
-        Log.d("INSERT",new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Balance()) );
+        Log.d("INSERT", new RoundingCIF13().IntToString(transaction_type.Get_Transaction_Balance()));
 
 
         //ContentValues cv = new ContentValues();
@@ -1572,16 +1545,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cv.put(COLUMN_FOODITEMS_VITAMIN_C_PERCENT, food_item.Get_vitamin_c_percent());
         cv.put(COLUMN_FOODITEMS_CALCIUM_PERCENT, food_item.Get_calcium_percent());
         cv.put(COLUMN_FOODITEMS_IRON_PERCENT, food_item.Get_iron_percent());
-
-
-        return getWritableDatabase().insert(TABLE_FOODITEMS, null, cv);  //sucessful insert.
-
+        return getWritableDatabase().insert(TABLE_FOODITEMS, null, cv);
         //Continue for rest of variables.
-
     }
 
-    public void Insert_Food_Item_Row(JSONWrapperCIFClass INPUT)
-    {
+    public void Insert_Food_Item_Row(JSONWrapperCIFClass INPUT) {
         ;
     }
 
@@ -1788,8 +1756,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public void Insert_Food_Item_CIF4(Food_Item_CIF4 IN)
-    {
+    public void Insert_Food_Item_CIF4(Food_Item_CIF4 IN) {
         String Category = IN.Get_category();
         String food_item_name = IN.Get_food_item_name();
         float grams_per_serving_portion = IN.Get_grams_per_serving_portion();
@@ -1803,8 +1770,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public BoxCIF17 Retrieve_Food_Items_CIF4(long StartDate, long EndDate)
-    {
+    public BoxCIF17 Retrieve_Food_Items_CIF4(long StartDate, long EndDate) {
         return new BoxCIF17("Dinner Box");
     }
 
@@ -1830,26 +1796,24 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return new ArrayList<Meal_Items_Cursor>();
     }
 
-    public Transactions_CIF22 retrieveMonthlyStatementTransactions(int Sd, int Sm, int Sy, int Ed, int Em, int Ey)
-    {
+    public Transactions_CIF22 retrieveMonthlyStatementTransactions(int Sd, int Sm, int Sy, int Ed, int Em, int Ey) {
         //Read
 
         Calendar gregDatumSD = Calendar.getInstance();
-        gregDatumSD.set(2017,7,1);
+        gregDatumSD.set(2017, 7, 1);
 
         Calendar gregDatumED = Calendar.getInstance();
-        gregDatumED.set(2017,7,1);
+        gregDatumED.set(2017, 7, 1);
 
         Date StartDate = new Date(gregDatumSD.getTimeInMillis());
         Date EndDate = new Date(gregDatumED.getTimeInMillis());
 
-        MIF22FillHerUp fakenews = new MIF22FillHerUp(mContext,StartDate,EndDate);
+        MIF22FillHerUp fakenews = new MIF22FillHerUp(mContext, StartDate, EndDate);
 
         return fakenews.FillHerUpVerb(new Transactions_CIF22());
     }
 
-    public void Update_Transactions_Table(MIF4_Data_Model_Adapter.Transaction INPUT)
-    {
+    public void Update_Transactions_Table(MIF4_Data_Model_Adapter.Transaction INPUT) {
         ;
         // ESE S.C.I. LTD Algorithm Engineering DOCUMENTATION ->
 
@@ -1879,21 +1843,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-
-    public void Update_Meal_Box_Table(MIF4_Data_Model_Adapter.Meal_Type INPUT)
-    {
+    public void Update_Meal_Box_Table(MIF4_Data_Model_Adapter.Meal_Type INPUT) {
         ;
     }
 
-    private ArrayList<Breakfast_Box_CIF17> Get_Meal_Box_Items(Meal_Items_Cursor cursor)
-    {
+    private ArrayList<Breakfast_Box_CIF17> Get_Meal_Box_Items(Meal_Items_Cursor cursor) {
         ArrayList<Breakfast_Box_CIF17> dc = cursor.Get_Meal_Box_Action();
         return dc;
 
     }
 
-    private void Insert_Meal_Type_Row(String Transaction_ID, MIF4_Data_Model_Adapter.Meal_Type INPUT)
-    {
+    private void Insert_Meal_Type_Row(String Transaction_ID, MIF4_Data_Model_Adapter.Meal_Type INPUT) {
 
         // ESE S.C.I. LTD Algorithm Engineering Documentation ->
         // "Pass BoxBOXCIFWALLBoundary to Transaction Table Function plus something else,
@@ -1943,26 +1903,22 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public long Insert_BoxCIF(Transaction_Line_CIF17 INPUT)
-    {
-        return Insert_MealBoxCIF(INPUT.Get_Transaction_ID(),INPUT.Get_Transaction_Food_Items());
+    public long Insert_BoxCIF(Transaction_Line_CIF17 INPUT) {
+        return Insert_MealBoxCIF(INPUT.Get_Transaction_ID(), INPUT.Get_Transaction_Food_Items());
     }
 
-    public long Insert_MealBoxCIF(long ID, BoxCIF17 In)
-    {
+    public long Insert_MealBoxCIF(long ID, BoxCIF17 In) {
         In.Set_Transaction_ID_for_all_Food_items(ID);
         return Insert_MealBox(In);
     }
 
-    public long Insert_MealBox(BoxCIF17 Input)
-    {
+    public long Insert_MealBox(BoxCIF17 Input) {
         Breakfast_Box_CIF17 into = Transform_Box_to_Breakfast_Meal_Box(Input);
 
         return Insert_BreakfastMealBoxTable(into);
     }
 
-    private Breakfast_Box_CIF17 Transform_Box_to_Breakfast_Meal_Box(BoxCIF17 In)
-    {
+    private Breakfast_Box_CIF17 Transform_Box_to_Breakfast_Meal_Box(BoxCIF17 In) {
         Breakfast_Box_CIF17 OUTPUT = new Breakfast_Box_CIF17();
 
         OUTPUT.Set_Breakfast_ID(In.Get_Transaction_ID());
@@ -1981,11 +1937,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return OUTPUT;
 
 
-
     }
 
-    public void Delete_Food_items_Table()
-    {
+    public void Delete_Food_items_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM food_items");
         db.close();
@@ -2022,22 +1976,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public void Delete_Transaction_Table()
-    {
+    public void Delete_Transaction_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM transactions_xp");
         db.close();
     }
 
-    public void Delete_Meal_Box_Table()
-    {
+    public void Delete_Meal_Box_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM meal_box_items");
         db.close();
     }
 
-    public long Insert_TransactionTable_x(Transactions_CIF22 IN)
-    {
+    public long Insert_TransactionTable_x(Transactions_CIF22 IN) {
 
         //return Insert_TransactionTable(new MIF22FillHerUp(mContext).FillWithFakeData(new Transactions_CIF22()).Get_TransactionLines().get(0));
 
@@ -2045,11 +1996,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         long index = 0;
 
-        for(Transaction_CIF52 x : IN.Get_TransactionLines())
-        {
-          index = Insert_TransactionTable(x);
+        for (Transaction_CIF52 x : IN.Get_TransactionLines()) {
+            index = Insert_TransactionTable(x);
 
-           Log.d("INDEX #", new RoundingCIF13().LongToString(index));
+            Log.d("INDEX #", new RoundingCIF13().LongToString(index));
         }
 
         Log.d("SQLite", " Check this out Baby! " + IN.Print());
@@ -2059,22 +2009,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public long Get_Unique_Row_Identifier_from_Transactions_Table()
-    {
+    public long Get_Unique_Row_Identifier_from_Transactions_Table() {
         long reserve = Insert_Dummy_Transaction_Row(new Transaction_CIF52());
         reserve = reserve + 1;
         return reserve;
 
     }
 
-    public void onClose()
-    {
+    public void onClose() {
         getWritableDatabase().close();
         close();
     }
 
-    private long Insert_Dummy_Transaction_Row(Transaction_CIF52 transaction_type)
-    {
+    private long Insert_Dummy_Transaction_Row(Transaction_CIF52 transaction_type) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMN_TRANSACTIONS_ID, 2435664);
         cv.put(COLMUM_TRANSACTIONS_DATE, 59354345);
@@ -2091,8 +2038,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return ID;
     }
 
-    public int Get_Unique_Row_Identifier_from_Transaction_Table()
-    {
+    public int Get_Unique_Row_Identifier_from_Transaction_Table() {
         //IDO DOCUMENTION
         //Finds the insert ID of the last row in relevant field and adds one too it, make sure the next time
         //Something is inserted in doesn't give the same number, to prevent this, insert a Dummy row, use
@@ -2103,8 +2049,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return 1;
     }
 
-    public long PostBtime(int IN)
-    {
+    public long PostBtime(int IN) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMUM_BREAKFAST_TIME_BREAKFASTTIME, new RoundingCIF13().IntToString(IN));
         int affected = getWritableDatabase().delete(TABLE_BREAKFAST_TIME, null, null);
@@ -2112,8 +2057,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public long PostLtime(int IN)
-    {
+    public long PostLtime(int IN) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMUM_LUNCH_TIME_LUNCHTIME, new RoundingCIF13().IntToString(IN));
         int affected = getWritableDatabase().delete(TABLE_LUNCH_TIME, null, null);
@@ -2121,8 +2065,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public long PostDtime(int IN)
-    {
+    public long PostDtime(int IN) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMUM_FINAL_MEAL_TIME_FINALMEATIME, new RoundingCIF13().IntToString(IN));
         int affected = getWritableDatabase().delete(TABLE_FINAL_MEAL_TIME, null, null);
@@ -2131,8 +2074,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-    public int GetBtime()
-    {
+    public int GetBtime() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_BREAKFAST_TIME, null);
         cursor.moveToFirst();
         BreakfasttimeCursor BtimeCursor = new BreakfasttimeCursor(cursor);
@@ -2145,8 +2087,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public int GetLtime()
-    {
+    public int GetLtime() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_LUNCH_TIME, null);
         cursor.moveToFirst();
         LunchtimeCursor LtimeCursor = new LunchtimeCursor(cursor);
@@ -2159,8 +2100,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public int GetDtime()
-    {
+    public int GetDtime() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_FINAL_MEAL_TIME, null);
         cursor.moveToFirst();
         DinnertimeCursor DtimeCursor = new DinnertimeCursor(cursor);
@@ -2174,53 +2114,51 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-    public long StoreHealthProfile(HealthProfileCiF3 in)
-    {
+    public long StoreHealthProfile(HealthProfileCiF3 in) {
         ContentValues cv = new ContentValues();
 
 
-            cv.put(COLUMN_VITALS_ID, (int) (in.getVital_id()));
-            cv.put(COLUMN_Client_ACCOUNT_NAME, (in.getFirstname() + " " + in.getLastname()));
-            cv.put(COLUMN_Client_DOB, (float) in.getDOB2());
-            cv.put(COLUMN_Client_BMI, (int) in.getClientBMI());
-            cv.put(COLUMN_Client_BMR, (int) in.getBMR());
-            cv.put(COLUMN_Client_BODYFAT, (int) (in.getClientBodyFat()));
-            cv.put(COLUMN_Client_VITALS_STRING, in.getVitalStatsString2());
-            cv.put(COLUMN_Client_OPENING_BALANCE, in.getStartCountdown());
-            cv.put(COLUMN_Client_HEIGHT_CM, new RoundingCIF13().StringToInt(in.getClientHeight()));
-            cv.put(COLUMN_Client_EMAIL, in.getEmailaddress());
-            cv.put(COLUMN_Client_GENDER, in.getClientGender());
-            cv.put(COLUMN_Client_START_WEIGHT, new RoundingCIF13().StringToInt(in.getStartWeight()));
-            cv.put(COLUMN_Client_TARGET_WEIGHT, new RoundingCIF13().StringToInt(in.getTargetWeight()));
-            cv.put(COLUMN_Client_BODY_FRAME, in.getClientBodyFrame());
-            cv.put(COLUMN_Client_START_DATE, (float) (in.getStartDate().getTime()));
-            cv.put(COLUMN_Client_LEAN_BODY_MASS, (int) in.Get_Lean_Body_Mass());
-            cv.put(COLUMN_Client_WAIST_CIRCUMFERENCE, (int) in.Get_Waist_Circumference());
-            cv.put(COLUMN_Client_BLOOD_PRESSURE, (int) in.Get_Blood_Pressure());
-            cv.put(COLUMN_Client_BODY_TEMPERATURE, (int) in.Get_Body_Temperture());
-            cv.put(COLUMN_Client_ALCOHOL_CONTENT, (int) in.Get_Alcohol_Content());
-            cv.put(COLUMN_Client_BLOOD_GLUCOSE, (int) in.Get_Blood_Glucose());
-            cv.put(COLUMN_Client_ECG_, (int) in.Get_Electrocardiogram_ECG());
-            cv.put(COLUMN_Client_HEART_RATE_VARIABILITY, (int) in.Get_Heart_Rate_Variability());
-            cv.put(COLUMN_Client_HIGH_HEART_RATE_NOTIFICATION, in.Get_High_Heart_Rate_Notifications());
-            cv.put(COLUMN_Client_IRREGULAR_HEART_RHYTHM_NOTIFICATION, in.Get_Irregular_Rhythm_Notifications());
-            cv.put(COLUMN_Client_LOW_HEART_RATE_NOTIFICATION, in.Get_Low_Heart_Rate_Notifications());
-            cv.put(COLUMN_Client_WALKING_HEART_RATE, (int) in.Get_Walking_Heart_Rate());
-            cv.put(COLUMN_Client_HEART_RATE, (int) in.Get_Heart_Rates());
-            cv.put(COLUMN_Client_RESTING_HEART_RATE, (int) (in.Get_Resting_Heart_Rate()));
-            cv.put(COLUMN_Client_RESPIRATORY_RATE, (int) (in.Get_Respiratory_Rates()));
-            cv.put(COLUMN_Client_ELECTRODERMAL_ACTIVITY, (int) (in.Get_Electrodermal_Activity()));
-            cv.put(COLUMN_Client_FORCED_EXPIRATORY_VOLUME, (int) (in.Get_Forced_Expiratory_Volume_1_sec()));
-            cv.put(COLUMN_Client_FORCED_VITAL_CAPACITY, (int) (in.Get_Forced_Vital_Capacity()));
-            cv.put(COLUMN_Client_INHALER_USAGE, in.Get_Inhaler_Usage());
-            cv.put(COLUMN_Client_INSULIN_DELIVERY, in.Get_Insulin_Delivery());
-            cv.put(COLUMN_Client_OXYGEN_SATURATION, (int) (in.Get_Oxygen_Saturation()));
-            cv.put(COLUMN_Client_PEAK_EXPIRATORY_FLOW_RATE, (int) (in.Get_Peak_Expiratory_Flow_Rate()));
-            cv.put(COLUMN_Client_PERIPHERAL_PERFUSION_INDEX, (int) (in.Get_Peripheral_Perfusion_Index()));
-            cv.put(COLUMN_Client_UV_INDEX, (int) (in.Get_UV_Index()));
-            cv.put(COLUMN_Client_DATA_SOURCES, in.Get_Data_Sources());
-            cv.put(COLUMN_Client_MANUAL_SOURCES, in.Get_Manual_Data_Sourcing());
-
+        cv.put(COLUMN_VITALS_ID, (int) (in.getVital_id()));
+        cv.put(COLUMN_Client_ACCOUNT_NAME, (in.getFirstname() + " " + in.getLastname()));
+        cv.put(COLUMN_Client_DOB, (float) in.getDOB2());
+        cv.put(COLUMN_Client_BMI, (int) in.getClientBMI());
+        cv.put(COLUMN_Client_BMR, (int) in.getBMR());
+        cv.put(COLUMN_Client_BODYFAT, (int) (in.getClientBodyFat()));
+        cv.put(COLUMN_Client_VITALS_STRING, in.getVitalStatsString2());
+        cv.put(COLUMN_Client_OPENING_BALANCE, in.getStartCountdown());
+        cv.put(COLUMN_Client_HEIGHT_CM, new RoundingCIF13().StringToInt(in.getClientHeight()));
+        cv.put(COLUMN_Client_EMAIL, in.getEmailaddress());
+        cv.put(COLUMN_Client_GENDER, in.getClientGender());
+        cv.put(COLUMN_Client_START_WEIGHT, new RoundingCIF13().StringToInt(in.getStartWeight()));
+        cv.put(COLUMN_Client_TARGET_WEIGHT, new RoundingCIF13().StringToInt(in.getTargetWeight()));
+        cv.put(COLUMN_Client_BODY_FRAME, in.getClientBodyFrame());
+        cv.put(COLUMN_Client_START_DATE, (float) (in.getStartDate().getTime()));
+        cv.put(COLUMN_Client_LEAN_BODY_MASS, (int) in.Get_Lean_Body_Mass());
+        cv.put(COLUMN_Client_WAIST_CIRCUMFERENCE, (int) in.Get_Waist_Circumference());
+        cv.put(COLUMN_Client_BLOOD_PRESSURE, (int) in.Get_Blood_Pressure());
+        cv.put(COLUMN_Client_BODY_TEMPERATURE, (int) in.Get_Body_Temperture());
+        cv.put(COLUMN_Client_ALCOHOL_CONTENT, (int) in.Get_Alcohol_Content());
+        cv.put(COLUMN_Client_BLOOD_GLUCOSE, (int) in.Get_Blood_Glucose());
+        cv.put(COLUMN_Client_ECG_, (int) in.Get_Electrocardiogram_ECG());
+        cv.put(COLUMN_Client_HEART_RATE_VARIABILITY, (int) in.Get_Heart_Rate_Variability());
+        cv.put(COLUMN_Client_HIGH_HEART_RATE_NOTIFICATION, in.Get_High_Heart_Rate_Notifications());
+        cv.put(COLUMN_Client_IRREGULAR_HEART_RHYTHM_NOTIFICATION, in.Get_Irregular_Rhythm_Notifications());
+        cv.put(COLUMN_Client_LOW_HEART_RATE_NOTIFICATION, in.Get_Low_Heart_Rate_Notifications());
+        cv.put(COLUMN_Client_WALKING_HEART_RATE, (int) in.Get_Walking_Heart_Rate());
+        cv.put(COLUMN_Client_HEART_RATE, (int) in.Get_Heart_Rates());
+        cv.put(COLUMN_Client_RESTING_HEART_RATE, (int) (in.Get_Resting_Heart_Rate()));
+        cv.put(COLUMN_Client_RESPIRATORY_RATE, (int) (in.Get_Respiratory_Rates()));
+        cv.put(COLUMN_Client_ELECTRODERMAL_ACTIVITY, (int) (in.Get_Electrodermal_Activity()));
+        cv.put(COLUMN_Client_FORCED_EXPIRATORY_VOLUME, (int) (in.Get_Forced_Expiratory_Volume_1_sec()));
+        cv.put(COLUMN_Client_FORCED_VITAL_CAPACITY, (int) (in.Get_Forced_Vital_Capacity()));
+        cv.put(COLUMN_Client_INHALER_USAGE, in.Get_Inhaler_Usage());
+        cv.put(COLUMN_Client_INSULIN_DELIVERY, in.Get_Insulin_Delivery());
+        cv.put(COLUMN_Client_OXYGEN_SATURATION, (int) (in.Get_Oxygen_Saturation()));
+        cv.put(COLUMN_Client_PEAK_EXPIRATORY_FLOW_RATE, (int) (in.Get_Peak_Expiratory_Flow_Rate()));
+        cv.put(COLUMN_Client_PERIPHERAL_PERFUSION_INDEX, (int) (in.Get_Peripheral_Perfusion_Index()));
+        cv.put(COLUMN_Client_UV_INDEX, (int) (in.Get_UV_Index()));
+        cv.put(COLUMN_Client_DATA_SOURCES, in.Get_Data_Sources());
+        cv.put(COLUMN_Client_MANUAL_SOURCES, in.Get_Manual_Data_Sourcing());
 
 
         return getWritableDatabase().insert(TABLE_HEALTH_PROFILE_TABLE, null, cv);
@@ -2228,23 +2166,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public HealthProfileCiF3 Really_Get_HealthProfileCIF3()
-    {
+    public HealthProfileCiF3 Really_Get_HealthProfileCIF3() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_HEALTH_PROFILE_TABLE, null);
         cursor.moveToFirst();
         SHealth_Cursor_241 TransactionCursor = new SHealth_Cursor_241(cursor);
         HealthProfileCiF3 OUTPUT;
 
 
-
-        if (TransactionCursor.getCount() < 1)
-        {
+        if (TransactionCursor.getCount() < 1) {
             Log.d(TAG, "NOTHING FOUND IN Health Vitals DATABASE");
             TransactionCursor.close();
             return new HealthProfileCiF3();
-        }
-        else
-        {
+        } else {
             try {
                 Log.d(TAG, "CONTENTS IN Health Vitals DATABASE");
                 OUTPUT = GetHealthProfile_CIF3(TransactionCursor);
@@ -2259,9 +2192,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 //BoxCIF17 OUTPUTc = Transform_Breakfast_Box_to_Box(OUTPUTb);
                 //long Transaction_ID = OUTPUTc.Get_Transaction_ID();
                 //OUTPUT.add_BOX_to_Line(Transaction_ID, OUTPUTc);
-            }
-            catch(Exception x)
-            {
+            } catch (Exception x) {
                 Toast.makeText(mContext, "SHealth_Cursor is empty aborting function", Toast.LENGTH_SHORT);
             }
 
@@ -2271,13 +2202,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public HealthProfileCiF3 getHealthProfileObjectSerializable()
-    {
+    public HealthProfileCiF3 getHealthProfileObjectSerializable() {
         return new HealthProfileCiF3();
     }
 
-    public void Iterate_through_thisTableA_Output_(JSONWrapperCIFClass INPUT_TABLE_A)
-    {
+    public void Iterate_through_thisTableA_Output_(JSONWrapperCIFClass INPUT_TABLE_A) {
         //For Table A go through all the Rows //iterate
 
         //For each row, use a fragemented_box to INPUT Row OUTPUT a data object frag_box
@@ -2290,23 +2219,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    private ArrayList<Breakfast_Box_CIF17> Really_Get_Box_items()
-    {
+    private ArrayList<Breakfast_Box_CIF17> Really_Get_Box_items() {
         ArrayList<Breakfast_Box_CIF17> OUTPUTb;
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_MEAL_BOX_ITEMS_TABLE, null);
         cursor.moveToFirst();
         Meal_Items_Cursor MealItemCursor = new Meal_Items_Cursor(cursor);
 
-        if (MealItemCursor.getCount() < 1)
-        {
+        if (MealItemCursor.getCount() < 1) {
             Log.d(TAG, "NOTHING FOUND IN Meal box DATABASE");
             MealItemCursor.close();
             OUTPUTb = new ArrayList<Breakfast_Box_CIF17>();
 
             return OUTPUTb;
-        }
-        else
-        {
+        } else {
             Log.d(TAG, "CONTENTS IN Meal box DATABASE");
             OUTPUTb = GetBoxes(MealItemCursor);
 
@@ -2321,8 +2246,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    private void Display_Outputb(ArrayList<Breakfast_Box_CIF17> INPUT)
-    {
+    private void Display_Outputb(ArrayList<Breakfast_Box_CIF17> INPUT) {
         try {
 
 
@@ -2342,17 +2266,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     Log.d("Food Items Time : ", x.Get_food_item_name());
                 }
             }
-        }
-            catch(Exception e)
-            {
-                Log.d("OUTPUTb err", "Something went wrong in one of the data content.");
-            }
-
+        } catch (Exception e) {
+            Log.d("OUTPUTb err", "Something went wrong in one of the data content.");
         }
 
+    }
 
-    private BoxCIF17 Transform_Breakfast_Box_to_Box(Breakfast_Box_CIF17 IN)
-    {
+
+    private BoxCIF17 Transform_Breakfast_Box_to_Box(Breakfast_Box_CIF17 IN) {
         BoxCIF17 OUTPUT = new BoxCIF17();
 
         OUTPUT.Set_Balance(IN.Get_Breakfast_Balance());
@@ -2361,7 +2282,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         OUTPUT.Set_Energy_OUT(IN.Get_Energy_OUT());
         android.util.Log.d("Transform Energy Out: ", new RoundingCIF13().IntToString(IN.Get_Energy_OUT()));
 
-        OUTPUT.add_Meal_Box_ID((int)IN.Get_Meal_Box_ID());
+        OUTPUT.add_Meal_Box_ID((int) IN.Get_Meal_Box_ID());
         android.util.Log.d("Transform MealBxID: ", new RoundingCIF13().LongToString((IN.Get_Meal_Box_ID())));
 
         //OUTPUT.Set_Food_Items(IN.Get_Food_Item_List_two());
@@ -2379,8 +2300,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return OUTPUT;
     }
 
-    private Transactions_CIF22 Final_Transform(ArrayList<Breakfast_Box_CIF17> Input, Transactions_CIF22 IN)
-    {
+    private Transactions_CIF22 Final_Transform(ArrayList<Breakfast_Box_CIF17> Input, Transactions_CIF22 IN) {
 
         //IN a Breakfast/Box Meal integrate into Transaction CIF22 to come up with final product.
         //CiF22 has CiF52 contains a transaction line.
@@ -2391,8 +2311,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         Transaction_Line_CIF17 line_cif17;
 
 
-        for( Breakfast_Box_CIF17 m : Input)
-        {
+        for (Breakfast_Box_CIF17 m : Input) {
             boxCIF17 = Transform_Breakfast_Box_to_Box(m);
             line_cif17 = new Transaction_Line_CIF17();
             line_cif17.Set_Transaction_Food_Items(boxCIF17);
@@ -2406,16 +2325,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return IN;
     }
 
-    private Transactions_CIF22 Merge_Food_items(Transactions_CIF22 IN, ArrayList<Breakfast_Box_CIF17> INPUT)
-    {
-        for( Transaction_CIF52 m : IN.Get_TransactionLines())
-        {
-            for( Breakfast_Box_CIF17 n : INPUT)
-            {
-                if(n.Get_Transactions_ID() == m.Get_Single_Transaction_Line().Get_Transaction_ID())
-                {
-                    for( Food_Item_CIF4 o : n.Get_Food_Item_List_two())
-                    {
+    private Transactions_CIF22 Merge_Food_items(Transactions_CIF22 IN, ArrayList<Breakfast_Box_CIF17> INPUT) {
+        for (Transaction_CIF52 m : IN.Get_TransactionLines()) {
+            for (Breakfast_Box_CIF17 n : INPUT) {
+                if (n.Get_Transactions_ID() == m.Get_Single_Transaction_Line().Get_Transaction_ID()) {
+                    for (Food_Item_CIF4 o : n.Get_Food_Item_List_two()) {
                         m.Get_Single_Transaction_Line().add_Food_item(o);
                     }
                 }
@@ -2427,21 +2341,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-    public void PostValueToTargetWeightTable(String Input1)
-    {
+    public void PostValueToTargetWeightTable(String Input1) {
         long res = Insert_Target_Weight(Input1);
     }
 
 
-
-    private void Delete_Dummy_Rows()
-    {
+    private void Delete_Dummy_Rows() {
         //Alogrithm Engineering -> Delete Row Where Meal_Type = 'Dummy"
         //Delete all Rows where Meal_type = Dummy.
     }
 
-    private void deleteTargetWeightTable()
-    {
+    private void deleteTargetWeightTable() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM target_weight");
         db.close();
