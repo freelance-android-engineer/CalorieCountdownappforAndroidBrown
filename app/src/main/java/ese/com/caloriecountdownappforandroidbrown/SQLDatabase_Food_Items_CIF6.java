@@ -15,6 +15,12 @@ import java.lang.*;
 
 import java.util.ArrayList;
 
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * Created by ESE on 07/10/2015.
  */
@@ -48,6 +54,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_DAYEND_ID = "dayend_id";
     private static final String COLUMN_DAYEND_BALANCE_DATE = "balance_date";
     private static final String COLUMN_DAYEND_BALANCE_BALANCE = "balance_dayend";
+
+    private static final String TABLE_DAYEND_BALANCE2 = "dayend_balance2";
+    private static final String COLUMN_DAYEND_ID2 = "dayend_id";
+    private static final String COLUMN_DAYEND_BALANCE_DATE2 = "balance_date";
+    private static final String COLUMN_DAYEND_BALANCE_BALANCE_BUDGET = "balance_dayend_budget";
+    private static final String COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL = "balance_dayend_actual";
 
 
     private static final String TABLE_BREAKFAST_TIME = "breakfast_time";
@@ -384,6 +396,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
 
     private Context mContext;
+    private Boolean time_is_After_Four_Thirty_PM = false;
+    private Boolean BMR_has_been_performed = false;
+    private Boolean havePerformedDayENDCFWD = false;
+
+
+
+
+
+
+
 
     //or onCreate
     public SQLDatabase_Food_Items_CIF6(Context context) {
@@ -411,6 +433,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (SQLException alreadyexist) {
 
         }*/
+
+        try //at launch take all table creations to OnCreate no such table: dayend_balance2
+        {
+            db.execSQL("Create table if not exists dayend_balance2 (" + "_id integer primary key autoincrement, " +
+                    "balance_date varchar(100), " +
+                    "balance_dayend_budget varchar(100), " +
+                    "balance_dayend_actual varchar(100))");
+        } catch (SQLException alreadyexist) {
+
+        }
 
         try //at launch take all table creations to OnCreate
         {
@@ -585,9 +617,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             db.execSQL("Create table if not exists dayend_balance (" + "_id integer primary key autoincrement, " +
                     "balance_date integer, " +
                     "balance_dayend integer)");
-        } catch (SQLException alreadyexist) {
+        } catch (SQLException alreadyexist)
+        {
 
         }
+
+
+
 
         try //at launch take all table creations to OnCreate
         {
@@ -1126,6 +1162,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return dc;
     }
 
+    public CountdownToZeroDayCiF1004 GetTransactions(CountdownToXeroDayType1004_Cursor bc) {
+        CountdownToZeroDayCiF1004 dc = bc.GetDays();
+        return dc;
+    }
+
+
     public HealthProfileCiF3 GetHealthProfile_CIF3(SHealth_Cursor_241 bc)
     {
         HealthProfileCiF3 dc = bc.Get_HealthProfileCIF3();
@@ -1342,10 +1384,26 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     public long Insert_Dayend_Balance(int bal) {
         ContentValues cv = new ContentValues();
-        cv.put(COLUMN_DAYEND_BALANCE_DATE, new Date().getTime());
-        cv.put(COLUMN_DAYEND_BALANCE_BALANCE, bal);
-        int affected = getWritableDatabase().delete(TABLE_DAYEND_BALANCE, null, null);
-        return getWritableDatabase().insert(TABLE_DAYEND_BALANCE, null, cv);
+        cv.put(COLUMN_DAYEND_BALANCE_DATE2, new Date().getTime());
+        cv.put(COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL, bal);
+
+
+       /* private static final String TABLE_DAYEND_BALANCE2 = "dayend_balance2";
+        private static final String COLUMN_DAYEND_ID2 = "dayend_id";
+        private static final String COLUMN_DAYEND_BALANCE_DATE2 = "balance_date";
+        private static final String COLUMN_DAYEND_BALANCE_BALANCE_BUDGET = "balance_dayend_budget";
+        private static final String COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL = "balance_dayend_actual";*/
+
+        //int affected = getWritableDatabase().delete(TABLE_DAYEND_BALANCE, null, null);
+        long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE2, null, cv);
+
+        if(isTimeAfter4pm() && !havePerformedDayENDCFWD)
+        {
+            Insert_Dayend2Row(new Long(new Date().getTime()).toString(), null, new Integer(bal - 2000).toString());
+            havePerformedDayENDCFWD = true;
+        }
+
+        return res;
     }
 
 
@@ -2418,12 +2476,128 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         long res = Insert_Target_Weight(Input1);
     }
 
+    public void PostDayEnd2Row(DayCiF1005 IN)
+    {
+        //Algorithm Engineering -> Step One
+        //extract all properties individually that need to be stored in Table DayEnd2
+        //but them individually declared vars
+        //then write this value to the Table DayEnd2 using existing Technology
+        //PUSH.
 
+        java.time.LocalDateTime mDate = IN.getDay();
+
+        String date = mDate.toString();
+        String nextDay = plus24hour(convertLocalDateTimeToDate(mDate)).toString();
+        String nextDayBudget = new Integer(IN.getActualDayEndBalance()-300).toString();
+        String budget = new Integer(IN.getStartBalanceBFWD() - 300).toString();
+        String actualDayEnd = new Integer(IN.getActualDayEndBalance()).toString();
+
+        Insert_Dayend2Row(date, IN.getBudget(),IN.getActualDayEnd());
+        //Insert_Dayend2Row(nextDay,nextDayBudget,"0");
+    }
+
+    public void Insert_Dayend2Row(String date, String budget, String actualDayEnd)
+    {
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_DAYEND_BALANCE_DATE2, new Date().getTime());
+        if(budget == null) {
+            cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, "N/A");
+        }
+        else
+        {
+            cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, budget);
+        }
+
+        cv.put(COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL, actualDayEnd);
+
+
+        long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE2, null, cv);
+        //sucessful insert.
+
+        //int affected = getWritableDatabase().delete(TABLE_DAYEND_BALANCE, null, null);
+        //long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE, null, cv);
+        //Continue for rest of variables.
+
+    }
+
+    public CountdownToZeroDayCiF1004 Retrieve_CountdownToZeroDayCiF1004()
+    {
+        //Go through Table DayEnd2, Retreive and convert each row to a DayTypeCiF1003 add
+        //to a newly created CountdownToZeroDayType1004 and return as OUTPUT of this
+        //Module*
+
+        return Retrieve_All_DayEnd2_Rows();
+
+    }
+
+    public CountdownToZeroDayCiF1004 Retrieve_All_DayEnd2_Rows()
+    {
+        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_DAYEND_BALANCE2, null);
+        cursor.moveToFirst();
+
+       // Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
+        CountdownToXeroDayType1004_Cursor TransactionCursor = new CountdownToXeroDayType1004_Cursor(cursor);
+        CountdownToZeroDayCiF1004 OUTPUT = new CountdownToZeroDayCiF1004(0, new HealthProfileCiF3());
+
+
+        if (TransactionCursor.getCount() < 1)
+        {
+            Log.d(TAG, "NOTHING FOUND IN Transaction DATABASE");
+            TransactionCursor.close();
+            return OUTPUT;
+        }
+        else
+        {
+            try {
+                Log.d(TAG, "CONTENTS IN Transaction DATABASE");
+                OUTPUT = GetTransactions(TransactionCursor);
+
+
+
+                //BBox.Set_Breakfast_ID((new RoundingCIF13()).StringToInt((getString(getColumnIndex(COLUMN_TRANSACTIONS_ID)))));
+                //Mealio = new Meal_Items_Cursor(cursor);
+                //Transaction_Items = Mealio.Get_Transaction_Food_Items(new RoundingCIF13().StringToInt((getString(getColumnIndex(COLUMN_TRANSACTIONS_ID)))));
+                //BBox.Set_Breakfast_Date((new RoundingCIF13()).StringToLong((getString(getColumnIndex(COLMUM_TRANSACTIONS_DATE)))));
+                //BBox.Set_Breakfast_Meal_Type(getString(getColumnIndex(COLUMUM_TRANSACTIONS_MEAL_TYPE)));
+                //BBox.Set_Breakfast_Meal_Type_ID((new RoundingCIF13().StringToInt((getString((getColumnIndex(COLUMUM_TRANSACTIONS_MEAL_TYPE_ID)))))));
+                //BBox.Set_Breakfast_Amount((new RoundingCIF13()).StringToInt((getString(getColumnIndex(COLUMUM_TRANSACTIONS_AMOUNT)))));
+                //BBox.Set_Breakfast_Balance((new RoundingCIF13()).StringToInt((getString(getColumnIndex(COLUMUM_TRANSACTIONS_BALANCE)))));
+
+                Log.d(TAG, "Contents of OUTPUTb, Size : " + new RoundingCIF13().IntToString(OUTPUT.getNumberOFDaysToXero03FEB10().size()));
+
+                Log.d(" Menuitem Module", "Crashes here Line 639");
+
+                Breakfast_Box_CIF17 itet = new Breakfast_Box_CIF17(); //OUTPUTb.get(0);
+
+                //Log.d("Contents Meal Boxes", itet.Get_Food_Items().get(0).Get_food_item_name());
+
+                return OUTPUT;
+
+                //BoxCIF17 OUTPUTc = Transform_Breakfast_Box_to_Box(OUTPUTb);
+                //long Transaction_ID = OUTPUTc.Get_Transaction_ID();
+                //OUTPUT.add_BOX_to_Line(Transaction_ID, OUTPUTc);
+            }
+            catch(Exception x)
+            {
+                Toast.makeText(mContext, "Meal Box is empty aborting function", Toast.LENGTH_SHORT);
+            }
+
+
+            return new CountdownToZeroDayCiF1004(0, new HealthProfileCiF3());
+        }
+    }
+
+    private Date plus24hour(Date time)
+    {
+        long OneMinute = (1000 * 60 * 60 * 24);
+        time.setTime(time.getTime() + (OneMinute * 3000));
+        return time;
+    }
 
     private void Delete_Dummy_Rows()
     {
         //Alogrithm Engineering -> Delete Row Where Meal_Type = 'Dummy"
-        //Delete all Rows where Meal_type = Dummy.
+//ve        //Delete all Rows where Meal_type = Dummy.
     }
 
     private void deleteTargetWeightTable()
@@ -2432,6 +2606,41 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM target_weight");
         db.close();
     }
+
+    private boolean isTimeAfter4pm()
+    {
+         java.time.LocalDateTime Four_Thirty_const_ref = java.time.LocalDateTime.now();
+         java.time.LocalDateTime Four_Thirty_const = java.time.LocalDateTime.of(Four_Thirty_const_ref.getYear(), Four_Thirty_const_ref.getMonth().getValue(), Four_Thirty_const_ref.getDayOfMonth(),16,35);
+
+        if(Four_Thirty_const_ref.isAfter(Four_Thirty_const))
+        {
+            time_is_After_Four_Thirty_PM = true;
+            BMR_has_been_performed = true;
+        }
+        return time_is_After_Four_Thirty_PM;
+    }
+
+    private boolean haveNotYetPerformedDayENDCFWD()
+    {
+        return BMR_has_been_performed;
+    }
+
+    private java.util.Date getCurrentTime()
+    {
+        return new Date();
+    }
+
+
+    private Date convertLocalDateTimeToDate(java.time.LocalDateTime Input)
+    {
+        Date date = Date.from(Input.atZone(ZoneId.systemDefault()).toInstant());
+
+        return date;
+    }
+
+
+
+
 
 }
 

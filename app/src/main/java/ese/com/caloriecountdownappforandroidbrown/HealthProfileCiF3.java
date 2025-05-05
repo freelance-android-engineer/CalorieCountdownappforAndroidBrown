@@ -24,8 +24,8 @@ public class HealthProfileCiF3
 
     //Sourcing
     //Sources
-
-    private float Body_Fat_Percentage;
+    public  CountdownToZeroDayCiF1004 mForecast = new CountdownToZeroDayCiF1004(0,this);
+    private float Body_Fat_Percentage = 0;
 
 
 
@@ -869,6 +869,8 @@ public class HealthProfileCiF3
         public void setClientHeightinCM(int IN) { CMHeight = IN;}
 
         public int getClientHeightinCM(){return CMHeight;}
+
+
 
         public void CalculateBMI()
         {

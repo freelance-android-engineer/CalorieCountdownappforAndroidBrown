@@ -53,8 +53,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private static final int REQUEST_CODE_RECALIBRATION = 19;
     private static final int REQUEST_CODE_PDFViewer = 20;
 
-    private CountdownToZeroDayCiF1004 mDaysToZero;
-    private java.util.Date mBalanceLastUpdated;
+
 
     private Button mCreditButton;
     private Button mDebitButton;
@@ -73,7 +72,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private String mBalance_text;
 
+
+    public static CountdownToZeroDayCiF1004 mDaysToZero;
     private int mBalance;
+    private java.util.Date mBalanceLastUpdated;
 
     private TextView mBalance_textview;
 
@@ -545,12 +547,27 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
             Countdown(DebitResult);
             Store_Dayend(instance.Get_currentBalanceInt());
+            Store_Dayend2();
             Refresh();
         }
     }
 
+    private void Store_Dayend2()
+    {
+        //Algorithm Engineering Noir:
+        //Step One
+        //Android
+        //You need to first check if the current time is 4pm or past 4pm.
+        //If it is the activate this Call and do something, if not, do nothing.
+        //If it is past 4pm and the boolean variable  hasDayEndAlreadyBeenStoredandCFWD4theDay is not true
+        //then store the current balance in SQLite (just once) has to be in DayEnd2 Table.
+        //then check somet the initial the next day DayType and store relevatne variable in there and in
+        //current day DayType in the overall list collecton of Dayz in CiF001.
+        //Remember only deal with DayEnd2 Table in SQLite to get Kitty() working well and properely.
+    }
 
-        private void StartWebCalculatorFragment2 ()
+
+    private void StartWebCalculatorFragment2 ()
         {
 
             Uri uri = Uri.parse(webadress);
@@ -733,6 +750,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public long Store_Dayend(int data)
     {
+            //Algorithm Engineering
+            //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
+            //remember to implement those double try bug fixed
+
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         return data_model_adapter.StoreDayEndBalance(data);
     }
@@ -955,10 +976,38 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private void Kitty() {
 
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-        int dayend = data_model_adapter.RetriveDayEnd();
+        //int dayend = data_model_adapter.RetriveDayEnd();
+        int dayend = 100;
+        if(mDaysToZero == null)
+        {
+            mDaysToZero = data_model_adapter.RetrievemForecast();
+        }
+
+        if(mDaysToZero != null)
+        {
+            DayCiF1005 mToday = mDaysToZero.getCurrentDayType1005();
+            if((mToday) != null)
+            {
+                dayend = mToday.getBudgetedDayEndBalanceForThisDay();
+            }
+            else
+            {
+                dayend = 101;
+                android.util.Log.d("assigning int dayend","dayend equals 101");
+            }
+        }
+        else
+        {
+            android.util.Log.d("mDaysToZero", "Sorry mate, this var is null, Sort it! Noir.");
+
+        }
+
+
         int currentbalance = Get_currentBalanceInt();
-        int kit = currentbalance - dayend;
-        if(kit < 0)
+        int kit = currentbalance - dayend; //See i from Food Note and Complete
+        if(kit > 0) //positive value for kit mean the about of live calories/points that need to be
+            // burnt and Debitted. Go ahead and give Step Challange and amount of Steps needed, considering current
+            //value of Steps done.
         {
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
@@ -971,7 +1020,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
             display_dialog_cif11.Showing(KittyZero(kit));
         }
-        if(kit > 0)
+        if(kit < 0) //this will be a negative value and means smooth sailing, no need to anything
+            // as you are below 100 or 300 dr points target, the more this widens the more the countdown
+            // but don't recommend more than 1000 Dr - 1500 Points dr the more it widens the more Countdown Balance reduce
+            // at 16:00 do Bloomberg report things, remember 7pm final and scrap next day prep etc 0 cr and Surplus account and
+            // repeat Start Weight Loss Menuitem, updated Client Guide, adMob 0280 xero.sys Download AWS & Google Play Logo.
+            // Link in green and Create.
+            //Version 2.0.0
         {
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
@@ -982,8 +1037,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private String KittyMinus(int in)
     {
-        int kit = Math.abs(in);
-        String out = "You have " + new RoundingCIF13().IntToString(kit) + " Calories left in the Kitty for the meals left in the day.";
+        int walkminutes = GenerateStepsChallenge(in);
+        String out = "Your Steps Challenge to successfully countdown your Balance by 300 pionts by Dayend (7pm) is: " + new RoundingCIF13().IntToString(walkminutes) + " Steps.\n\nOnly dispose of the Dialog once you have performed it.";
+
         return out;
     }
 
@@ -995,8 +1051,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private String KittyPlus(int in)
     {
-        int walkminutes = (int) in/7;
-        String out = "You now need to Walk for " + new RoundingCIF13().IntToString(walkminutes) + " minutes to be on track for Weight Loss, only dispose of the dialog once you have performed.";
+
+        int kit = Math.abs(in);
+        String out = "You have " + new RoundingCIF13().IntToString(kit) + " Calories left in the Kitty for the meals left in the day, this includes all exercise done, this figure left as it is, will be subtracted from your Countdown Balance.";
+
         return out;
     }
 
@@ -1402,13 +1460,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-
-
-
-
-
-
-
-
+    private int GenerateStepsChallenge(int in)
+    {
+        return 10_000;
+    }
 
 }
+
+
