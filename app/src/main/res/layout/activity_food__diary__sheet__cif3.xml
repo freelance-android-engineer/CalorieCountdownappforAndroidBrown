@@ -341,6 +341,12 @@
                 android:text= "@string/search"/>
 
             <Button
+                android:id="@+id/uploadImageBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text= "@string/uploadImage"/>
+
+            <Button
                 android:id="@+id/button3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

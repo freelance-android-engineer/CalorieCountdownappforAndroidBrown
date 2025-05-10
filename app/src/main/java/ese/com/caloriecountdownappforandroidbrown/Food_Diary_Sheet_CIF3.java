@@ -1,30 +1,30 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import ese.com.caloriecountdownappforandroidbrown.ImageImportActivity;
+import android.content.Intent;
+//import androidx.core.app.FragmentActivity;
+import androidx.fragment.app.FragmentActivity;
+//import android.support.v7.app.ActionBarActivity;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.textservice.SpellCheckerSession;
+import android.view.textservice.TextServicesManager;
+import android.widget.Button;
+import android.widget.EditText;
 
-        import android.content.Intent;
-        //import androidx.core.app.FragmentActivity;
-        import androidx.fragment.app.FragmentActivity;
-        //import android.support.v7.app.ActionBarActivity;
-        import android.os.Bundle;
-        import android.view.Menu;
-        import android.view.MenuItem;
-        import android.view.View;
-        import android.view.textservice.SpellCheckerSession;
-        import android.view.textservice.TextServicesManager;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import java.util.*;
-        import android.util.Log;
-        import android.content.Context;
-        import android.view.textservice.SuggestionsInfo;
-        import android.view.textservice.SentenceSuggestionsInfo;
-        import android.view.textservice.TextInfo;
+import java.util.*;
+
+import android.util.Log;
+import android.content.Context;
+import android.view.textservice.SuggestionsInfo;
+import android.view.textservice.SentenceSuggestionsInfo;
+import android.view.textservice.TextInfo;
 
 // Controller Class for Food Diary Screen/Credit/Menuitem
 
-public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellCheckerSession.SpellCheckerSessionListener
-
-{ //ActionBarActivity {
+public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellCheckerSession.SpellCheckerSessionListener { //ActionBarActivity {
 
 
     private static int REQUEST_CODE_FOODITEMSLIST = 2;
@@ -44,6 +44,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private ArrayList<Food_Item_CIF4> mFoodItems;
 
     private Button mMultiSearchButton;
+    private Button mUploadImageButton;
     private Button mCancel;
     private Button mCancel2;
     private Button mAddNewItem;
@@ -66,10 +67,8 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     //Class Member Attributes and Propeties Area////////////////////////////////////////////////////
 
 
-
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
 
         android.util.Log.d("Pre Multi-Search", "number1");
 
@@ -84,46 +83,51 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
         //Get Button 3 into Controller World.
         mMultiSearchButton = (Button) findViewById(R.id.button4);
+        mUploadImageButton = (Button) findViewById(R.id.uploadImageBtn);
         mCancel = (Button) findViewById(R.id.button8);
         mCancel2 = (Button) findViewById(R.id.button9);
         mJustAdd = (Button) findViewById(R.id.button6);
         mRecalibrate = (Button) findViewById(R.id.button11);
-        mRecalibrate.setOnClickListener(new View.OnClickListener()
-        {
-            public void onClick(View v)
-            {
-               launch_recalibrate();
+        mRecalibrate.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                launch_recalibrate();
             }
         });
-        mJustAdd.setOnClickListener(new View.OnClickListener()
-        {
-            public void onClick(View v) {launch_JustAdd();}
+        mJustAdd.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                launch_JustAdd();
+            }
         });
         mAddNewItem = (Button) findViewById(R.id.button3);
-        mAddNewItem.setOnClickListener(new View.OnClickListener()
-        {
-            public void onClick(View v)
-            {
+        mAddNewItem.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
                 launchAddNewFoodView();
             }
         });
-        mCancel2.setOnClickListener(new View.OnClickListener()
-        {
+        mCancel2.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
                 weaselpop();
             }
 
         });
+
+        mUploadImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Food_Diary_Sheet_CIF3.this, ImageImportActivity.class);
+                startActivity(intent);
+            }
+        });
+
+
         //Implement on Click Listener when button [Muiti]Search button clicked, extract food items from View World
         mCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
 
-                if(FetchedFoodItems != null)
-                {
+                if (FetchedFoodItems != null) {
                     SummaryBoxCIF12 summary_box = SummaryBoxCIF12.get(getApplicationContext());
 
                     summary_box.Set_mFoodItems(mFoodItems);
@@ -134,9 +138,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
 
                     BackToParentActivity(summary_box);
-                }
-                else
-                {
+                } else {
                     weaselpop();
                 }
 
@@ -144,11 +146,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             }
         });
 
-        mMultiSearchButton.setOnClickListener(new View.OnClickListener()
-        {
+        mMultiSearchButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
 
 
                 //Alogrithm Engineering :
@@ -161,8 +161,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 android.util.Log.d("Multi-search", "We are above Show Fetch c");
                 FoodItemsLab_CIF9.get(getApplicationContext()).reset();
                 android.util.Log.d("Multi-search", "We are above Show Fetch d");
-                for(int c = 0; c < mFoodItems.size(); c++)
-                {
+                for (int c = 0; c < mFoodItems.size(); c++) {
                     //mPivot.merge(MultiSearch(mFoodItems.get(c)));
                     MultiSearch(mFoodItems.get(c));
                 }
@@ -179,26 +178,22 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
+    public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_food_diary_sheet_cif3, menu);
         return true;
     }
 
     @Override
-    public boolean  onOptionsItemSelected(MenuItem item)
-    {
+    public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings)
-        {
+        if (id == R.id.action_settings) {
             return true;
         }
 
@@ -208,7 +203,8 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     ///////////////////////Black Office- Algorithm Engineering (red+ = Builder) *+ Partner.
 
-    public void onGetSuggestions(SuggestionsInfo[] INPUT){}
+    public void onGetSuggestions(SuggestionsInfo[] INPUT) {
+    }
 
     public void onGetSentenceSuggestions(SentenceSuggestionsInfo[] IN) {
         android.util.Log.d("MONEY SHOT", "If you are reading this it's all good");
@@ -229,8 +225,8 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 sb.append("\n");
             }
             //if((result.getSuggestionsInfoAt(i).getSuggestionsAttributes() &
-                    //SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO) != SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO )
-                //continue;
+            //SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO) != SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO )
+            //continue;
 
             runOnUiThread(new Runnable() {
                 public void run() {
@@ -242,16 +238,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
 
-
-
-
-
-
-
     //////////////Functions Area//////////////////////////////////////////////////////////////////////////////
 
-    public void Add_Food_Item_CIF4(Food_Item_CIF4 foodItemCif4)
-    {
+    public void Add_Food_Item_CIF4(Food_Item_CIF4 foodItemCif4) {
         ;
     }
 
@@ -305,34 +294,27 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
 
         Food_Item_CIF4 fooditem = new Food_Item_CIF4();
-        if (editText6.getText().toString().length() != 0)
-        {
+        if (editText6.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText6.getText().toString());
-            try
-            {
+            try {
                 if (editText7.getText().toString().length() != 0)
                     //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText7.getText().toString()));
                     fooditem.Set_food_item_name(editText7.getText().toString());
                 if (editText8.getText().toString().length() != 0)
                     fooditem.Set_food_item_name(editText8.getText().toString());
-                    //fooditem.Set_weight(display_dialog_cif11.changeType(editText8.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+                //fooditem.Set_weight(display_dialog_cif11.changeType(editText8.getText().toString()));
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
-
 
 
             fooditemarray.add(fooditem);
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText9.getText().toString().length() != 0)
-        {
+        if (editText9.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText9.getText().toString());
-            try
-            {
+            try {
                 if (editText10.getText().toString().length() != 0)
                     //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText10.getText().toString()));
                     fooditem.Set_food_item_name(editText10.getText().toString());
@@ -341,9 +323,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 //fooditem.Set_weight(display_dialog_cif11.changeType(editText11.getText().toString()));
 
 
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -352,23 +332,19 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText12.getText().toString().length() != 0)
-        {
+        if (editText12.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText12.getText().toString());
-            try
-            {
+            try {
                 if (editText13.getText().toString().length() != 0)
                     //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText13.getText().toString()));
                     fooditem.Set_food_item_name(editText13.getText().toString());
-                    //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText13.getText().toString()));
+                //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText13.getText().toString()));
                 if (editText14.getText().toString().length() != 0)
                     fooditem.Set_food_item_name(editText14.getText().toString());
                 //fooditem.Set_weight(display_dialog_cif11.changeType(editText14.getText().toString()));
 
 
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -377,11 +353,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText15.getText().toString().length() != 0)
-        {
+        if (editText15.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText15.getText().toString());
-            try
-            {
+            try {
                 if (editText16.getText().toString().length() != 0)
                     //fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText16.getText().toString()));
                     fooditem.Set_food_item_name(editText16.getText().toString());
@@ -398,9 +372,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 //fooditem.Set_weight(display_dialog_cif11.changeType(editText14.getText().toString()));
 
                 //i: need more rows and edit text at least 3
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -409,18 +381,14 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText18.getText().toString().length() != 0)
-        {
+        if (editText18.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText18.getText().toString());
-            try
-            {
+            try {
                 if (editText19.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText19.getText().toString()));
                 if (editText20.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText20.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -429,18 +397,14 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText21.getText().toString().length() != 0)
-        {
+        if (editText21.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText21.getText().toString());
-            try
-            {
+            try {
                 if (editText22.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText22.getText().toString()));
                 if (editText23.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText23.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -449,18 +413,14 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText24.getText().toString().length() != 0)
-        {
+        if (editText24.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText24.getText().toString());
-            try
-            {
+            try {
                 if (editText25.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText25.getText().toString()));
                 if (editText26.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText26.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -469,18 +429,14 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText27.getText().toString().length() != 0)
-        {
+        if (editText27.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText27.getText().toString());
-            try
-            {
+            try {
                 if (editText28.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText28.getText().toString()));
                 if (editText29.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText29.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -489,19 +445,15 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText30.getText().toString().length() != 0)
-        {
+        if (editText30.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText30.getText().toString());
-            try
-            {
+            try {
 
                 if (editText31.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText31.getText().toString()));
                 if (editText32.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText32.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
@@ -510,26 +462,21 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             fooditem = new Food_Item_CIF4();
         }
 
-        if (editText33.getText().toString().length() != 0)
-        {
+        if (editText33.getText().toString().length() != 0) {
             fooditem.Set_food_item_name(editText33.getText().toString());
-            try
-            {
+            try {
                 if (editText34.getText().toString().length() != 0)
                     fooditem.Set_calories_per_100g(display_dialog_cif11.changeTypeFloat(editText34.getText().toString()));
                 if (editText35.getText().toString().length() != 0)
                     fooditem.Set_weight(display_dialog_cif11.changeType(editText35.getText().toString()));
-            }
-            catch (NumberFormatException noe)
-            {
+            } catch (NumberFormatException noe) {
                 display_dialog_cif11.WrongNumberFormatMsg();
             }
 
             fooditemarray.add(fooditem);
             return fooditemarray;
 
-        }
-        else return fooditemarray;
+        } else return fooditemarray;
 
 
         //for each table row create CIF4 object and add to array
@@ -540,22 +487,20 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
 
-    public ArrayList<SuggestionsInfo> SpellChecking(ArrayList<Food_Item_CIF4> INPUT)
-    {
+    public ArrayList<SuggestionsInfo> SpellChecking(ArrayList<Food_Item_CIF4> INPUT) {
 
         Food_Item_CIF4 item;
         ArrayList<SuggestionsInfo> results = new ArrayList<SuggestionsInfo>();
 
         Spell_Checker_GranularFragment018 spell_checker = new Spell_Checker_GranularFragment018();
 
-        Spell_Checker_GranularFragment018.Session sesh =  spell_checker.createSession();
+        Spell_Checker_GranularFragment018.Session sesh = spell_checker.createSession();
 
-         for(int m = 0; m < INPUT.size(); m++ )
-        {
+        for (int m = 0; m < INPUT.size(); m++) {
             item = INPUT.get(m);
             TextInfo words_check = new TextInfo(item.Get_food_item_name());
 
-            SuggestionsInfo  suggest = sesh.onGetSuggestions(words_check, 5);
+            SuggestionsInfo suggest = sesh.onGetSuggestions(words_check, 5);
 
             results.add(suggest);
         }
@@ -564,51 +509,44 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    public String SpellChecker2(String Word)
-    {
-        android.util.Log.d("Spelling","Step in One");
+    public String SpellChecker2(String Word) {
+        android.util.Log.d("Spelling", "Step in One");
 
         TextServicesManager tsm = (TextServicesManager) getSystemService(TEXT_SERVICES_MANAGER_SERVICE);
 
-        android.util.Log.d("Spelling","Step in Two");
+        android.util.Log.d("Spelling", "Step in Two");
 
-        SpellCheckerSession session = tsm.newSpellCheckerSession(null,Locale.ENGLISH,this, true);
+        SpellCheckerSession session = tsm.newSpellCheckerSession(null, Locale.ENGLISH, this, true);
 
-        android.util.Log.d("Spelling","Step in Three");
+        android.util.Log.d("Spelling", "Step in Three");
 
         TextInfo INPUT = new TextInfo(Word);
 
-        android.util.Log.d("Spelling","Step in Four");
+        android.util.Log.d("Spelling", "Step in Four");
 
         TextInfo[] InputSentence = new TextInfo[]{INPUT};
 
-        android.util.Log.d("Spelling","Step in Five");
+        android.util.Log.d("Spelling", "Step in Five");
 
-        session.getSentenceSuggestions(InputSentence,5);
+        session.getSentenceSuggestions(InputSentence, 5);
 
-        android.util.Log.d("Spelling","Step in Six");
+        android.util.Log.d("Spelling", "Step in Six");
 
-        android.util.Log.d("Spelling sb equal",sb.toString());
+        android.util.Log.d("Spelling sb equal", sb.toString());
 
         return sb.toString();
-
-
 
 
     }
 
     @Override
-    protected void onActivityResult(int requestcode, int resultcode, Intent data)
-    {
+    protected void onActivityResult(int requestcode, int resultcode, Intent data) {
         super.onActivityResult(requestcode, resultcode, data);
         //add new item Food item CIF to results list is possible and return.
     }
 
 
-
-
-    private ArrayList<Food_Item_CIF4> MultiSearch(Food_Item_CIF4 foodextracted)
-    {
+    private ArrayList<Food_Item_CIF4> MultiSearch(Food_Item_CIF4 foodextracted) {
 
         //Alogrithm Engineering :
         // For each Food item in mFoodItems perform a Search
@@ -631,28 +569,25 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
         ArrayList<String> split_food_item_names = Spelling_Fragment.Delimit_Name_into_Words(foodextracted.Get_food_item_name());
 
-        for(String m : split_food_item_names)
-        {
+        for (String m : split_food_item_names) {
             android.util.Log.d("Spellchecker", m);
             OUTsb = SpellChecker2(m);
             android.util.Log.d("Spellchecked", OUTsb);
-            if(true)//if(OUTsb == " ")
+            if (true)//if(OUTsb == " ")
             {
                 break;
-            }
-            else
-            {
+            } else {
                 Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
                 display_dialog_cif11.Set_mAppContext(this);
                 display_dialog_cif11.Showing(message);
 
-                 Stringsb = SpellChecker2(m);
+                Stringsb = SpellChecker2(m);
 
-                 //resultList = Split_Result_String_into_Words(Stringsb);
+                //resultList = Split_Result_String_into_Words(Stringsb);
 
                 FoodItemsLab_CIF9.get(getApplicationContext()).setResultsListStatic(resultList2);
 
-                 //Shoot List View intent using resultList as input words to show.
+                //Shoot List View intent using resultList as input words to show.
                 ShowFetchedSpellingSuggestions(resultList2);
 
             }
@@ -667,16 +602,13 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         //Get_Correct_Food_Item_Name(foodextracted);
 
 
-        if(hasUserAddedCalories(foodextracted))
-        {
+        if (hasUserAddedCalories(foodextracted)) {
             //if so add calories to Specific Calories attribute
             //timestamp summary class, string or array with info to be summed with food item name
             //log into food diary table
             // Seperate update other half to Sum total value
             //update balance background put food item back in its position in array continue with loop
-        }
-        else
-        {
+        } else {
             //GoogleSearch the Food items name, if no Calories.
             //Return set of similar matches
             FetchedFoodItems = GoogleSearch(foodextracted, getApplicationContext());
@@ -691,31 +623,26 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
 
-
-    private boolean hasUserAddedCalories(Food_Item_CIF4 foodie)
-    {
+    private boolean hasUserAddedCalories(Food_Item_CIF4 foodie) {
         return false;
     }
 
-    private ArrayList<Food_Item_CIF4> GoogleSearch(Food_Item_CIF4 foodfetch, Context c)
-    {
+    private ArrayList<Food_Item_CIF4> GoogleSearch(Food_Item_CIF4 foodfetch, Context c) {
 
         //return array of food items from database via Controller Database Adapter matching food item name
 
-        MIF4_Data_Model_Adapter dama = new MIF4_Data_Model_Adapter(foodfetch,c);
+        MIF4_Data_Model_Adapter dama = new MIF4_Data_Model_Adapter(foodfetch, c);
         return dama.FetchMatches();
 
 
     }
 
-    private void weaselpop()
-    {
+    private void weaselpop() {
         setResult(1);
         finish();
     }
 
-    private ArrayList<Food_Item_CIF4> ShowFetch(ArrayList<Food_Item_CIF4> mfd)
-    {
+    private ArrayList<Food_Item_CIF4> ShowFetch(ArrayList<Food_Item_CIF4> mfd) {
         android.util.Log.d("Multi-search", "We are IN Show Fetch");
 
         Monthly_Statement_Recorded_Tracked_FoodItems();
@@ -728,11 +655,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         android.util.Log.d("Multi-search", "We are below Intent");
 
 
-        startActivityForResult(i,REQUEST_CODE_FOODITEMSLIST);
+        startActivityForResult(i, REQUEST_CODE_FOODITEMSLIST);
 
         android.util.Log.d("Multi-search", "We have left for Results");
-
-
 
 
         //Log.d("Calorie Countdown", "Results of GoogleSearch FetchedFoodItems : " + checking.Get_food_item_name());
@@ -749,83 +674,68 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         // and query for gaps, guestimate, search, add new in a dialog
 
 
-
         return FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems();
 
 
         //Do for each L
     }
 
-    private void CatString(String display)
-    {
-        Log.d(TAG,display);
+    private void CatString(String display) {
+        Log.d(TAG, display);
     }
 
-    private void CatInt(int display)
-    {
+    private void CatInt(int display) {
         Log.d(TAG, new RoundingCIF13().IntToString(display));
     }
 
-    private void BackToParentActivity(SummaryBoxCIF12 summary_box)
-    {
+    private void BackToParentActivity(SummaryBoxCIF12 summary_box) {
 
         android.util.Log.d("Sending it Home", "Position 1");
 
         //return intent call with intent packed with value of Debit or Credit and Summary String as well as summarybox ready
         Intent i2 = new Intent();
-        if(summary_box.GetListingsTotalCaloriesIN() == null)
-        {
+        if (summary_box.GetListingsTotalCaloriesIN() == null) {
             i2.putExtra(TOTAL_CREDIT_VALUE, 0);
-            Log.d(TAG,"Calories In is null Baby!");
-        }
-        else
-        {
+            Log.d(TAG, "Calories In is null Baby!");
+        } else {
             i2.putExtra(TOTAL_CREDIT_VALUE, new RoundingCIF13().StringToInt(summary_box.GetListingsTotalCaloriesIN()));
-            if (summary_box.GetSummaryString() == null)
-            {
+            if (summary_box.GetSummaryString() == null) {
                 i2.putExtra(SUMMATION_TEXT, "ese-edet.eu");
-                Log.d(TAG,"Summation is null Baby!");
+                Log.d(TAG, "Summation is null Baby!");
             }
             i2.putExtra(SUMMATION_TEXT, summary_box.GetSummaryString());
             setResult(RESULT_OK, i2);
-            Log.d(TAG,"Everything is Cool Baby! " + summary_box.GetDebitSummaryString());
+            Log.d(TAG, "Everything is Cool Baby! " + summary_box.GetDebitSummaryString());
             finish();
         }
     }
 
 
-
-    private void launchAddNewFoodView()
-    {
+    private void launchAddNewFoodView() {
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Add_New_Item_Activity_CIF12.class);
-        startActivityForResult(i,REQUEST_CODE_ADD_NEW_ITEM);
+        startActivityForResult(i, REQUEST_CODE_ADD_NEW_ITEM);
     }
 
 
-
-    private void launch_recalibrate()
-    {
+    private void launch_recalibrate() {
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Recalibrate.class);
         startActivityForResult(i, REQUEST_CODE_RECALIBRATE);
     }
 
-    private void launch_JustAdd()
-    {
+    private void launch_JustAdd() {
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Raw_Calories.class);
         startActivityForResult(i, REQUEST_CODE_JUSTADD);
     }
 
 
-    private Food_Item_CIF4 launchAddNewFoodView(Food_Item_CIF4 M)
-    {
+    private Food_Item_CIF4 launchAddNewFoodView(Food_Item_CIF4 M) {
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Add_New_Item_Activity_CIF12.class);
-        startActivityForResult(i,REQUEST_CODE_ADD_NEW_ITEM);
+        startActivityForResult(i, REQUEST_CODE_ADD_NEW_ITEM);
         return new Food_Item_CIF4();
     }
 
 
-    private void RecordTrackedFoodItems(Breakfast_Box_CIF17 FoodItemBox)
-    {
+    private void RecordTrackedFoodItems(Breakfast_Box_CIF17 FoodItemBox) {
         MIF4_Data_Model_Adapter Data_Adapter = new MIF4_Data_Model_Adapter(mAppContext);
 
         /*
@@ -839,7 +749,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         bt.Set_BreakfastBox(FoodItemBox);
         Data_Adapter.InsertBreakfastTransaction(bt);
     }
-
 
 
     private void RecordMonthlyStatementData_Summary_Box(SummaryBoxCIF12 summary_box)//(Lunch_Box_CIF17 FoodItemBox)
@@ -857,15 +766,12 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         monthly_data_transaction.Set_Calorie_Outwards(summary_box.GetDebitValue());
         monthly_data_transaction.Set_New_Balance(new RoundingCIF13().StringToInt(summary_box.GetNewBalance2()));
         monthly_data_transaction.Set_Transaction_Food_Items(Transform2BoxCIF(summary_box.Get_mFoodItems()));
-        try
-        {
+        try {
             monthly_data_transaction.Get_Transaction_Food_Items().Set_Balance(new RoundingCIF13().StringToInt((summary_box.Get_mCurrentBalance())));
             monthly_data_transaction.Get_Transaction_Food_Items().Set_Balance(new RoundingCIF13().StringToInt((summary_box.GetNewBalance2())));
 
-        }
-        catch (Exception e)
-        {
-            Log.d(TAG,"Error in setting current balance in Box " + e.getMessage());
+        } catch (Exception e) {
+            Log.d(TAG, "Error in setting current balance in Box " + e.getMessage());
         }
 
         Data_Adapter.Insert_Transaction_CIF17(monthly_data_transaction);
@@ -930,35 +836,29 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    private void RecordTrackedFoodItems(Dinner_Box_CIF17 FoodItemBox)
-    {
+    private void RecordTrackedFoodItems(Dinner_Box_CIF17 FoodItemBox) {
         MIF4_Data_Model_Adapter Data_Adapter = new MIF4_Data_Model_Adapter(mAppContext);
         Dinner_Transaction_CIF21 dt = new Dinner_Transaction_CIF21();
         dt.Set_DinnerBox(FoodItemBox);
         Data_Adapter.InsertDinnerTransaction(dt);
     }
 
-    private void Monthly_Statement_Recorded_Tracked_FoodItems()
-    {
+    private void Monthly_Statement_Recorded_Tracked_FoodItems() {
 
     }
 
-    private void Add_Food_Item_Transaction_to_Data_Model(Transactions_CIF22 INPUT)
-    {
+    private void Add_Food_Item_Transaction_to_Data_Model(Transactions_CIF22 INPUT) {
         ;
     }
 
 
-
-    private String return_meal_type()
-    {
+    private String return_meal_type() {
         //Returns Meal Type based on Time of Day.
         return "Brunch";
     }
 
 
-    private BoxCIF17 Transform2BoxCIF(ArrayList<Food_Item_CIF4> IN)
-    {
+    private BoxCIF17 Transform2BoxCIF(ArrayList<Food_Item_CIF4> IN) {
         //Documentation
         //Algorithm Engineering -> ANDRIOD
         //Short Description : Takes in as Input an array of Food_items.
@@ -972,13 +872,11 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         return the_Box;
     }
 
-    private void Save_To_Monthly_Report_Database()
-    {
+    private void Save_To_Monthly_Report_Database() {
         //Do the Same_thing;
     }
 
-    private long Save_Monthly_Journal_Transaction_CIF22(Transactions_CIF22 OUT)
-    {
+    private long Save_Monthly_Journal_Transaction_CIF22(Transactions_CIF22 OUT) {
 
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(this);
         long reserve = jackie.Insert_TransactionTable_x(OUT);
@@ -986,8 +884,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    private long Save_Monthly_Journal_Database(ArrayList<Food_Item_CIF4> OUT)
-    {
+    private long Save_Monthly_Journal_Database(ArrayList<Food_Item_CIF4> OUT) {
         Transaction_CIF52 a = new Transaction_CIF52();
         Transactions_CIF22 b = new Transactions_CIF22();
         Transaction_Line_CIF17 c = new Transaction_Line_CIF17();
@@ -1018,7 +915,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         c.Set_Calorie_Outwards(0);
         c.Set_Transaction_Amount(Amount);
         c.Set_Transaction_Balance(Balance);
-        c.Set_Transaction_ID( Transaction_ID);
+        c.Set_Transaction_ID(Transaction_ID);
         c.Set_Transaction_Meal_Box_Food_Type(Meal_type_x);
         c.Set_Transaction_Meal_Box_ID(Meal_type_x_ID);
         c.Set_Transaction_Meal_Type(Meal_type_x);
@@ -1033,124 +930,90 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    private long Get_Todays_Date_Long()
-    {
+    private long Get_Todays_Date_Long() {
         return new java.util.Date().getTime();
     }
 
-    private java.util.Date Get_Todays_Date_Short()
-    {
+    private java.util.Date Get_Todays_Date_Short() {
         return new java.util.Date();
     }
 
-    private String Get_time_of_day_meal(java.util.Date IN)
-    {
-        if(isItBreakfast(IN))
-        {
+    private String Get_time_of_day_meal(java.util.Date IN) {
+        if (isItBreakfast(IN)) {
             return "Breakfast";
         }
 
-        if(isItLunch(IN))
-        {
+        if (isItLunch(IN)) {
             return "Lunch";
         }
 
-        if(isItBrunch(IN))
-        {
+        if (isItBrunch(IN)) {
             return "Brunch";
         }
 
-        if(isItDinner(IN))
-        {
+        if (isItDinner(IN)) {
             return "Dinner";
-        }
-
-        else
-        {
+        } else {
             return "Meal";
         }
 
 
-
     }
 
-    private boolean isItBreakfast(java.util.Date IN)
-    {
+    private boolean isItBreakfast(java.util.Date IN) {
 
 
-        if(inBetweenBreakfast(IN))
-        {
+        if (inBetweenBreakfast(IN)) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
-    private boolean isItLunch(java.util.Date IN)
-    {
-        if(inBetweenLunch(IN))
-        {
+    private boolean isItLunch(java.util.Date IN) {
+        if (inBetweenLunch(IN)) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
     }
 
-    private boolean isItBrunch(java.util.Date IN)
-    {
-        if(inBetweenBrunch(IN))
-        {
+    private boolean isItBrunch(java.util.Date IN) {
+        if (inBetweenBrunch(IN)) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
-    private boolean isItDinner(java.util.Date IN)
-    {
-        if(inBetweenDinner(IN))
-        {
+    private boolean isItDinner(java.util.Date IN) {
+        if (inBetweenDinner(IN)) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
 
-
-
-    private boolean inBetweenBreakfast(java.util.Date IN)
-    {
+    private boolean inBetweenBreakfast(java.util.Date IN) {
         java.util.Calendar greg = Calendar.getInstance();
         greg.setTime(new Date());
         greg.set(Calendar.HOUR_OF_DAY, 11);
         greg.set(Calendar.MINUTE, 30);
 
         long day_point = greg.getTimeInMillis();
-        if(IN.getTime() < day_point)
-        {
+        if (IN.getTime() < day_point) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
-    private boolean inBetweenLunch(java.util.Date IN)
-    {
+    private boolean inBetweenLunch(java.util.Date IN) {
         java.util.Calendar greg_Start = Calendar.getInstance();
         greg_Start.setTime(new Date());
         greg_Start.set(Calendar.HOUR_OF_DAY, 11);
@@ -1164,19 +1027,15 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         long day_point_Start = greg_Start.getTimeInMillis();
         long day_point_END = greg_END.getTimeInMillis();
 
-        if(IN.getTime() > day_point_Start || IN.getTime() < day_point_END)
-        {
+        if (IN.getTime() > day_point_Start || IN.getTime() < day_point_END) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
-    private boolean inBetweenDinner(java.util.Date IN)
-    {
+    private boolean inBetweenDinner(java.util.Date IN) {
         java.util.Calendar greg_Start = Calendar.getInstance();
         greg_Start.setTime(new Date());
         greg_Start.set(Calendar.HOUR_OF_DAY, 16);
@@ -1190,19 +1049,15 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         long day_point_Start = greg_Start.getTimeInMillis();
         long day_point_END = greg_END.getTimeInMillis();
 
-        if(IN.getTime() > day_point_Start || IN.getTime() < day_point_END)
-        {
+        if (IN.getTime() > day_point_Start || IN.getTime() < day_point_END) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
     }
 
-    private boolean inBetweenBrunch(java.util.Date IN)
-    {
+    private boolean inBetweenBrunch(java.util.Date IN) {
         java.util.Calendar greg_Start = Calendar.getInstance();
         greg_Start.setTime(new Date());
         greg_Start.set(Calendar.HOUR_OF_DAY, 11);
@@ -1216,20 +1071,16 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         long day_point_Start = greg_Start.getTimeInMillis();
         long day_point_END = greg_END.getTimeInMillis();
 
-        if(IN.getTime() > day_point_Start || IN.getTime() < day_point_END)
-        {
+        if (IN.getTime() > day_point_Start || IN.getTime() < day_point_END) {
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
 
 
     }
 
-    private int Sum_Food_Items_Calories(ArrayList<Food_Item_CIF4> IN)
-    {
+    private int Sum_Food_Items_Calories(ArrayList<Food_Item_CIF4> IN) {
         //IDO DOCUMENTATION
 
         //Algorithm Engineering -> ANDROID (Builder) (Technology) (Tech) (tech) (Black) (ANDROID BLACKBOARD) (ESE PIPELINE) (ESE ANDROID BLACKBOARD) (Black Office) (Rigour Testing, Prefomance numbers and Optimization) Black (Builder) Reload > ese-edet.eu
@@ -1239,30 +1090,24 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         return 1;
     }
 
-    private int See_Dialog_String_on_how_to_get_Balance()
-    {
+    private int See_Dialog_String_on_how_to_get_Balance() {
         //Summary_Box is a Singleton, get a Copy of the Singelton and get the Current Balance from it and add to this Object.
-        SummaryBoxCIF12 summary = SummaryBoxCIF12.get (mAppContext);
-        try
-        {
+        SummaryBoxCIF12 summary = SummaryBoxCIF12.get(mAppContext);
+        try {
             RoundingCIF13 roundup = new RoundingCIF13();
             return roundup.StringToInt(summary.Get_mCurrentBalance());
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             return 0;
         }
 
 
     }
 
-    private int See_Dialog_String_on_how_to_get_Balance_bfwd(int amount, int balance)
-    {
+    private int See_Dialog_String_on_how_to_get_Balance_bfwd(int amount, int balance) {
         return (amount + balance);
     }
 
-    private BoxCIF17 Transform_to_Box(ArrayList<Food_Item_CIF4> INPUTOBJECT)
-    {
+    private BoxCIF17 Transform_to_Box(ArrayList<Food_Item_CIF4> INPUTOBJECT) {
         BoxCIF17 OUTPUTOBJECT = new BoxCIF17();
         OUTPUTOBJECT.Set_Balance(0);
         OUTPUTOBJECT.Set_Balance(0);
@@ -1274,39 +1119,29 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    private String Get_Meal_Type_of_the_Day()
-    {
+    private String Get_Meal_Type_of_the_Day() {
         java.util.Date current_time = new java.util.Date();
-        if(isItBreakfast(current_time))
-        {
+        if (isItBreakfast(current_time)) {
             return "Breakfast";
         }
-        if(isItBrunch(current_time))
-        {
+        if (isItBrunch(current_time)) {
             return "Brunch";
         }
-        if(isItLunch(current_time))
-        {
+        if (isItLunch(current_time)) {
             return "Lunch";
         }
-        if(isItDinner(current_time))
-        {
+        if (isItDinner(current_time)) {
             return "Dinner";
-        }
-        else
-        {
+        } else {
             return "Breakfast";
         }
     }
 
-    private ArrayList<Food_Item_CIF4> MissingItems(ArrayList<Food_Item_CIF4> IN)
-    {
+    private ArrayList<Food_Item_CIF4> MissingItems(ArrayList<Food_Item_CIF4> IN) {
         Food_Item_CIF4 newitem;
 
-        for (Food_Item_CIF4 m : IN)
-        {
-            if(m.Get_food_item_name() == "empty")
-            {
+        for (Food_Item_CIF4 m : IN) {
+            if (m.Get_food_item_name() == "empty") {
                 //Launch Add New Item Sheet after results shown
                 //m = launchAddNewFoodView(m);
 
@@ -1317,8 +1152,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         return IN;
     }
 
-    private Food_Item_CIF4 Get_Correct_Food_Item_Name(Food_Item_CIF4 INPUT)
-    {
+    private Food_Item_CIF4 Get_Correct_Food_Item_Name(Food_Item_CIF4 INPUT) {
         //If no results returned, do nothing.
         //If there are results, inform user there and errors and ask to select correct one.
 
@@ -1327,12 +1161,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
         //Return updated Food_Item_CIF4 with Correct Spelling.
 
-        if(INPUT.Get_food_item_name() == " ")
-        {
+        if (INPUT.Get_food_item_name() == " ") {
             return INPUT;
-        }
-        else
-        {
+        } else {
             return INPUT;
         }
 
@@ -1340,8 +1171,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
 
-    private ArrayList<Food_Item_CIF4> Split_Result_String_into_Words(String INPUT)
-    {
+    private ArrayList<Food_Item_CIF4> Split_Result_String_into_Words(String INPUT) {
         //Algorithm Engineering -> android -> (re)Load -> www.ese-edet.eu
 
         //Step Three : Declare ArrayList<String>
@@ -1354,13 +1184,11 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         //Step Two : Delimeter with a " " space.
         //Step Four : Add Delimetered String Words to Array but if length = 1 char discard ignore.
 
-        StringTokenizer st = new StringTokenizer(INPUT,"\n", false);
-        while (st.hasMoreTokens())
-        {
+        StringTokenizer st = new StringTokenizer(INPUT, "\n", false);
+        while (st.hasMoreTokens()) {
             word = st.nextToken();
 
-            if(word.length() > 2)
-            {
+            if (word.length() > 2) {
                 CasedWord.Set_food_item_name(word);
                 Delimited.add(CasedWord);
             }
@@ -1370,17 +1198,13 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         return Delimited;
     }
 
-    private void ShowFetchedSpellingSuggestions(ArrayList<Food_Item_CIF4> INPUT)
-    {
-
+    private void ShowFetchedSpellingSuggestions(ArrayList<Food_Item_CIF4> INPUT) {
 
 
         Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Spelling_TextView_Frag_CIF7.class);
 
 
-        startActivityForResult(i,REQUEST_CODE_SPELLINGITEMSLIST);
-
-
+        startActivityForResult(i, REQUEST_CODE_SPELLINGITEMSLIST);
 
 
         //Log.d("Calorie Countdown", "Results of GoogleSearch FetchedFoodItems : " + checking.Get_food_item_name());
@@ -1397,7 +1221,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         // and query for gaps, guestimate, search, add new in a dialog
 
 
-
         //return FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems();
 
 
@@ -1405,36 +1228,29 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
     }
 
-    private Food_Item_CIF4 Reconstruct_Food_item_name(ArrayList<Food_Item_CIF4> INPUT, Food_Item_CIF4 UPDATE)
-    {
+    private Food_Item_CIF4 Reconstruct_Food_item_name(ArrayList<Food_Item_CIF4> INPUT, Food_Item_CIF4 UPDATE) {
         UPDATE.Set_food_item_name("Baked Beans");
 
         return UPDATE;
     }
 
-    private void DisplayContents(ArrayList<Food_Item_CIF4> INPUT)
-    {
+    private void DisplayContents(ArrayList<Food_Item_CIF4> INPUT) {
         android.util.Log.d("Display Contents", "see is Split works");
 
 
-        for(int x = 0; x < INPUT.size(); x++)
-        {
-            android.util.Log.d("In Split, word : " , INPUT.get(x).Get_food_item_name());
+        for (int x = 0; x < INPUT.size(); x++) {
+            android.util.Log.d("In Split, word : ", INPUT.get(x).Get_food_item_name());
         }
     }
 
 
-    private void DayendTest()
-    {
+    private void DayendTest() {
         CCD_GUI_CD_CIF1 instance = (CCD_GUI_CD_CIF1) mAppContext;
-        if(instance != null)
-        {
+        if (instance != null) {
             instance.Start_Day_End();
+        } else {
+            android.util.Log.d("Day End", "Sorry, Instance was null this time");
         }
-        else
-            {
-                android.util.Log.d("Day End", "Sorry, Instance was null this time");
-            }
     }
 
 

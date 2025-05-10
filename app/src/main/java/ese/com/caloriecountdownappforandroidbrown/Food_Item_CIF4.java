@@ -49,10 +49,9 @@ public class Food_Item_CIF4
     private String image_file;
 
 
-    public Food_Item_CIF4(String name)
-    {
+    public Food_Item_CIF4(String name) {
         id = 7777777;
-        food_type ="ING";
+        food_type = "ING";
         food_item_name = name;
         grams_per_serving_portion = 4;
         calories_per_100g = 4;
