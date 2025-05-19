@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Aim Note -->
+    <TextView
+        android:id="@+id/aim_note"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/aim_to_drink_water_a_day"
+        android:textAppearance="?android:textAppearanceMedium" />
+
+    <!-- Image -->
+    <ImageView
+        android:id="@+id/waterImage"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_marginBottom="32dp"
+        android:contentDescription="@string/glass_of_water"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_glass_of_water" />
+
+    <!-- Cups Button -->
+    <Button
+        android:id="@+id/btn_cups"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:paddingHorizontal="20dp"
+        android:text="@string/cups_of_water_drank" />
+
+    <!-- ml Button -->
+    <Button
+        android:id="@+id/btn_ml"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:text="@string/ml_of_water_drank" />
+
+</LinearLayout>
+

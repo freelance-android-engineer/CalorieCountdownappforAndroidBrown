@@ -10,6 +10,7 @@ import android.content.ContentValues;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.lang.*;
 
@@ -382,6 +383,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_CALORIES = "note_calories";
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
 
+    public static final String TABLE_WATER_TRACKER = "WaterTracker";
+    public static final String COLUMN_WATER_UNIQUE_ID = "uniqueId";
+    public static final String COLUMN_WATER_DATE = "date";
+    public static final String COLUMN_WATER_ML = "mlWaterDrunk";
+    public static final String COLUMN_WATER_CUPS = "equivalentCups";
+
 
     private Context mContext;
 
@@ -470,6 +477,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     "manual_data_sources integer) ");
 
 
+        } catch (SQLException alreadyexist) {
+
+        }
+
+        try {
+            String CREATE_WATER_TRACKER_TABLE = "CREATE TABLE " + TABLE_WATER_TRACKER + " (" +
+                    COLUMN_WATER_UNIQUE_ID + " TEXT PRIMARY KEY," +
+                    COLUMN_WATER_DATE + " TEXT," +
+                    COLUMN_WATER_ML + " INTEGER," +
+                    COLUMN_WATER_CUPS + " REAL" +
+                    ")";
+            db.execSQL(CREATE_WATER_TRACKER_TABLE);
         } catch (SQLException alreadyexist) {
 
         }
@@ -2393,6 +2412,65 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return totalCalories;
     }
 
+
+    public void insertWaterData(int mlWaterDrunk, double equivalentCups) {
+        android.util.Log.d("INSERT WATER DATA", "Insert Water Data function called");
+
+        // Calculate missing value
+        if (mlWaterDrunk <= 0 && equivalentCups > 0) {
+            mlWaterDrunk = (int) (equivalentCups * 250);
+        } else if (equivalentCups <= 0 && mlWaterDrunk > 0) {
+            equivalentCups = mlWaterDrunk / 250.0;
+        }
+
+        // Generate unique ID and date
+        String uniqueId = UUID.randomUUID().toString();
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        // Now create the model with corrected values
+        WaterTrackedModel model = new WaterTrackedModel(
+                uniqueId,
+                date,
+                mlWaterDrunk,
+                equivalentCups
+        );
+
+        // Insert into database
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_WATER_UNIQUE_ID, model.getUniqueId());
+        values.put(COLUMN_WATER_DATE, model.getDate());
+        values.put(COLUMN_WATER_ML, model.getMlWaterDrunk());
+        values.put(COLUMN_WATER_CUPS, model.getEquivalentCups());
+
+        db.insert(TABLE_WATER_TRACKER, null, values);
+        android.util.Log.d("INSERT WATER DATA", "Data inserted");
+        db.close();
+    }
+
+
+    public List<WaterTrackedModel> getAllWaterData() {
+        List<WaterTrackedModel> waterList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_WATER_TRACKER, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String uniqueId = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WATER_UNIQUE_ID));
+                String date = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WATER_DATE));
+                int mlWaterDrunk = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_WATER_ML));
+                double equivalentCups = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_WATER_CUPS));
+
+                waterList.add(new WaterTrackedModel(uniqueId, date, mlWaterDrunk, equivalentCups));
+                android.util.Log.d("GET WATER DATA", waterList.size() + " " + waterList.get(0).getDate());
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return waterList;
+    }
 }
 
 

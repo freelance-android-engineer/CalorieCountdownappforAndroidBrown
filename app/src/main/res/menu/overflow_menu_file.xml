@@ -15,192 +15,325 @@
         android:title="@string/quick_start_guide" />
 
 
-    <item android:id="@+id/action_start_weightloss"
-        android:title="@string/action_start_weightloss_title"/>
+    <item
+        android:id="@+id/action_start_weightloss"
+        android:title="@string/action_start_weightloss_title" />
 
     <group>
 
-        <item android:id="@+id/action_food_diary_credit"
+        <item
+            android:id="@+id/action_food_diary_credit"
             android:title="@string/action_food_diary_credit_title">
             <menu>
 
-                <item android:id="@+id/submenu10x" android:title="Note">
+                <item
+                    android:id="@+id/submenu10x"
+                    android:title="Note">
                     <menu>
-                        <item android:id="@+id/sub_submenuitem91" android:title="Food Diary Notes" />
-                        <item android:id="@+id/sub_submenuitem92" android:title="Fitness Log Notes"></item>
+                        <item
+                            android:id="@+id/sub_submenuitem91"
+                            android:title="Food Diary Notes" />
+                        <item
+                            android:id="@+id/sub_submenuitem92"
+                            android:title="Fitness Log Notes"></item>
                     </menu>
                 </item>
 
-                <item android:id="@+id/submenu8x" android:title=" Accrual">
+                <item
+                    android:id="@+id/submenu8x"
+                    android:title=" Accrual">
                     <menu>
-                        <item android:id="@+id/submenu3aa" android:title="Accurual"></item>
-                        <item android:id="@+id/submenu2a" android:title="Journal"></item>
-                        <item android:id="@+id/submenu3ca" android:title="SOP"></item>
-                        <item android:id="@+id/submenu1a" android:title="POP"></item>
+                        <item
+                            android:id="@+id/submenu3aa"
+                            android:title="Accurual"></item>
+                        <item
+                            android:id="@+id/submenu2a"
+                            android:title="Journal"></item>
+                        <item
+                            android:id="@+id/submenu3ca"
+                            android:title="SOP"></item>
+                        <item
+                            android:id="@+id/submenu1a"
+                            android:title="POP"></item>
                     </menu>
                 </item>
 
 
-                <item android:id="@+id/submenu8xx" android:title="Meal Time">
+                <item
+                    android:id="@+id/submenu8xx"
+                    android:title="Meal Time">
                     <menu>
-                        <item android:id="@+id/submenu3" android:title="Create a Diet Plan"></item>
-                        <item android:id="@+id/submenu2" android:title="First Breakie Box Food items"></item>
-                        <item android:id="@+id/submenu3c" android:title="Big Breakfast Box Food items"></item>
-                        <item android:id="@+id/submenu1" android:title="Big Brunch Box Food items"></item>
-                        <item android:id="@+id/submenu4" android:title="Dinner Box Food items"></item>
-                        <item android:id="@+id/submenu3d" android:title="Snack Box Food items"></item>
-                        <item android:id="@+id/submenu3a" android:title="Supper Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu3"
+                            android:title="Create a Diet Plan"></item>
+                        <item
+                            android:id="@+id/submenu2"
+                            android:title="First Breakie Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu3c"
+                            android:title="Big Breakfast Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu1"
+                            android:title="Big Brunch Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu4"
+                            android:title="Dinner Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu3d"
+                            android:title="Snack Box Food items"></item>
+                        <item
+                            android:id="@+id/submenu3a"
+                            android:title="Supper Box Food items"></item>
 
                     </menu>
                 </item>
 
 
                 <group android:id="@+id/group3">
-                    <item android:id="@+id/submenu5" android:title="Monthly Statement and Food Journal"></item>
+                    <item
+                        android:id="@+id/submenu5"
+                        android:title="Monthly Statement and Food Journal"></item>
                 </group>
                 <group android:id="@+id/group4">
-                    <item android:id="@+id/submenu6a" android:title="Kitty"></item>
-                    <item android:id="@+id/submenu6" android:title="Populate Food Database"></item>
-                    <item android:id="@+id/submenu9" android:title="Depopulate Food Database"></item>
-                    <item android:id="@+id/submenu7" android:title="Clear Database"></item>
+                    <item
+                        android:id="@+id/submenu6a"
+                        android:title="Kitty"></item>
+                    <item
+                        android:id="@+id/submenu6"
+                        android:title="Populate Food Database"></item>
+                    <item
+                        android:id="@+id/submenu9"
+                        android:title="Depopulate Food Database"></item>
+                    <item
+                        android:id="@+id/submenu7"
+                        android:title="Clear Database"></item>
 
                 </group>
-                <item android:id="@+id/submenu8" android:title=" Calculator">
+                <item
+                    android:id="@+id/submenu8"
+                    android:title=" Calculator">
                     <menu>
-                        <item android:id="@+id/sub_submenuitem1" android:title="Web Calucalator" />
-                        <item android:id="@+id/sub_submenuitem2" android:title="Native Calculator"></item>
+                        <item
+                            android:id="@+id/sub_submenuitem1"
+                            android:title="Web Calucalator" />
+                        <item
+                            android:id="@+id/sub_submenuitem2"
+                            android:title="Native Calculator"></item>
                     </menu>
                 </item>
             </menu>
         </item>
 
 
-        <item android:id="@+id/action_fitness_log_debit"
-            android:title="@string/action_fitness_log_debit_title"/>
+        <item
+            android:id="@+id/action_fitness_log_debit"
+            android:title="@string/action_fitness_log_debit_title" />
 
     </group>
 
-    <item android:id="@+id/action_log_it_in_reminder"
-        android:title="@string/action_log_it_in_reminder_title"/>
+    <item
+        android:id="@+id/action_log_it_in_reminder"
+        android:title="@string/action_log_it_in_reminder_title" />
 
-    <item android:id="@+id/Health"
+    <item
+        android:id="@+id/Health"
         android:title="@string/Health">
         <menu>
 
-            <item android:id="@+id/submenu10" android:title="@string/Health_Data1">
+            <item
+                android:id="@+id/submenu10"
+                android:title="@string/Health_Data1">
 
                 <menu>
 
-                    <item android:id="@+id/sub_sub_submenuitem1a" android:title="@string/Health_Data1a">
+                    <item
+                        android:id="@+id/sub_sub_submenuitem1a"
+                        android:title="@string/Health_Data1a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem48" android:title="@string/Health_Data1"></item>
-                            <item android:id="@+id/sub_submenuitem49" android:title="@string/Health_Data2">
+                            <item
+                                android:id="@+id/sub_submenuitem48"
+                                android:title="@string/Health_Data1"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem49"
+                                android:title="@string/Health_Data2">
 
                                 <menu>
-                                    <item android:id="@+id/sub_submenuitem50a" android:title="@string/Health_Data3b"></item>
+                                    <item
+                                        android:id="@+id/sub_submenuitem50a"
+                                        android:title="@string/Health_Data3b"></item>
                                 </menu>
 
                             </item>
-                            <item android:id="@+id/sub_submenuitem50" android:title="@string/Health_Data3"></item>
-                            <item android:id="@+id/sub_submenuitem51" android:title="@string/Health_Data4"></item>
-                            <item android:id="@+id/sub_submenuitem52" android:title="@string/Health_Data5"></item>
-                            <item android:id="@+id/sub_submenuitem53" android:title="@string/Health_Data6"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem50"
+                                android:title="@string/Health_Data3"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem51"
+                                android:title="@string/Health_Data4"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem52"
+                                android:title="@string/Health_Data5"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem53"
+                                android:title="@string/Health_Data6"></item>
 
                         </menu>
 
                     </item>
 
 
-                    <item android:id="@+id/sub_submenuitem10" android:title="@string/Health_Data2a">
+                    <item
+                        android:id="@+id/sub_submenuitem10"
+                        android:title="@string/Health_Data2a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem16" android:title="@string/Health_Data7"></item>
-                            <item android:id="@+id/sub_submenuitem17" android:title="@string/Health_Data8"></item>
-                            <item android:id="@+id/sub_submenuitem18" android:title="@string/Health_Data9"></item>
-                            <item android:id="@+id/sub_submenuitem19" android:title="@string/Health_Data10"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem16"
+                                android:title="@string/Health_Data7"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem17"
+                                android:title="@string/Health_Data8"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem18"
+                                android:title="@string/Health_Data9"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem19"
+                                android:title="@string/Health_Data10"></item>
 
                         </menu>
 
                     </item>
 
 
-
-                    <item android:id="@+id/sub_submenuitem12" android:title="@string/Health_Data3a">
+                    <item
+                        android:id="@+id/sub_submenuitem12"
+                        android:title="@string/Health_Data3a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem22" android:title="@string/Health_Data13"></item>
-                            <item android:id="@+id/sub_submenuitem23" android:title="@string/Health_Data14"></item>
-                            <item android:id="@+id/sub_submenuitem30" android:title="@string/Health_Data23"></item>
-                            <item android:id="@+id/sub_submenuitem31" android:title="@string/Health_Data24"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem22"
+                                android:title="@string/Health_Data13"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem23"
+                                android:title="@string/Health_Data14"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem30"
+                                android:title="@string/Health_Data23"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem31"
+                                android:title="@string/Health_Data24"></item>
 
                         </menu>
 
                     </item>
 
 
-
-                    <item android:id="@+id/sub_submenuitem13" android:title="@string/Health_Data4a">
+                    <item
+                        android:id="@+id/sub_submenuitem13"
+                        android:title="@string/Health_Data4a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem32" android:title="@string/Health_Data37"></item>
-                            <item android:id="@+id/sub_submenuitem33" android:title="@string/Health_Data16"></item>
-                            <item android:id="@+id/sub_submenuitem26" android:title="@string/Health_Data17"></item>
-                            <item android:id="@+id/sub_submenuitem27" android:title="@string/Health_Data18"></item>
-                            <item android:id="@+id/sub_submenuitem28" android:title="@string/Health_Data19"></item>
-                            <item android:id="@+id/sub_submenuitem29" android:title="@string/Health_Data20"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem32"
+                                android:title="@string/Health_Data37"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem33"
+                                android:title="@string/Health_Data16"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem26"
+                                android:title="@string/Health_Data17"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem27"
+                                android:title="@string/Health_Data18"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem28"
+                                android:title="@string/Health_Data19"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem29"
+                                android:title="@string/Health_Data20"></item>
 
                         </menu>
 
                     </item>
 
 
-
-                    <item android:id="@+id/sub_submenuitem14" android:title="@string/Health_Data5a">
+                    <item
+                        android:id="@+id/sub_submenuitem14"
+                        android:title="@string/Health_Data5a">
 
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem36" android:title="@string/Health_Data36"></item>
-                            <item android:id="@+id/sub_submenuitem37" android:title="@string/Health_Data25"></item>
-                            <item android:id="@+id/sub_submenuitem38" android:title="@string/Health_Data26"></item>
-                            <item android:id="@+id/sub_submenuitem39" android:title="@string/Health_Data27"></item>
-                            <item android:id="@+id/sub_submenuitem40" android:title="@string/Health_Data28"></item>
-                            <item android:id="@+id/sub_submenuitem41" android:title="@string/Health_Data29"></item>
-                            <item android:id="@+id/sub_submenuitem42" android:title="@string/Health_Data30"></item>
-                            <item android:id="@+id/sub_submenuitem43" android:title="@string/Health_Data31"></item>
-                            <item android:id="@+id/sub_submenuitem44" android:title="@string/Health_Data32"></item>
-                            <item android:id="@+id/sub_submenuitem45" android:title="@string/Health_Data33"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem36"
+                                android:title="@string/Health_Data36"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem37"
+                                android:title="@string/Health_Data25"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem38"
+                                android:title="@string/Health_Data26"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem39"
+                                android:title="@string/Health_Data27"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem40"
+                                android:title="@string/Health_Data28"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem41"
+                                android:title="@string/Health_Data29"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem42"
+                                android:title="@string/Health_Data30"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem43"
+                                android:title="@string/Health_Data31"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem44"
+                                android:title="@string/Health_Data32"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem45"
+                                android:title="@string/Health_Data33"></item>
 
                         </menu>
 
                     </item>
 
 
-
-                    <item android:id="@+id/sub_submenuitem15" android:title="@string/Health_Data6a">
+                    <item
+                        android:id="@+id/sub_submenuitem15"
+                        android:title="@string/Health_Data6a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem34" android:title="@string/Health_Data11"></item>
-                            <item android:id="@+id/sub_submenuitem35" android:title="@string/Health_Data12"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem34"
+                                android:title="@string/Health_Data11"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem35"
+                                android:title="@string/Health_Data12"></item>
 
                         </menu>
 
                     </item>
 
-
-
-                    <item android:id="@+id/sub_sub_submenuitem6a" android:title="@string/Health_Data6a">
+                    <item
+                        android:id="@+id/sub_sub_submenuitem6a"
+                        android:title="@string/Health_Data6a">
 
                         <menu>
 
-                            <item android:id="@+id/sub_submenuitem46" android:title="@string/Health_Data21"></item>
-                            <item android:id="@+id/sub_submenuitem47" android:title="@string/Health_Data22"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem46"
+                                android:title="@string/Health_Data21"></item>
+                            <item
+                                android:id="@+id/sub_submenuitem47"
+                                android:title="@string/Health_Data22"></item>
 
                         </menu>
 
@@ -208,27 +341,38 @@
                 </menu>
 
 
+            </item>
 
+            <item
+                android:id="@+id/submenu_water_tracker"
+                android:title="@string/water_tracker_title">
+                <menu>
+                    <item
+                        android:id="@+id/add_water_data"
+                        android:title="@string/add_water_data" />
+                    <item
+                        android:id="@+id/show_water_data"
+                        android:title="@string/show_water_data" />
+                </menu>
             </item>
 
         </menu>
     </item>
 
 
-
-    <item android:id="@+id/action_stop_weightloss"
-        android:title="@string/action_stop_weightloss_title"/>
-
-
-    <item android:id="@+id/action_stop_weightlossb"
-        android:title="@string/action_stop_weightloss_titleb"/>
+    <item
+        android:id="@+id/action_stop_weightloss"
+        android:title="@string/action_stop_weightloss_title" />
 
 
+    <item
+        android:id="@+id/action_stop_weightlossb"
+        android:title="@string/action_stop_weightloss_titleb" />
 
-    <item android:id="@+id/action_Client_Guide"
-        android:title="@string/action_Client_Guide_title"/>
 
-
+    <item
+        android:id="@+id/action_Client_Guide"
+        android:title="@string/action_Client_Guide_title" />
 
 
 </menu>

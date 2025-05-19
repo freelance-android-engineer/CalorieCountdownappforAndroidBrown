@@ -2401,6 +2401,19 @@
     Sed sed varius justo. Etiam nec erat ac mauris feugiat pulvinar. Donec blandit justo id dui vulputate tristique. Phasellus faucibus felis id tortor fringilla, sed accumsan justo varius. Mauris eget justo non ligula suscipit bibendum. Pellentesque in mi justo. Fusce porttitor blandit urna, vel hendrerit erat. Cras nec nunc sit amet ante rutrum finibus ac sit amet dolor. Vivamus a semper nulla, in vulputate tellus. Ut a laoreet orci, et iaculis massa. Proin nec turpis in ligula sodales posuere.
 </string>
 
+<!--    Water Tracker-->
+    <string name="water_tracker_title">Water Tracker</string>
+    <string name="add_water_data">Add Water Data</string>
+    <string name="show_water_data">Show Water Data</string>
+    <string name="glass_of_water">Glass of Water</string>
+    <string name="aim_to_drink_water_a_day">Aim to drink 6–8 cups of water a day</string>
+    <string name="cups_of_water_drank">Cups of Water Drank</string>
+    <string name="ml_of_water_drank">ml of Water Drank</string>
+    <string name="lbl_start_date">Start Date:</string>
+    <string name="lbl_end_date">End Date:</string>
+    <string name="hint_start_date">Select Start Date</string>
+    <string name="hint_end_date">Select End Date</string>
+    <string name="lbl_filter">Filter</string>
 </resources>
 
 

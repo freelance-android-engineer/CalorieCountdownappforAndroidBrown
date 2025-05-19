@@ -418,6 +418,14 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 Start_Weight_Loss_ActivityCIF4();
                 return true;
             }
+            if (id == R.id.add_water_data) {
+                Start_Add_water_Activity();
+                return true;
+            }
+            if (id == R.id.show_water_data) {
+                Start_Show_Water_Records_Activity();
+                return true;
+            }
 
             if (id == R.id.action_stop_weightlossb) {
                 Start_Recalibration();
@@ -812,6 +820,18 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private void Start_Weight_Loss_ActivityCIF4() {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Start_Weight_Loss_ActivityCIF14.class);
+        this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
+
+    }
+
+    private void Start_Add_water_Activity() {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.AddWaterData.class);
+        this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
+
+    }
+
+    private void Start_Show_Water_Records_Activity() {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.WaterRecordsActivity.class);
         this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
 
     }
