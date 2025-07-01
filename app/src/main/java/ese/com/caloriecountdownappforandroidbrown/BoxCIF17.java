@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 /**
  * Created by ESE on 03/03/2016.
+ * This Class Packages together all the elements that form a unit transaction used
+ * by the app to represent a Meal consumed by the User.
  */
 public class BoxCIF17
 {
