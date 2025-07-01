@@ -3,7 +3,7 @@ package ese.com.caloriecountdownappforandroidbrown;
 import java.util.ArrayList;
 
 /**
- * Created by lokeke on 09/03/2017.
+ * Created by ESE on 09/03/2017.
  */
 public class Transaction_Line_CIF17 extends Transaction_CIF52  //This fragmented object represents a transaction line in the Monthly Statement print out.
 {

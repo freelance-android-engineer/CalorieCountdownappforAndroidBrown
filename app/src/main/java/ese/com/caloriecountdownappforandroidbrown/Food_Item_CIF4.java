@@ -46,6 +46,7 @@ public class Food_Item_CIF4
 
     private ArrayList<String> reserve_food_item_name_list;
     private long barcode;
+    private Barcode_Type_JSON_CIF1007 barcode_type_cif1007;
     private String image_file;
 
 

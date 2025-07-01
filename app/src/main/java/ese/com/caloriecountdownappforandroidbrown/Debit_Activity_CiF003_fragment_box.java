@@ -62,6 +62,11 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         mSteps = (Button) findViewById(R.id.button123);
         mCancel = (Button) findViewById(R.id.button13);
         mStepsManaul = (Button) findViewById(R.id.button124);
+        //In one of these Logic if time is beyone 4pm (0nce)
+        //execute dayend on CiF001 current balance
+        //mBalance goes in the right DayType0014 for current day
+        //it also gets registered as dayend var and startday var for
+        //next day and can be stored and flushed to SQLite
 
         mCancel.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,6 +86,11 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 mCountdown.setmMinutesPerformed((int) (new RoundingCIF13().StringToFloat(editText64.getText().toString())));
                 String s = spinner.getSelectedItem().toString();
                 mCountdown.ConvertSpinnerItem(s);
+
+                //Algorithm Engineering
+                //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
+                //remember to implement those double try bug fixes.
+                StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
                 BackToParent(GetCountdownDebit(mCountdown));
             }
         });
@@ -254,5 +264,13 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     {
         setResult(1);
         finish();
+    }
+
+    private void StoreDayEnd2(int fourPMDayEndBalance)
+    {
+        //Algorithm Engineering Noir:
+        //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
+        //remember to implement those double try bug fixes.
+
     }
 }

@@ -9,7 +9,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import java.lang.Exception
 
-class Recalibrate : AppCompatActivity() {
+class Recalibrate : AppCompatActivity()
+{
+
 
 
 
@@ -42,11 +44,17 @@ class Recalibrate : AppCompatActivity() {
 
     }
 
+
+
+
+
     private fun recalibratedBalance(Input1: String) : String
     {
         val mass = findViewById<EditText>(R.id.editTextTextPersonName2).text.toString()
 
-        android.util.Log.d("What we got", mass)
+        android.util.Log.d("What we got and check Table DayEND2", mass)
+
+        checkTableDayEND2()
 
         if(isThisANumber(mass) == false)
         {
@@ -65,6 +73,10 @@ class Recalibrate : AppCompatActivity() {
         else return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
 
     }
+
+
+
+
 
     private fun checkWhichUnitisChecked():String
     {
@@ -86,6 +98,79 @@ class Recalibrate : AppCompatActivity() {
         return "Kilograms"
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+    private fun recalibrateKilo(Input1: String):String
+    {
+
+        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("112.9")
+
+        //Make sure mass is converted to Pounds! Safely and that it is Kilograms.
+        val mass:Float = Input1.toFloat()
+        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()
+
+
+        android.util.Log.d("RETRIEVE TARGET WEIGHT", target.toString())
+
+        val output =  ((mass - target) * 2.2)  * 3500
+
+        return output.toInt().toString()
+    }
+
+
+
+
+
+
+    private fun recalibratePounds(Input1: String):String
+    {
+        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("249")
+
+        val mass:Float = Input1.toFloat()
+        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()//MIF4_Data_Model_Adapter(this).RetrieveTargetWeight().toFloat()
+        val output = ((mass - target) ) * 3500
+
+        return output.toInt().toString()
+    }
+
+
+
+    private fun checkTableDayEND2()
+    {
+        println(message = "ESE S.C.I. LTD")
+        println(message = "ese.")
+        //ENGLISH i -> IDO -> Algorithm Engineering
+        //Check that StormmForecast Works
+        //Make necessary changes if any needed.
+
+        android.util.Log.d("What we got and check Table DayEND2", "Cheching SQLite/Room Beginsv")
+        val modelAdapter: MIF4_Data_Model_Adapter = MIF4_Data_Model_Adapter(baseContext)
+
+
+        if(CCD_GUI_CD_CIF1.mDaysToZero != null)
+        {
+            CCD_GUI_CD_CIF1.mDaysToZero = modelAdapter.RetrievemForecast()
+
+        }
+
+        CCD_GUI_CD_CIF1.mDaysToZero?.let{
+            it.printContents()
+        }
+
+
+    }
+
+
     private fun isThisANumber(Input3: String):Boolean
     {
         try
@@ -98,36 +183,5 @@ class Recalibrate : AppCompatActivity() {
         }
 
         return true
-    }
-
-    private fun recalibrateKilo(Input1: String):String
-    {
-
-        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("112.9")
-
-        //Make sure mass is converted to Pounds! Safely and that it is Kilograms.
-        val mass:Float = Input1.toFloat()
-        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()
-
-
-
-        android.util.Log.d("RETRIEVE TARGET WEIGH", target.toString())
-
-        val output =  ((mass - target) * 2.2)  * 3500
-
-        return output.toInt().toString()
-
-
-    }
-
-    private fun recalibratePounds(Input1: String):String
-    {
-        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("249")
-
-        val mass:Float = Input1.toFloat()
-        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()//MIF4_Data_Model_Adapter(this).RetrieveTargetWeight().toFloat()
-        val output = ((mass - target) ) * 3500
-
-        return output.toInt().toString()
     }
 }
