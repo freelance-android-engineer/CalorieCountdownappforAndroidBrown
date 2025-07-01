@@ -1,10 +1,10 @@
 package ese.com.caloriecountdownappforandroidbrown
 
-import ese.com.caloriecountdownappforandroidbrown.Nutritional_Content_CiFragmented_Object001
 import android.net.Uri
 
 import java.lang.Exception
 import java.net.URL
+
 
 class JSON_Object(private var webPage: Uri?) {
 

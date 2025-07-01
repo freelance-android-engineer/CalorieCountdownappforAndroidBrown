@@ -1,3 +1,80 @@
+//buildscript {
+//    allprojects {
+//        repositories {
+//            google() // Google Maven Repository
+//            mavenCentral() // Maven Central Repository
+//        }
+//    }
+//
+//    repositories {
+//        google()
+//        jcenter()
+//        maven {
+//            url 'https://dl.google.com/dl/android/maven2'
+//        }
+//    }
+//
+//
+//    dependencies {
+//        classpath 'com.android.tools.build:gradle'
+//        classpath 'com.android.tools.build:gradle:8.5.1'
+//        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
+//    }
+//}
+//apply plugin: 'com.android.application'
+//apply plugin: 'kotlin-android'
+//apply plugin: 'com.google.gms.google-services'
+//
+//android {
+//
+//    namespace 'ese.com.caloriecountdownappforandroidbrown'
+//    compileSdkVersion 34
+//    defaultConfig {
+//        configurations.all {
+//            resolutionStrategy { force 'androidx.core:core-ktx:1.6.0' }
+//        }
+//        applicationId 'ese.com.caloriecountdownappforandroidbrown2'
+//        minSdkVersion 26
+//        targetSdk 34
+//        versionCode 52
+//        versionName 'Beta 1.9.0'
+//        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+//    }
+//    buildTypes {
+//        release {
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+//        }
+//    }
+//    productFlavors {
+//    }
+//    compileOptions {
+//        sourceCompatibility JavaVersion.VERSION_11
+//        targetCompatibility JavaVersion.VERSION_11
+//    }
+//    kotlinOptions {
+//        jvmTarget = '11'
+//    }
+//    buildFeatures {
+//        viewBinding true
+//    }
+//}
+//
+//buildscript {
+//
+//    ext{
+//        kotlin_version = "1.9.0"
+//    }
+//    repositories {
+//        google()
+//        jcenter()
+//    }
+//    dependencies {
+//        classpath 'com.android.tools.build:gradle:8.5.1'
+//
+//    }
+//}
+
 buildscript {
     repositories {
         google()
@@ -69,7 +146,6 @@ buildscript {
 
     }
 }
-
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.7.0'
@@ -103,4 +179,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'com.github.mhiew:android-pdf-viewer:3.2.0-beta.1'
+    implementation 'com.github.mreram:showcaseview:1.4.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }

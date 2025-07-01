@@ -1,0 +1,42 @@
+<!-- res/layout/activity_image_import.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Text above the image container -->
+    <TextView
+        android:id="@+id/overlayText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="8dp"
+        android:text="@string/import_image_instruction"
+        android:textColor="#000000"
+        android:textSize="16sp" />
+
+    <!-- Image container -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginBottom="20dp">
+
+        <ImageView
+            android:id="@+id/imageBox"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/rounded_border"
+            android:contentDescription="Image Container"
+            android:scaleType="centerCrop" />
+    </FrameLayout>
+
+    <!-- Bottom button -->
+    <Button
+        android:id="@+id/scanWithAiBtn"
+        android:layout_width="wrap_content"
+        android:layout_gravity="center"
+        android:paddingHorizontal="20dp"
+        android:layout_height="wrap_content"
+        android:text="@string/scanWithAi" />
+</LinearLayout>

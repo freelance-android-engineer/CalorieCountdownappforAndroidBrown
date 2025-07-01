@@ -12,6 +12,8 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +26,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     private TableLayout tableLayout;
     private SQLDatabase_Food_Items_CIF6 databaseHelper; // Assuming you have a DatabaseHelper class
+   private ExecutorService executorService = Executors.newSingleThreadExecutor(); // Initializes a single-thread executor
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,9 +36,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Bind views
         tableLayout = findViewById(R.id.tableLayout);
         databaseHelper = new SQLDatabase_Food_Items_CIF6(this); // Initialize the database helper
-
         Button btnAddNewRow = findViewById(R.id.btnAddNewRow);
         Button btnAddCertainty = findViewById(R.id.btnAddCertainty);
+        Button btnSumCalories = findViewById(R.id.btnSumCalories);
         Button btnInputNote = findViewById(R.id.btnInputNote);
         Button btnTransferCredit = findViewById(R.id.btnTransferCredit);
 
@@ -56,6 +59,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             public void onClick(View v) {
                 showCertaintyDialog();
             }
+        });
+
+        btnSumCalories.setOnClickListener(v -> {
+            // Run the database query in a background thread
+            executorService.submit(() -> {
+                int totalCalories = databaseHelper.getTotalCalories();  // Get total calories from the database
+
+                // Update UI on the main thread
+                runOnUiThread(() -> {
+                    Toast.makeText(FoodNoteTableActivity.this, "Total calories" + totalCalories, Toast.LENGTH_SHORT).show();
+                    showTotalCaloriesDialog(totalCalories);
+                });
+            });
         });
 
         // Input Food/Drink Note Button
@@ -265,4 +281,33 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         });
         dialog.show();
     }
+
+
+    // Function to show the dialog with the total calories
+    public void showTotalCaloriesDialog(int totalCalories) {
+        // Create an instance of the dialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(R.layout.dialog_sum_calories);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        TextView tvTotalCalories = dialog.findViewById(R.id.tvTotalCalories);
+        if (tvTotalCalories != null) {
+            tvTotalCalories.setText(String.valueOf(totalCalories));  // Explicitly convert to string// Update with the calculated value
+        }
+        Button btnOk = dialog.findViewById(R.id.btnOk);
+        if (btnOk != null) {
+            btnOk.setOnClickListener(v1 -> dialog.dismiss());  // Close the dialog when OK is clicked
+        }
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Shutdown the executor when the activity is destroyed to avoid memory leaks
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }}
 }

@@ -17,8 +17,7 @@ import org.json.JSONObject;
 /**
  * Created by ESE on 08/03/2017.
  */
-public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInterface
-{
+public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInterface {
 
 
     // Always comment functions() new level/code fragment, Fragment,Rubix cube levels and twisting and interacting, no code, //
@@ -35,8 +34,7 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
     private org.json.JSONObject jsonObject = null;
 
 
-    public Transactions_CIF22()
-    {
+    public Transactions_CIF22() {
 
         //Transaction_Line_CIF17 line = new Transaction_Line_CIF17();
         //Transaction_CIF52 Line_52 = new Transaction_CIF52();
@@ -50,9 +48,7 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
 
     }
 
-    public Transactions_CIF22(Nutritional_Content_CiFragmented_Object001 IN)
-    {
-
+    public Transactions_CIF22(Nutritional_Content_CiFragmented_Object001 IN) {
         Transaction_Line_CIF17 line = new Transaction_Line_CIF17(IN);
         Transaction_CIF52 Line_52 = new Transaction_CIF52();
         Line_52.Set_Single_Transaction_Line(line);
@@ -66,44 +62,32 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
     }
 
 
-
-    public void Set_Statement_Text(String IN)
-    {
+    public void Set_Statement_Text(String IN) {
         StatementText = IN;
     }
 
 
-
-    public String Get_Statement_Text()
-    {
+    public String Get_Statement_Text() {
         return StatementText;
     }
 
 
-
-    public void Add_TransactionLine_2_List(Transaction_CIF52 IN)
-    {
+    public void Add_TransactionLine_2_List(Transaction_CIF52 IN) {
         mTransactionLines.add(IN);
     }
 
 
-
-    public void Remove_TransactionLine_from_List(Transaction_CIF52 OUT)
-    {
+    public void Remove_TransactionLine_from_List(Transaction_CIF52 OUT) {
         mTransactionLines.remove(OUT);
     }
 
 
-
-    public void Set_TransactionLines(ArrayList<Transaction_CIF52> IN)
-    {
+    public void Set_TransactionLines(ArrayList<Transaction_CIF52> IN) {
         mTransactionLines = IN;
     }
 
 
-
-    public ArrayList<Transaction_CIF52> Get_TransactionLines()
-    {
+    public ArrayList<Transaction_CIF52> Get_TransactionLines() {
         return mTransactionLines;
     }
 
@@ -111,7 +95,6 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
     //{
     //    return mTransactionLine.Get_Transaction_id();
     // }
-
 
 
     public BoxCIF17 Strip_Column_ID(long column_id, BoxCIF17 mealitems) //Strips...
@@ -132,61 +115,47 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
     }
 
 
-
-    public void Set_Internal_Box(BoxCIF17 IN)
-    {
+    public void Set_Internal_Box(BoxCIF17 IN) {
         Internal_Box = IN;
     }
 
 
-
-    public BoxCIF17 Get_Internal_Box()
-    {
+    public BoxCIF17 Get_Internal_Box() {
         return Internal_Box;
     } //mTransactionLine.Get_Internal_Box();
 
 
-
-    public ArrayList<Food_Item_CIF4> Strip_Food_Items_from_Cursor()
-    {
+    public ArrayList<Food_Item_CIF4> Strip_Food_Items_from_Cursor() {
         return new ArrayList<Food_Item_CIF4>();
     }
 
 
-
-    private BoxCIF17 Strip_Column_Helper_LevelOne_Big(long column_id,Transaction_CIF52 IN, BoxCIF17 stripped)
-    {
+    private BoxCIF17 Strip_Column_Helper_LevelOne_Big(long column_id, Transaction_CIF52 IN, BoxCIF17 stripped) {
         Internal_Box = stripped;
         return stripped;
     }
 
 
-
-    public String Print()
-    {
+    public String Print() {
         android.util.Log.d("IN CIF22 PRINT", "CIF52 Count : " + new RoundingCIF13().IntToString(mTransactionLines.size()));
         StatementText = "Transactions Lines empty";
 
-        try
-        {
+        try {
             //Form Statemnt Text
             //Return Statement Text
             StatementText = "";//Date\t\tMeal Type\t\tDescription\t\tCalories IN\t\tCalories OUT\t\tCountdown Balance\n\n";
-            for (Transaction_CIF52 m : mTransactionLines)
-            {
+            for (Transaction_CIF52 m : mTransactionLines) {
                 StatementText = StatementText + "Date: " + m.Get_Single_Transaction_Line().Get_Transaction_DateX().toString() + "\n\n" +
                         "Meal Type: " + m.Get_Single_Transaction_Line().Get_Transaction_Meal_Type() + "\n\n" +
                         "Description: " + m.Get_Single_Transaction_Line().Get_Description() + "\n\n" +
-                            m.Print_Transaction_Line() + "\n" +
+                        m.Print_Transaction_Line() + "\n" +
                         "Calories IN: " + new RoundingCIF13().IntToString(m.Get_Single_Transaction_Line().Get_Calorie_IN()) + "\n\n" +
                         "Calories OUT: " + new RoundingCIF13().IntToString(m.Get_Single_Transaction_Line().Get_Calorie_Outwards()) + "\n\n" +
                         "Countdown Balance: " + m.Get_Single_Transaction_Line().Get_New_Balance() + "\n\n" +
-                        "__________________________________________"  + "\n\n\n";
+                        "__________________________________________" + "\n\n\n";
 
             }
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             android.util.Log.d("TranssactionCiF22 Print", e.getMessage());
         }
         return StatementText;
@@ -195,18 +164,13 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
     }
 
 
-
-    public void add_BOX_to_Line(long ID, BoxCIF17 Input)
-    {
+    public void add_BOX_to_Line(long ID, BoxCIF17 Input) {
         ;
     }
 
 
-
-    public void Wipe()
-    {
-        if(mTransactionLines != null)
-        {
+    public void Wipe() {
+        if (mTransactionLines != null) {
             mTransactionLines.clear();
         }
 
@@ -215,134 +179,109 @@ public class Transactions_CIF22 extends ArrayList implements JSONWrapperCIFInter
 
     //public ArrayList<Transaction_CIF52> getLines()
     //{
-     //   return Get_TransactionLines();
+    //   return Get_TransactionLines();
     //}
     //Transactions_CIF22 my_Transaction_CIF22 : Transactions_CIF22(), JSONWrapperCIFInterface {}
     //var Lines: ArrayList<Transaction_CIF52>? = null
 
 
-
-    public String WrapTransactions_CIF22(Transactions_CIF22 Input)
-    {
+    public String WrapTransactions_CIF22(Transactions_CIF22 Input) {
         return "JSON_Text";
     }
 
 
-
-    ArrayList<Transaction_CIF52> getLines()
-    {
-        if (this.mTransactionLines == null)
-        {
+    ArrayList<Transaction_CIF52> getLines() {
+        if (this.mTransactionLines == null) {
             return new ArrayList<Transaction_CIF52>();
-        }
-        else
-            {
+        } else {
             return this.mTransactionLines;
-            }
-
+        }
     }
 
 
-
-    private Object UnWrapTransactions_CIF22()
-    {
+    private Object UnWrapTransactions_CIF22() {
 
 
         Serialize_Me("/data", null); //return
         return this.clone();
 
 
-         //Wrapper serializes Transaction_CIF022_Object to text Output JSONText.
-    // DeWrap takes a JSONText and deserialize it into an Object Transaction_CIF022_fragment.
-    //Parse take a JSONText and Produces a JSONText transmitted over the network.
+        //Wrapper serializes Transaction_CIF022_Object to text Output JSONText.
+        // DeWrap takes a JSONText and deserialize it into an Object Transaction_CIF022_fragment.
+        //Parse take a JSONText and Produces a JSONText transmitted over the network.
 
 
     }
 
 
-@NotNull
-@Contract(pure = true)
+    @NotNull
+    @Contract(pure = true)
 
 
+    private String Parse_CiF22_to_JSON1() {
 
-private String Parse_CiF22_to_JSON1()
-{
+        JSONText = "";
+        JSONText += "\"Transactions_CIF22\" : { ";
 
-    JSONText = "";
-    JSONText += "\"Transactions_CIF22\" : { ";
+        for (int c = 0; c < mTransactionLines.size(); c++) {
 
-    for (int c = 0; c < mTransactionLines.size(); c++) {
+            JSONText += "[ Transaction_CIF52_[" + Integer.toString(c) + "]\" : {" + "\"Transaction_Line_CIF17\" : { ";
+            JSONText = JSON_Tree_Level_One(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line());
+            JSONText = JSON_Tree_Level_Two(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Transaction_Food_Items());
+            JSONText += "\"Description\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
+            JSONText += "\"mCalorie_IN\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
+            JSONText += "\"Calorie_OUT\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
+            JSONText += "\"Countdown_BALANCE\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
+            JSONText += "\"Food_Item_CIF4_dummy_rice_4\" : " + "null" + "\n";
 
-        JSONText += "[ Transaction_CIF52_[" + Integer.toString(c) + "]\" : {" + "\"Transaction_Line_CIF17\" : { ";
-        JSONText = JSON_Tree_Level_One(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line());
-        JSONText = JSON_Tree_Level_Two(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Transaction_Food_Items());
-        JSONText += "\"Description\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
-        JSONText += "\"mCalorie_IN\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
-        JSONText += "\"Calorie_OUT\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
-        JSONText += "\"Countdown_BALANCE\" : " + mTransactionLines.get(c).Get_Single_Transaction_Line().Get_Description() + "\n";
-        JSONText += "\"Food_Item_CIF4_dummy_rice_4\" : " + "null" + "\n";
+            JSONText = JSON_Tree_Level_Three_food_item_list(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line());
 
-        JSONText = JSON_Tree_Level_Three_food_item_list(JSONText, mTransactionLines.get(c).Get_Single_Transaction_Line());
-
-    }
+        }
 
         return JSONText;
 
-}
-
-
-private JSONObject Parse_CiF22_to_JSON2()
-{
-    //String inhousecsvDOTjson = "JSON_TEXT";
-
-
-    if(jsonObject == null)
-    {
-        try
-        {
-            jsonObject = new JSONObject(Parse_CiF22_to_JSON1());
-        }
-        catch (Exception e)
-        {
-            jsonObject = new JSONObject();
-        }
-    }
-    else
-    {
-        ;
     }
 
-    return jsonObject;
+
+    private JSONObject Parse_CiF22_to_JSON2() {
+        //String inhousecsvDOTjson = "JSON_TEXT";
 
 
-}
+        if (jsonObject == null) {
+            try {
+                jsonObject = new JSONObject(Parse_CiF22_to_JSON1());
+            } catch (Exception e) {
+                jsonObject = new JSONObject();
+            }
+        } else {
+            ;
+        }
+
+        return jsonObject;
+
+
+    }
 
 
     //private map<true,filepath> depopulate(SQLDatabase_Food_Items_CIF6 Input)
     //{
-   //     return false;
-   // }
-
+    //     return false;
+    // }
 
 
     @Override
-    public String Code_JSONText()
-    {
+    public String Code_JSONText() {
         return Parse_CiF22_to_JSON1();
     }
 
 
-
-    public JSONObject Code_JSONObject()
-    {
+    public JSONObject Code_JSONObject() {
         return jsonObject;
     }
 
 
-
     @Override
-    public Transactions_CIF22 DeCode_JSONText(String json_input)
-    {
+    public Transactions_CIF22 DeCode_JSONText(String json_input) {
         JsonReader reader = new JsonReader(new java.io.Reader() {
             /**
              * Reads characters into a portion of an array.  This method will block
@@ -384,9 +323,7 @@ private JSONObject Parse_CiF22_to_JSON2()
     }
 
 
-
-    public Transactions_CIF22 DeCode_JSONText(JSONObject input)
-    {
+    public Transactions_CIF22 DeCode_JSONText(JSONObject input) {
         JsonReader reader;
         reader = new JsonReader(new java.io.Reader() {
             /**
@@ -423,13 +360,10 @@ private JSONObject Parse_CiF22_to_JSON2()
     }
 
 
-
     @Override
-    public void Set_JSONText(String json_input)
-    {
+    public void Set_JSONText(String json_input) {
         JSONText = json_input;
     }
-
 
 
     @Override
@@ -439,279 +373,249 @@ private JSONObject Parse_CiF22_to_JSON2()
 
 
     @Override
-    public String Nutritional_Object_to_JSONText(Nutritional_Content_CiFragmented_Object001 INPUT)
-    {
+    public String Nutritional_Object_to_JSONText(Nutritional_Content_CiFragmented_Object001 INPUT) {
         return Convert_Nutritional_Object_to_JSONText(INPUT);
     }
 
 
-    public Transaction_CIF22 deWrappingParser(JSONWrapperCIFClass DOCUMENT_IN)
-    {
+    public Transaction_CIF22 deWrappingParser(JSONWrapperCIFClass DOCUMENT_IN) {
         return new Transaction_CIF22();
     }
 
 
-
-    public JSONWrapperCIFClass Wrapper(Transactions_CIF22 IN)
-    {
+    public JSONWrapperCIFClass Wrapper(Transactions_CIF22 IN) {
         return new JSONWrapperCIFClass(IN);
     }
 
 
-
-    public String WrapTransactions_CIF22(Transaction_CIF22 INPUT)
-    {
+    public String WrapTransactions_CIF22(Transaction_CIF22 INPUT) {
         return new String("deWrapper's empty");
     }
 
 
-
-   public Transaction_CIF22 UnWrapTransactions_CIF22(String INPUT)
-   {
-       Transaction_CIF22 OUTPUT = new Transaction_CIF22();
-       return OUTPUT;
-   }
+    public Transaction_CIF22 UnWrapTransactions_CIF22(String INPUT) {
+        Transaction_CIF22 OUTPUT = new Transaction_CIF22();
+        return OUTPUT;
+    }
 
 
-   public Transaction_CIF22 UnWrapTransactions_CIF22(String INPUT, Transaction_CIF22 In)
-   {
-      return In;
-   }
+    public Transaction_CIF22 UnWrapTransactions_CIF22(String INPUT, Transaction_CIF22 In) {
+        return In;
+    }
 
 
-   public Transaction_CIF22 UnWrapTransaction_CIF22(Transaction_CIF22 INPUT)
-   {
-       return INPUT;
-   }
+    public Transaction_CIF22 UnWrapTransaction_CIF22(Transaction_CIF22 INPUT) {
+        return INPUT;
+    }
 
 
-   public void Serialize_Me(String fileName, Context context)
-   {
+    public void Serialize_Me(String fileName, Context context) {
 
-       try
-       {
-           FileOutputStream fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
-           ObjectOutputStream os = new ObjectOutputStream(fos);
-           os.writeObject(this);
-           os.close();
-           fos.close();
-       }
-       catch (Exception e)
-       {
-       }
-
-   }
-
-
-   public Transactions_CIF22 deSerialize_Me(String fileName, Context context)
-   {
-
-       try
-       {
-           FileInputStream fis = context.openFileInput(fileName);
-           ObjectInputStream is = new ObjectInputStream(fis);
-           Transactions_CIF22 simpleClass = (Transactions_CIF22) is.readObject();
-           is.close();
-           fis.close();
-
-           final Transactions_CIF22 transactions_cif22 = simpleClass;
-           return transactions_cif22;
-       }
-       catch (Exception e)
-       {
-           return new Transactions_CIF22();
-       }
-
-
-   }
-
-
-private String JSON_Tree_Level_One(String input_json_text, Transaction_Line_CIF17 Input)
-{
-
-
-
-    if(Input != null) {
-
-        input_json_text += " \"mTransaction_ID\" : ";
-        input_json_text += Long.toString(Input.Get_Transaction_ID());
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Date\" : ";
-        input_json_text += "\"" + Input.Get_Date().toString() + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Meal_Type\" : ";
-        input_json_text += "\"" + Input.Get_Transaction_Meal_Type() + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Meal_Type_ID\" : ";
-        input_json_text += "\"" + Long.toString(Input.Get_Transaction_Meal_Type_ID()) + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Amount\" : ";
-        input_json_text += "\"" + Integer.toString(Input.Get_Transaction_Amount()) + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Balance\" : ";
-        input_json_text += "\"" + Integer.toString(Input.Get_Transaction_Balance()) + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mmTransaction_Meal_Box_ID\" : ";
-        input_json_text += "\"" + Long.toString(Input.Get_Transaction_Meal_Box_ID()) + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"mTransaction_Meal_Box_Food_Type\" : ";
-        input_json_text += "\"" + Input.Get_Transaction_Meal_Box_Food_Type() + "\"";
-        input_json_text += "\n";
-
-        input_json_text += " \"Description\" : ";
-        input_json_text += "\"" + Input.Get_Description() + "\"";
-        input_json_text += "\n";
+        try {
+            FileOutputStream fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
+            ObjectOutputStream os = new ObjectOutputStream(fos);
+            os.writeObject(this);
+            os.close();
+            fos.close();
+        } catch (Exception e) {
+        }
 
     }
 
-    return input_json_text;
 
-}
+    public Transactions_CIF22 deSerialize_Me(String fileName, Context context) {
+
+        try {
+            FileInputStream fis = context.openFileInput(fileName);
+            ObjectInputStream is = new ObjectInputStream(fis);
+            Transactions_CIF22 simpleClass = (Transactions_CIF22) is.readObject();
+            is.close();
+            fis.close();
+
+            final Transactions_CIF22 transactions_cif22 = simpleClass;
+            return transactions_cif22;
+        } catch (Exception e) {
+            return new Transactions_CIF22();
+        }
 
 
+    }
 
-private String JSON_Tree_Level_Two(String input_json_text, BoxCIF17 Input)
-{
-    if(Input != null)
-    {
-        input_json_text += " \"mfood_item_list\" : { ";
-        input_json_text += "\"mFoodBox\" : [ " ;
-        for(int c = 0; c < Input.mFoodBox.size(); c++)
-        {
-            input_json_text  += " Food_Item_CiF4[" + Integer.toString(c) + "]\" : {" + "\"id\" : " + Long.toString(Input.mFoodBox.get(c).Get_id()) + "," + "\n";
 
-            input_json_text += "\"mMeal_ID\" : " + Long.toString(Input.mFoodBox.get(c).Get_Meal_Box_ID()) + "," + "\n";
+    private String JSON_Tree_Level_One(String input_json_text, Transaction_Line_CIF17 Input) {
 
-            input_json_text += "\"food_type\" : " + Input.mFoodBox.get(c).Get_food_type() + "," + "\n";
 
-            input_json_text += "\"food_item_name\" : " + Input.mFoodBox.get(c).Get_food_item_name() + "," + "\n";
+        if (Input != null) {
 
-            input_json_text += "\"grams_per_serving_portion\" : " + Float.toString(Input.mFoodBox.get(c).Get_grams_per_serving_portion()) + "," + "\n";
+            input_json_text += " \"mTransaction_ID\" : ";
+            input_json_text += Long.toString(Input.Get_Transaction_ID());
+            input_json_text += "\n";
 
-            input_json_text += "\"calories_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_calories_per_100g()) + "," + "\n";
+            input_json_text += " \"mTransaction_Date\" : ";
+            input_json_text += "\"" + Input.Get_Date().toString() + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"fat_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_fat_per_100g()) + "," + "\n";
+            input_json_text += " \"mTransaction_Meal_Type\" : ";
+            input_json_text += "\"" + Input.Get_Transaction_Meal_Type() + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"saturated_fat\" : " + Float.toString(Input.mFoodBox.get(c).Get_saturated_fat()) + "," + "\n";
+            input_json_text += " \"mTransaction_Meal_Type_ID\" : ";
+            input_json_text += "\"" + Long.toString(Input.Get_Transaction_Meal_Type_ID()) + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"trans_fat\" : " + Float.toString(Input.mFoodBox.get(c).Get_trans_fat()) + "," + "\n";
+            input_json_text += " \"mTransaction_Amount\" : ";
+            input_json_text += "\"" + Integer.toString(Input.Get_Transaction_Amount()) + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"protein_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_protein_per_100g()) + "," + "\n";
+            input_json_text += " \"mTransaction_Balance\" : ";
+            input_json_text += "\"" + Integer.toString(Input.Get_Transaction_Balance()) + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"carbs_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_carbs_per_100g()) + "," + "\n";
+            input_json_text += " \"mmTransaction_Meal_Box_ID\" : ";
+            input_json_text += "\"" + Long.toString(Input.Get_Transaction_Meal_Box_ID()) + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"sugar_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_sugar_per_100g()) + "," + "\n";
+            input_json_text += " \"mTransaction_Meal_Box_Food_Type\" : ";
+            input_json_text += "\"" + Input.Get_Transaction_Meal_Box_Food_Type() + "\"";
+            input_json_text += "\n";
 
-            input_json_text += "\"salt_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_salt_per_100g()) + "," + "\n";
-
-            input_json_text += "\"wellbeing_index\" : " + Boolean.toString(Input.mFoodBox.get(c).Get_wellbeing_index()) + "," + "\n";
-
-            input_json_text += "\"fiber\" : " + Float.toString(Input.mFoodBox.get(c).Get_fiber()) + "," + "\n";
-
-            input_json_text += "\"price_sterling\" : " + Float.toString(Input.mFoodBox.get(c).Get_price_sterling()) + "," + "\n";
-
-            input_json_text += "\"polyunsaturated\" : " + Float.toString(Input.mFoodBox.get(c).Get_polyunsaturated()) + "," + "\n";
-
-            input_json_text += "\"monounsaturated\" : " + Float.toString(Input.mFoodBox.get(c).Get_monounsaturated()) + "," + "\n";
-
-            input_json_text += "\"cholesterol_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_cholesterol_mg()) + "," + "\n";
-
-            input_json_text += "\"sodium_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_sodium_mg()) + "," + "\n";
-
-            input_json_text += "\"potassium_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_potassium_mg()) + "," + "\n";
-
-            input_json_text += "\"vitamin_a_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_vitamin_a_percent()) + "," + "\n";
-
-            input_json_text += "\"vitamin_c_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_vitamin_c_percent()) + "," + "\n";
-
-            input_json_text += "\"calcium_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_calcium_percent()) + "," + "\n";
-
-            input_json_text += "\"iron_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_iron_percent()) + "," + "\n";
-
-            input_json_text += "\"category\" : " + Input.mFoodBox.get(c).Get_category() + "," + "\n";
-
-            input_json_text += "\"weight\" : " + Integer.toString(Input.mFoodBox.get(c).Get_weight()) + "," + "\n";
-
-            input_json_text += "\"Calorie_Value\" : " + Integer.toString(Input.mFoodBox.get(c).Get_calorie_value()) + "," + "\n";
-
-            input_json_text += "\"index\" : " + Integer.toString(Input.mFoodBox.get(c).Get_Index()) + "," + "\n";
-
-            input_json_text += "\"Quantity\" : " + Integer.toString(Input.mFoodBox.get(c).Get_Quantity()) + "," + "\n";
-
-            input_json_text += "\"reserve_food_item_name_list\" : [" + Get_JSON_reserve_food_item_name_list(Input.mFoodBox.get(c).getReserve_food_item_name_list()) + "]," + "\n";
-
-            input_json_text += "\"Barcode\" : " + Long.toString(Input.mFoodBox.get(c).Get_Barcode()) + "," + "\n";
-
-            input_json_text += "\"Image_File\" : " + Input.mFoodBox.get(c).Get_Image_File() + "," + " }" + ",";
-
-            if(c == (Input.mFoodBox.size() - 1))
-            {
-                input_json_text += "} ]\n";
-            }
+            input_json_text += " \"Description\" : ";
+            input_json_text += "\"" + Input.Get_Description() + "\"";
+            input_json_text += "\n";
 
         }
 
-        input_json_text += "\"mMeal\" :" + "\"" + Input.Get_Meal_Type() +"\n";
-        input_json_text += "\"mMeal_ID\" :" + "\"" + Input.Get_Transaction_ID() +"\n";
-        input_json_text += "\"Meal_Box_ID\" :" + "\"" + Input.Get_Meal_Box_ID() +"\n";
-        input_json_text += "\"Transaction_ID\" :" + "\"" + Input.Get_Transaction_ID() +"\n";
-        input_json_text += "\"Balance\" :" + "\"" + Input.Get_Balance() +"\n";
-        input_json_text += "\"Energy_OUT\" :" + "\"" + Input.Get_Energy_OUT() +"\n";
-        input_json_text += "\"data_file_path\" :" + "\"" + Input.Get_data_file_path() +"\n";
+        return input_json_text;
+
     }
 
-    return input_json_text;
-}
+
+    private String JSON_Tree_Level_Two(String input_json_text, BoxCIF17 Input) {
+        if (Input != null) {
+            input_json_text += " \"mfood_item_list\" : { ";
+            input_json_text += "\"mFoodBox\" : [ ";
+            for (int c = 0; c < Input.mFoodBox.size(); c++) {
+                input_json_text += " Food_Item_CiF4[" + Integer.toString(c) + "]\" : {" + "\"id\" : " + Long.toString(Input.mFoodBox.get(c).Get_id()) + "," + "\n";
+
+                input_json_text += "\"mMeal_ID\" : " + Long.toString(Input.mFoodBox.get(c).Get_Meal_Box_ID()) + "," + "\n";
+
+                input_json_text += "\"food_type\" : " + Input.mFoodBox.get(c).Get_food_type() + "," + "\n";
+
+                input_json_text += "\"food_item_name\" : " + Input.mFoodBox.get(c).Get_food_item_name() + "," + "\n";
+
+                input_json_text += "\"grams_per_serving_portion\" : " + Float.toString(Input.mFoodBox.get(c).Get_grams_per_serving_portion()) + "," + "\n";
+
+                input_json_text += "\"calories_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_calories_per_100g()) + "," + "\n";
+
+                input_json_text += "\"fat_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_fat_per_100g()) + "," + "\n";
+
+                input_json_text += "\"saturated_fat\" : " + Float.toString(Input.mFoodBox.get(c).Get_saturated_fat()) + "," + "\n";
+
+                input_json_text += "\"trans_fat\" : " + Float.toString(Input.mFoodBox.get(c).Get_trans_fat()) + "," + "\n";
+
+                input_json_text += "\"protein_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_protein_per_100g()) + "," + "\n";
+
+                input_json_text += "\"carbs_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_carbs_per_100g()) + "," + "\n";
+
+                input_json_text += "\"sugar_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_sugar_per_100g()) + "," + "\n";
+
+                input_json_text += "\"salt_per_100g\" : " + Float.toString(Input.mFoodBox.get(c).Get_salt_per_100g()) + "," + "\n";
+
+                input_json_text += "\"wellbeing_index\" : " + Boolean.toString(Input.mFoodBox.get(c).Get_wellbeing_index()) + "," + "\n";
+
+                input_json_text += "\"fiber\" : " + Float.toString(Input.mFoodBox.get(c).Get_fiber()) + "," + "\n";
+
+                input_json_text += "\"price_sterling\" : " + Float.toString(Input.mFoodBox.get(c).Get_price_sterling()) + "," + "\n";
+
+                input_json_text += "\"polyunsaturated\" : " + Float.toString(Input.mFoodBox.get(c).Get_polyunsaturated()) + "," + "\n";
+
+                input_json_text += "\"monounsaturated\" : " + Float.toString(Input.mFoodBox.get(c).Get_monounsaturated()) + "," + "\n";
+
+                input_json_text += "\"cholesterol_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_cholesterol_mg()) + "," + "\n";
+
+                input_json_text += "\"sodium_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_sodium_mg()) + "," + "\n";
+
+                input_json_text += "\"potassium_mg\" : " + Float.toString(Input.mFoodBox.get(c).Get_potassium_mg()) + "," + "\n";
+
+                input_json_text += "\"vitamin_a_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_vitamin_a_percent()) + "," + "\n";
+
+                input_json_text += "\"vitamin_c_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_vitamin_c_percent()) + "," + "\n";
+
+                input_json_text += "\"calcium_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_calcium_percent()) + "," + "\n";
+
+                input_json_text += "\"iron_percent\" : " + Float.toString(Input.mFoodBox.get(c).Get_iron_percent()) + "," + "\n";
+
+                input_json_text += "\"category\" : " + Input.mFoodBox.get(c).Get_category() + "," + "\n";
+
+                input_json_text += "\"weight\" : " + Integer.toString(Input.mFoodBox.get(c).Get_weight()) + "," + "\n";
+
+                input_json_text += "\"Calorie_Value\" : " + Integer.toString(Input.mFoodBox.get(c).Get_calorie_value()) + "," + "\n";
+
+                input_json_text += "\"index\" : " + Integer.toString(Input.mFoodBox.get(c).Get_Index()) + "," + "\n";
+
+                input_json_text += "\"Quantity\" : " + Integer.toString(Input.mFoodBox.get(c).Get_Quantity()) + "," + "\n";
+
+                input_json_text += "\"reserve_food_item_name_list\" : [" + Get_JSON_reserve_food_item_name_list(Input.mFoodBox.get(c).getReserve_food_item_name_list()) + "]," + "\n";
+
+                input_json_text += "\"Barcode\" : " + Long.toString(Input.mFoodBox.get(c).Get_Barcode()) + "," + "\n";
+
+                input_json_text += "\"Image_File\" : " + Input.mFoodBox.get(c).Get_Image_File() + "," + " }" + ",";
+
+                if (c == (Input.mFoodBox.size() - 1)) {
+                    input_json_text += "} ]\n";
+                }
+
+            }
+
+            input_json_text += "\"mMeal\" :" + "\"" + Input.Get_Meal_Type() + "\n";
+            input_json_text += "\"mMeal_ID\" :" + "\"" + Input.Get_Transaction_ID() + "\n";
+            input_json_text += "\"Meal_Box_ID\" :" + "\"" + Input.Get_Meal_Box_ID() + "\n";
+            input_json_text += "\"Transaction_ID\" :" + "\"" + Input.Get_Transaction_ID() + "\n";
+            input_json_text += "\"Balance\" :" + "\"" + Input.Get_Balance() + "\n";
+            input_json_text += "\"Energy_OUT\" :" + "\"" + Input.Get_Energy_OUT() + "\n";
+            input_json_text += "\"data_file_path\" :" + "\"" + Input.Get_data_file_path() + "\n";
+        }
+
+        return input_json_text;
+    }
 
 
+    private String Get_JSON_reserve_food_item_name_list(ArrayList<String> Input) {
+        String real_json = "";
 
-   private String Get_JSON_reserve_food_item_name_list(ArrayList<String> Input)
-   {
-       String real_json = "";
+        if (Input != null) {
+            for (String m : Input) {
+                if (m == Input.get(Input.size() - 1)) {
+                    real_json += "\"m\"";
+                } else {
+                    real_json += "\"m\",";
+                }
+            }
+        }
 
-       if (Input != null) {
-           for (String m : Input) {
-               if (m == Input.get(Input.size() - 1)) {
-                   real_json += "\"m\"";
-               } else {
-                   real_json += "\"m\",";
-               }
-           }
-       }
-
-       return real_json;
-   }
+        return real_json;
+    }
 
 
-   private String JSON_Tree_Level_Three_food_item_list(String input_json_text, Transaction_Line_CIF17 Input)
-   {
-       input_json_text += "\"Breakfast_Transaction_CIF22 food_item_list\" : " + Input.Get_Breakfast_Tranasction_CiF22_food_item_list().toString() + "],}," + "\n";
-       input_json_text += "\"inhousecsvLinetext\"  : " +  "\"data/csv_depopulate\"," + "\n";
-       input_json_text += "\"Row_Type_fragment_type\" :" + "\"Row_Type_fragment.Neither\" ] }";
+    private String JSON_Tree_Level_Three_food_item_list(String input_json_text, Transaction_Line_CIF17 Input) {
+        input_json_text += "\"Breakfast_Transaction_CIF22 food_item_list\" : " + Input.Get_Breakfast_Tranasction_CiF22_food_item_list().toString() + "],}," + "\n";
+        input_json_text += "\"inhousecsvLinetext\"  : " + "\"data/csv_depopulate\"," + "\n";
+        input_json_text += "\"Row_Type_fragment_type\" :" + "\"Row_Type_fragment.Neither\" ] }";
 
-       return input_json_text;
-   }
-
-
-   private String Convert_Nutritional_Object_to_JSONText(Nutritional_Content_CiFragmented_Object001 Input)
-   {
-       return Input.convertToJSONText();
-   }
+        return input_json_text;
+    }
 
 
-    public void  get_Food_item_or_items_Kotlin_1_5_0(Nutritional_Content_CiFragmented_Object001 Input) {
+    private String Convert_Nutritional_Object_to_JSONText(Nutritional_Content_CiFragmented_Object001 Input) {
+        return Input.convertToJSONText();
+    }
+
+
+    public void get_Food_item_or_items_Kotlin_1_5_0(Nutritional_Content_CiFragmented_Object001 Input) {
         get_Food_items_or_items_Kotlin_1_5_0(Input.get_Food_items()); //add to Box/mfoodbox
     }
 
-    public long  get_Food_items_or_items_Kotlin_1_5_0(ArrayList<Food_Item_CIF4> input)
-    {
+    public long get_Food_items_or_items_Kotlin_1_5_0(ArrayList<Food_Item_CIF4> input) {
         //add to mbox
 
         return new Add_New_Item_Activity_CIF2Fragment().add_Transactions_CiF22_To_CiF6(input);
