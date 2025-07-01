@@ -4,7 +4,7 @@ import android.database.Cursor;
 import android.database.CursorWrapper;
 
 /**
- * Created by lokeke on 04/05/2016.
+ * Created by ESE on 04/05/2016.
  */
 public class StartWeightCursor  extends CursorWrapper {
 
