@@ -1,5 +1,4 @@
 package ese.com.caloriecountdownappforandroidbrown;
-import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
@@ -9,17 +8,16 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 
-import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.graphics.pdf.*;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
 import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -787,12 +785,16 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private void StartFoodDiaryNotes()
     {
         android.util.Log.d("Pre Food Diary Notes", "number2");
-        Intent i = new Intent(CCD_GUI_CD_CIF1.this, FoodNoteItemDetailHostActivity.class);
-        android.util.Log.d("Pre Food Diary Notes", "number3");
-        this.startActivityForResult(i, REQUEST_CODE_GET_FOOD_NOTE_ITEM);
-        android.util.Log.d("Pre Food Diary Notes", "number4");
+//        Intent i = new Intent(CCD_GUI_CD_CIF1.this, FoodNoteItemDetailHostActivity.class);
+//        android.util.Log.d("Pre Food Diary Notes", "number3");
+//        this.startActivityForResult(i, REQUEST_CODE_GET_FOOD_NOTE_ITEM);
+//        android.util.Log.d("Pre Food Diary Notes", "number4");
+        Intent intent = new Intent();
+        intent.setClassName("ese.com.caloriecountdownappforandroidbrown2", "ese.com.caloriecountdownappforandroidbrown.FoodNoteTableActivity");
+        startActivity(intent);
 
     }
+
 
     private Date myStringToDate(String editText)
     {
