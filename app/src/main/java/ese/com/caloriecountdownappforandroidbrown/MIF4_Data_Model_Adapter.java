@@ -2039,12 +2039,20 @@ public class Meal_Type
         //Algorithm Engineering : Step One : Divide the Opening Balance by
         //100 to represent a Countdown of 100 Dr Points a day to give the
         //total number of days the weight loss app assumes it will take the
-        //Client to reach xero CR Balance..
+        //Client to reach xero CR Balance.. if that fails at last day divide by 5,
+        // if that's still not enough User not really counting down effectively even after dividing by
+        //1 or 0.5  point 0.5 is the limt keep on using this till infinity till they finall get to 0CR
+        //the Stop transidtion to Surplus account.
 
         int numberOfDays = (int) (openingBalance/100);
 
         IN.mForecast.setupType(numberOfDays);
         StoremForecast(IN);
+
+        //Initialze CCD_GUI_CiF001 Static CountdownToXeroType here, as soon as IN has an
+        //Opening Balance.
+        InitializeCountdownToXeroDayType1004inCiF001asStatic(IN, IN.mForecast); //Initmforecast here as well, reconcile.
+
     }
 
     private void StoremForecast(HealthProfileCiF3 IN)
@@ -2088,5 +2096,29 @@ public class Meal_Type
 
 
     }
+
+    private void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN, CountdownToZeroDayCiF1004 inputToInitialize)
+    {
+        //Initmforecast here as well, reconcile.
+
+        //Algorithm Engineering.
+
+        //Check that the Static CountdownToXero03FEB is initialized
+        //All DayTypes in MutableListOf<DayType1005> Initialized and initialized very well to
+        // very ultra very high Quality and Value
+        //there is an update method in model data adapter on CountdownToXero03FEB type that
+        //saves and update itself to dayend2 table using model data adapter called uptoday
+        //and can create/ recreate itelf for data in dayend2 Table.
+        //working tested value, then push to Food Note version, ask Black Board Member to reconcile this
+        //version to his Food notes version and make his version the main branch
+        // then you as android engineer (re)Load... -> www.ese-edet.eu
+        // Send Link to Tester: Ndidi Nwosu for more i's to green square Read Cube, repeat the process till Version 2.0.0
+        // Tested and Approved for Sale and Prodution.
+        //Prime Logo
+
+        //ESE
+
+    }
+
 
 }

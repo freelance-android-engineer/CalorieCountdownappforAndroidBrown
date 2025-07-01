@@ -981,13 +981,20 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         if(mDaysToZero == null)
         {
             mDaysToZero = data_model_adapter.RetrievemForecast();
+            android.util.Log.d("Calorie Countdown app", "mDayToZero, retrieved, this is Contents:");
+            android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
         }
 
         if(mDaysToZero != null)
         {
+            android.util.Log.d("Calorie Countdown app", "mDayToZero, already Intialized, this is Contents:");
+            android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
+
             DayCiF1005 mToday = mDaysToZero.getCurrentDayType1005();
             if((mToday) != null)
             {
+                android.util.Log.d("Calorie Countdown app for iOS", "mToday NOT NULL, contents of mToday:");
+
                 dayend = mToday.getBudgetedDayEndBalanceForThisDay();
             }
             else
@@ -1388,6 +1395,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void Recalibrate()
     {
 
+    }
+
+    public void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
+    {
+        mDaysToZero = new CountdownToZeroDayCiF1004(IN.getStartCountdown(), IN);
+        //mDaysToZero.setupType();
     }
 
     private void ResetAlarmTimer(ObjectWithAllTheTimesCIF10 obj)

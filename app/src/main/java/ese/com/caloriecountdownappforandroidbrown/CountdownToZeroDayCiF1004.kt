@@ -6,42 +6,58 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Date
 
-                                 // ANDROID ENGINEER
-class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: HealthProfileCiF3)
-{
-       private var openingBalance: Int = _openingBalance
-           get() {return field}
-           set(value)
-           {
-               field  = value
-           }
+                                 // ANDROID ENGINEER.
+class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: HealthProfileCiF3) {
+                                     private var openingBalance: Int = _openingBalance
+                                         get() {
+                                             return field
+                                         }
+                                         set(value) {
+                                             field = value
+                                         }
 
-       var clientHealthProfileType: HealthProfileCiF3 = inputB_HealthProfile
+                                     var clientHealthProfileType: HealthProfileCiF3 =
+                                         inputB_HealthProfile
 
-       val todaysDate: LocalDateTime = LocalDateTime.parse("2025-02-18T15:43:00")
+                                     val Type_Size = (openingBalance / 100) as Int
 
-       private var dayz: DayCiF1005? = DayCiF1005(0,(openingBalance -100),openingBalance,
-           0,todaysDate,(openingBalance -100).toString(),"0" )
-           get() = field
-           set(value)
-           {
-               field = value
-           }
+                                     val todaysDate: LocalDateTime =
+                                         LocalDateTime.parse("2025-02-18T15:43:00")
 
-    private var nextOB = (openingBalance - 100)
+                                     private var dayz: DayCiF1005? = DayCiF1005(
+                                         0, (openingBalance - 100), openingBalance,
+                                         0, todaysDate, (openingBalance - 100).toString(), "0"
+                                     )
+                                         get() = field
+                                         set(value) {
+                                             field = value
+                                         }
 
-       var xero: String = "Day expected to arrive at zero Balance is: 24 FEB 25 (Well Done !!! No.1 exe 22!! Days early good performance and Challenge well met green and red and Blue"
+                                     private var nextOB = (openingBalance - 100)
 
-       var numberOFDaysToXero03FEB10: MutableList<DayCiF1005?> = mutableListOf(dayz)
-       private val surplusPostXEROCaloriesAcct: SurplusAccountType094Noir = SurplusAccountType094Noir(0.0)
+                                     var _date = LocalDateTime.now()
+
+                                     var xero: String =
+                                         "Day expected to arrive at zero Balance is: 24 FEB 25 (Well Done !!! No.1 exe 22!! Days early good performance and Challenge well met green and red and Blue"
+
+                                     var numberOFDaysToXero03FEB10 = mutableListOf(dayz)
+                                     private val surplusPostXEROCaloriesAcct: SurplusAccountType094Noir =
+                                         SurplusAccountType094Noir(0.0)
+
+                                     var isSetup = false
 
 
-       //clientHealthProfileType.mForecast = this
 
 
 
 
                         //01582572148 ESE in red & bebe
+
+    fun storeType1004ToSQLiteDayEnd2Table()
+    {
+
+    }
+
 
 
     fun setupType(size: Int)
@@ -51,16 +67,17 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
         //an equivalent number of DayType1005s and add to ListOf.
 
         //Remember number of days to xero contains a record of all the days
-        //done so far since "Start Weight Loss"  initialized the Journey and at 4pm each day
+        //done so far since "Start Weight Loss"  initialized the Journey and at 4:30pm each day
         //from Debit Value Button (correct bugs) stored in DayEnd Table via Model Adapter
         // Model Adapter takes in a DayType1005s  and Stores it in SQLite,
         //then based on the current Balance estimates the numbers of day to xero
         //by dividing by 300/100 (the expect daily points DR countdown) and creates
-        //an equal matching number of DayTypes1005() to end of course have no var balance value
+        //an equal matching number of DayTypes1005() (if at last day and not yet reached zero divide remaining ba;ance by 50 or 100 and add corresponding number of days to the end of the list)
+        // (also acknolwede that count ups will happen) to end of course have no var balance value
         //it is from number of days to xero that you can forecast number of days to xero and arrival date,
         // and draw
-        //charts like Sweatcoin, let the app partner with Sweatcoin
-        // color the button, lend ai powered all in subsequent versions and upgrades &
+        //charts like Sweatcoin, let the app partner with Sweatcoin, wild coin etc Calorie Countdown App get Team for real and Business Plan.
+        // color the button, lend ai powered all in subsequent versions and updates/upgrades &
         // via Trial Period Balance to Approved for Sale and PRODUCTION always focus
         // on Green and xero and 18 FEB 04.
 
@@ -68,33 +85,89 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
         //Step One: (re)Load... -> version 2.0.0 -> play.google.com -> £5,500 -> 🔵ESE S.C.I. LTD
         //⚫️Noir⚫️
 
-        println(message = "ESE S.C.I. lTD")
+        println(message = "ESE S.C.I. LTD, means we have entered setupType()")
+        var id = 0
+
+        for(i in 1..100)
+        {
 
 
-        (0..(size -1)).forEach(){
 
-            var id = 0
-            var _date = LocalDateTime.now()
             dayz = DayCiF1005(id++, nextOB,0,0, _date, (nextOB - 100).toString(), "0")
 
             numberOFDaysToXero03FEB10.add(dayz)
 
-            _date = incrementByaDay(_date)
+            //_date = incrementByaDay(_date)
+            println("_date before plusDays = $_date")
+            _date = _date.plusDays(1)
+            println("_date after plusDays = $_date")
 
-            nextOB =- 100
+            nextOB -= 100
+
+
         }
+
+        isSetup = true
+        println(message = "Size of numberOFDaysToXero03FEB10 = " + numberOFDaysToXero03FEB10.size.toString())
+       // println( printDaysType() )
     }
 
-    fun printDaysType()
+
+
+    fun printDaysType(): String
     {
-        numberOFDaysToXero03FEB10.forEach { it -> println(it?.currentBalance ?: 0)}
+
+
+        var output: String = "I am Empty\n"
+
+        val micheck: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(0)
+        val micheck1: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(1)
+        val micheck2: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(2)
+        val micheck3: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(3)
+        val micheck4: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(4)
+        val micheck5: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(5)
+
+        output += micheck?.day.toString()
+        output += " "
+        output += micheck?.currentBalance.toString()
+        output += "\n"
+
+        output += micheck1?.day.toString()
+        output += " "
+        output += micheck1?.currentBalance.toString()
+        output += "\n"
+
+        output += micheck2?.day.toString()
+        output += " "
+        output += micheck2?.currentBalance.toString()
+        output += "\n"
+
+        output += micheck3?.day.toString()
+        output += " "
+        output += micheck3?.currentBalance.toString()
+        output += "\n"
+
+        output += micheck4?.day.toString()
+        output += " "
+        output += micheck4?.currentBalance.toString()
+        output += "\n"
+
+        output += micheck5?.day.toString()
+        output += " "
+        output += micheck5?.currentBalance.toString()
+        output += "\n"
+
+
+
+        return output
     }
+
 
 
     fun incrementByaDay(input: java.time.LocalDateTime) : java.time.LocalDateTime
     {
         var localDate: java.time.LocalDateTime = input //.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-        localDate.plusDays(1)
+        localDate.plusDays(24)
         return localDate
     }
 
@@ -146,6 +219,7 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
 
     }
 
+
     private fun getYearFromDate(date: java.time.LocalDateTime): Int
     {
         val localDate = date//.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
@@ -176,9 +250,11 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
         return localDatetime.minute
     }
 
+
     private fun getSecondsFromDate(date: java.time.LocalDateTime): Int
     {
         val localDatetime = date//.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
         return localDatetime.second
     }
+
 }
