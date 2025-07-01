@@ -184,6 +184,8 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
         jackie.CreateAccountTables(IN);
         jackie.PostValuesToTables(IN);
+        InitmForecast(IN);
+
         jackie.close();
 
     }
@@ -1686,6 +1688,19 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
     }
 
 
+    public void Store_CountdownToZeroDayCiF1004(CountdownToZeroDayCiF1004 Input)
+    {
+        for (DayCiF1005 m : Input.getNumberOFDaysToXero03FEB10())
+        {
+            Store_DayType001(m);
+        }
+    }
+    public void Store_DayType001(DayCiF1005 IN)
+    {
+        SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
+        jackie.PostDayEnd2Row(IN);
+    }
+
 
 
 
@@ -2012,5 +2027,93 @@ public class Meal_Type
         return true;
 
     }
+
+    private void InitmForecast(HealthProfileCiF3 IN)
+    {
+        int openingBalance = IN.getStartCountdown();
+        //Algorithm Engineering : Step One : Divide the Opening Balance by
+        //100 to represent a Countdown of 100 Dr Points a day to give the
+        //total number of days the weight loss app assumes it will take the
+        //Client to reach xero CR Balance.. if that fails at last day divide by 5,
+        // if that's still not enough User not really counting down effectively even after dividing by
+        //1 or 0.5  point 0.5 is the limt keep on using this till infinity till they finall get to 0CR
+        //the Stop transidtion to Surplus account.
+
+        int numberOfDays = (int) (openingBalance/100);
+
+        IN.mForecast.setupType(numberOfDays);
+        StoremForecast(IN);
+
+        //Initialze CCD_GUI_CiF001 Static CountdownToXeroType here, as soon as IN has an
+        //Opening Balance.
+        InitializeCountdownToXeroDayType1004inCiF001asStatic(IN, IN.mForecast); //Initmforecast here as well, reconcile.
+
+    }
+
+    private void StoremForecast(HealthProfileCiF3 IN)
+    {
+        //Algorithm Engineering : Step One
+        //Now that the expected Countdown day have been created and budgeted
+        //It's time to write all these days and their budgeted value to SQLite
+        //Dayend Table. Let this table have budgeted dayend balance and actual
+        //app encourages users to meet and beat this budget even before time.
+
+        Store_CountdownToZeroDayCiF1004(IN.mForecast);
+
+    }
+
+
+
+    public CountdownToZeroDayCiF1004 RetrievemForecast()
+    {
+        //Algorithm Engineering : Step One
+        //The Return value makes it clear what is happening here
+        //Fetch all values from Table and return as this model Type.
+        //CiF001 will be the Chief User of this Func
+
+        SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
+        return jackie.Retrieve_CountdownToZeroDayCiF1004();
+
+
+    }
+
+
+
+    public void Store_CountdownToZeroDayCiF1004(CountdownToZeroDayCiF1004 INPUT)
+    {
+        SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
+
+
+        for(DayCiF1005 m : INPUT.getNumberOFDaysToXero03FEB10())
+        {
+            jackie.PostDayEnd2Row(m);
+        }
+
+
+    }
+
+    private void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN, CountdownToZeroDayCiF1004 inputToInitialize)
+    {
+        //Initmforecast here as well, reconcile.
+
+        //Algorithm Engineering.
+
+        //Check that the Static CountdownToXero03FEB is initialized
+        //All DayTypes in MutableListOf<DayType1005> Initialized and initialized very well to
+        // very ultra very high Quality and Value
+        //there is an update method in model data adapter on CountdownToXero03FEB type that
+        //saves and update itself to dayend2 table using model data adapter called uptoday
+        //and can create/ recreate itelf for data in dayend2 Table.
+        //working tested value, then push to Food Note version, ask Black Board Member to reconcile this
+        //version to his Food notes version and make his version the main branch
+        // then you as android engineer (re)Load... -> www.ese-edet.eu
+        // Send Link to Tester: Ndidi Nwosu for more i's to green square Read Cube, repeat the process till Version 2.0.0
+        // Tested and Approved for Sale and Prodution.
+        //Prime Logo
+
+        //ESE
+
+    }
+
 
 }

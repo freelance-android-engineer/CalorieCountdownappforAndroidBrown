@@ -324,7 +324,12 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
     private void BackToParentWithOpeningBalance(HealthProfileCiF3 IN)
     {
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getActivity());
-        data_model_adapter.StoreStartWeightLoss(IN);
+
+
+        data_model_adapter.StoreStartWeightLoss(IN); //Initmforecast here and
+
+
+
         ObjectWithAllTheTimesCIF10 objectWithAllTimes = StartNotificationCycle(mAccount);
         //= goey.ResetAlarm(specialThreadCIF15); //Send and intent back to start reset Alarm
         //Readme : ActivateAlarm does it's thing and returns CIF10 packed data for next thread alarms
@@ -692,6 +697,13 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
     private void goBack()
     {
         getActivity().finish();
+    }
+
+    private void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
+    {
+        //ENGLISH -> IDO -> Algorithm Engineering -> Android -> Noir.
+        //Step001
+        CCD_GUI_CD_CIF1.instance.InitializeCountdownToXeroDayType1004inCiF001asStatic(IN);
     }
 
 }
