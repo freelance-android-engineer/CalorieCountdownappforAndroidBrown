@@ -16,308 +16,379 @@
         android:layout_width="wrap_content">
 
 
-    <TableLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-
-
-
-
-        <TableRow
-            android:id="@+id/tablerow1"
-            android:layout_width="wrap_content"
+        <TableLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            >
+            android:stretchColumns="0,1,2"
+            android:shrinkColumns="0,1,2"
+            android:padding="10dp">
 
-            <TextView
-                android:id="@+id/textview6"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/food_item_text"
-                android:padding="15dp"/>
+            <!-- Header Row -->
+            <TableRow
+                android:id="@+id/tablerow1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/textview7"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/calories_text"
-                android:layout_column="10"
-                android:padding="20dp" />
+                <TextView
+                    android:id="@+id/textview6"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:gravity="center"
+                    android:padding="15dp"
+                    android:text="@string/food_item_text"
+                    android:textStyle="bold"/>
 
-            <TextView
-                android:id="@+id/textview8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/quantity_text"
-                android:layout_column="20"
-                android:padding="10dp"/>
-        </TableRow>
+                <TextView
+                    android:id="@+id/textview7"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="20dp"
+                    android:text="@string/calories_text"
+                    android:textStyle="bold"/>
 
+                <TextView
+                    android:id="@+id/textview8"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:text="@string/quantity_text"
+                    android:textStyle="bold"/>
+            </TableRow>
 
-        <TableRow
-            android:id="@+id/tablerow2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            <!-- Row 2 -->
+            <TableRow
+                android:id="@+id/tablerow2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text6"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text6"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text7"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text7"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            <EditText
-                android:id="@+id/edit_text8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text8"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-        <TableRow
-            android:id="@+id/tablerow3"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            <!-- Row 3 -->
+            <TableRow
+                android:id="@+id/tablerow3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text9"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text9"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text10"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text10"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            <EditText
-                android:id="@+id/edit_text11"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text11"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
+            <!-- Row 4 -->
+            <TableRow
+                android:id="@+id/tablerow4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-        <TableRow
-            android:id="@+id/tablerow4"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text12"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text12"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text13"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            <EditText
-                android:id="@+id/edit_text13"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text14"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text14"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+            <!-- Row 5 -->
+            <TableRow
+                android:id="@+id/tablerow5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
+                <EditText
+                    android:id="@+id/edit_text15"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-        <TableRow
-            android:id="@+id/tablerow5"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text16"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            <EditText
-                android:id="@+id/edit_text15"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text17"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text16"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+            <!-- Row 6 -->
+            <TableRow
+                android:id="@+id/tablerow6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text17"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text18"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-        <TableRow
+                <EditText
+                    android:id="@+id/edit_text19"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            android:id="@+id/tablerow6"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text20"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text18"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+            <!-- Row 7 -->
+            <TableRow
+                android:id="@+id/tablerow7"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text19"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text21"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text20"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text22"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-        <TableRow
-            android:id="@+id/tablerow7"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text23"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text21"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+            <!-- Row 8 -->
+            <TableRow
+                android:id="@+id/tablerow8"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text22"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text24"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text23"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text25"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-        <TableRow
-            android:id="@+id/tablerow8"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text26"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text24"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+            <!-- Row 9 -->
+            <TableRow
+                android:id="@+id/tablerow9"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text25"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text27"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text26"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text28"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-        <TableRow
-            android:id="@+id/tablerow9"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                <EditText
+                    android:id="@+id/edit_text29"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            <EditText
-                android:id="@+id/edit_text27"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+            <!-- Row 10 -->
+            <TableRow
+                android:id="@+id/tablerow10"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text28"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text30"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text29"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text31"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-        <TableRow
+                <EditText
+                    android:id="@+id/edit_text32"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
-            android:id="@+id/tablerow10"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            <!-- Row 11 -->
+            <TableRow
+                android:id="@+id/tablerow11"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/edit_text30"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text33"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:padding="15dp"
+                    android:inputType="textMultiLine"
+                    android:singleLine="false"
+                    android:scrollHorizontally="false"/>
 
-            <EditText
-                android:id="@+id/edit_text31"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
+                <EditText
+                    android:id="@+id/edit_text34"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
 
-            <EditText
-                android:id="@+id/edit_text32"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
-
-        <TableRow
-            android:id="@+id/tablerow11"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <EditText
-                android:id="@+id/edit_text33"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="15dp"/>
-
-            <EditText
-                android:id="@+id/edit_text34"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="10"
-                android:padding="15dp"/>
-
-            <EditText
-                android:id="@+id/edit_text35"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="20"
-                android:padding="15dp"/>
-        </TableRow>
+                <EditText
+                    android:id="@+id/edit_text35"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="15dp"
+                    android:inputType="number"/>
+            </TableRow>
 
         <LinearLayout
             android:layout_width="wrap_content"

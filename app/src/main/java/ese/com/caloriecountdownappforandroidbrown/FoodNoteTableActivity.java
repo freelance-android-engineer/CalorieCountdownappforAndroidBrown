@@ -1,5 +1,6 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -12,6 +13,9 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,7 +30,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     private TableLayout tableLayout;
     private SQLDatabase_Food_Items_CIF6 databaseHelper; // Assuming you have a DatabaseHelper class
-   private ExecutorService executorService = Executors.newSingleThreadExecutor(); // Initializes a single-thread executor
+    private ExecutorService executorService = Executors.newSingleThreadExecutor(); // Initializes a single-thread executor
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,10 +90,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnTransferCredit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(FoodNoteTableActivity.this, "Transfer to Credit Clicked", Toast.LENGTH_SHORT).show();
+                transferAllFoodNotes();
             }
         });
     }
+
 
     private void showFoodInputDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -190,33 +195,38 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void loadFoodNotesFromDatabase() {
         android.util.Log.d("FOOD NOTES", "Loading...");
         Cursor cursor = databaseHelper.getAllFoodNotes();
-        android.util.Log.d("FOOD NOTES", "Loading");
         if (cursor != null && cursor.moveToFirst()) {
             android.util.Log.d("FOOD NOTES", "Data found");
+
             // Get column indices safely
             int dateIndex = cursor.getColumnIndex("note_date");
             int foodIndex = cursor.getColumnIndex("note_food");
             int caloriesIndex = cursor.getColumnIndex("note_calories");
             int quantityIndex = cursor.getColumnIndex("note_quantity");
+            int transferredIndex = cursor.getColumnIndex("isTransferred");
 
-            if (dateIndex == -1 || foodIndex == -1 || caloriesIndex == -1 || quantityIndex == -1) {
-                // Log an error if any column index is invalid
-                android.util.Log.d("FOOD NOTES", "DatabaseError One or more column names are invalid. Please check the database schema.");
+            if (dateIndex == -1 || foodIndex == -1 || caloriesIndex == -1 ||
+                    quantityIndex == -1 || transferredIndex == -1) {
+                android.util.Log.d("FOOD NOTES", "DatabaseError One or more column names are invalid.");
                 cursor.close();
                 return;
             }
 
             // Iterate through the rows
             do {
-                String dateTime = cursor.getString(dateIndex);
-                String food = cursor.getString(foodIndex);
-                String calories = cursor.getString(caloriesIndex);
-                String quantity = cursor.getString(quantityIndex);
-                android.util.Log.d("FOOD NOTES", "Data" + dateTime + food + calories + quantity);
-                // Add the data to the table
-                addRowToTable(food, quantity, calories, dateTime);
+                int isTransferred = cursor.getInt(transferredIndex);
+
+                if (isTransferred == 0) {  // Only add if not transferred
+                    String dateTime = cursor.getString(dateIndex);
+                    String food = cursor.getString(foodIndex);
+                    String calories = cursor.getString(caloriesIndex);
+                    String quantity = cursor.getString(quantityIndex);
+
+                    android.util.Log.d("FOOD NOTES", "Adding row: " + dateTime + food + calories + quantity);
+                    addRowToTable(food, quantity, calories, dateTime);
+                }
             } while (cursor.moveToNext());
-            // Close the cursor to release resources
+
             cursor.close();
         } else {
             android.util.Log.d("FOOD NOTES", "DatabaseWarning No data found in the food notes table or cursor is null.");
@@ -260,18 +270,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                         return;
                     }
 
-                    int extraPoints = 0; // Initialize extra points
-                    if (certainty == 50) {
-                        extraPoints = 1000;
-                    } else if (certainty == 90) {
-                        extraPoints = 200;
-                    } else if (certainty < 50) {
-                        extraPoints = 1500;
-                    } else if (certainty == 100) {
-                        extraPoints = 0;
-                    }
+                    int uncertainCalories = calculateExtraCalories(certainty);
+                    String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
 
-                    Toast.makeText(FoodNoteTableActivity.this, "Certainty Saved: " + certainty + ". Extra Points: " + extraPoints, Toast.LENGTH_SHORT).show();
+                    databaseHelper.insertFoodNote(currentDateTime, "Uncertainty", String.valueOf(uncertainCalories), // int → String
+                            String.valueOf(1));
+                    Toast.makeText(FoodNoteTableActivity.this, "Certainty Saved: " + certainty + ". Extra Points: " + uncertainCalories, Toast.LENGTH_SHORT).show();
+                    addRowToTable("Uncertainty", String.valueOf(1), String.valueOf(uncertainCalories), currentDateTime);
                     dialog.dismiss();
 
                 } catch (NumberFormatException e) {
@@ -280,6 +285,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
         dialog.show();
+    }
+
+    public static int calculateExtraCalories(int certaintyPercent) {
+        int clamped = Math.max(0, Math.min(100, certaintyPercent));
+        int uncertainty = 100 - clamped;
+        return 100 * uncertainty;
     }
 
 
@@ -303,11 +314,49 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
 
+    private void transferAllFoodNotes() {
+        Cursor cursor = databaseHelper.getAllFoodNotes();
+        if (cursor != null) {
+            boolean hasZeroValue = false;
+
+            if (cursor.moveToFirst()) {
+                do {
+                    int valueIndex = cursor.getColumnIndex("isTransferred"); // replace with actual column name
+                    if (valueIndex != -1) {
+                        int value = cursor.getInt(valueIndex);
+                        if (value == 0) {
+                            hasZeroValue = true;
+                            break; // no need to check further
+                        }
+                    }
+                } while (cursor.moveToNext());
+            }
+
+            cursor.close();
+
+            if (hasZeroValue) {
+                databaseHelper.markAllAsTransferred();
+                launchCreditView();
+            } else {
+                Toast.makeText(FoodNoteTableActivity.this, "No notes to transfer", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+
+    private void launchCreditView() {
+        Intent intent = new Intent(FoodNoteTableActivity.this, Food_Diary_Sheet_CIF3.class);
+        startActivity(intent);
+        finish(); // closes current activity
+    }
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // Shutdown the executor when the activity is destroyed to avoid memory leaks
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
-        }}
+        }
+    }
 }

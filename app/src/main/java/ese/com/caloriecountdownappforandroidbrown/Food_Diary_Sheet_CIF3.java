@@ -1,11 +1,16 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
 import ese.com.caloriecountdownappforandroidbrown.ImageImportActivity;
+
 import android.content.Intent;
 //import androidx.core.app.FragmentActivity;
 import androidx.fragment.app.FragmentActivity;
 //import android.support.v7.app.ActionBarActivity;
+import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +26,9 @@ import android.content.Context;
 import android.view.textservice.SuggestionsInfo;
 import android.view.textservice.SentenceSuggestionsInfo;
 import android.view.textservice.TextInfo;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 
 // Controller Class for Food Diary Screen/Credit/Menuitem
 
@@ -62,7 +70,9 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Merge_List_fragment_object mPivot = new Merge_List_fragment_object();
 
     private Runnable r;
+    private SQLDatabase_Food_Items_CIF6 databaseHelper;
 
+    private TableLayout tableLayout;
 
     //Class Member Attributes and Propeties Area////////////////////////////////////////////////////
 
@@ -75,13 +85,16 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_food__diary__sheet__cif3);
         mFoodItems = null;
+        databaseHelper = new SQLDatabase_Food_Items_CIF6(this);
 
+        loadTransferredQuickFoodNotes();
 
         //Test
         DayendTest();
 
 
         //Get Button 3 into Controller World.
+        tableLayout = findViewById(R.id.foodTableLayout);
         mMultiSearchButton = (Button) findViewById(R.id.button4);
         mUploadImageButton = (Button) findViewById(R.id.uploadImageBtn);
         mCancel = (Button) findViewById(R.id.button8);
@@ -1253,6 +1266,108 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         }
     }
 
+    private void loadTransferredQuickFoodNotes() {
+        Cursor cursor = null;
+        try {
+            cursor = databaseHelper.getTransferredQuickFoodNotes();
+
+            // ✅ No crash if cursor is null or empty
+            if (cursor == null || !cursor.moveToFirst()) {
+                android.util.Log.d("FOOD NOTES", "No transferred data found.");
+                return;
+            }
+
+            int dateIndex = cursor.getColumnIndex("note_date");
+            int foodIndex = cursor.getColumnIndex("note_food");
+            int caloriesIndex = cursor.getColumnIndex("note_calories");
+            int quantityIndex = cursor.getColumnIndex("note_quantity");
+
+            // ✅ Defensive check for missing columns
+            if (dateIndex == -1 || foodIndex == -1 || caloriesIndex == -1 || quantityIndex == -1) {
+                android.util.Log.e("FOOD NOTES", "Invalid column index. Check schema.");
+                return;
+            }
+
+            do {
+                String dateTime   = cursor.getString(dateIndex);
+                String food       = cursor.getString(foodIndex);
+                String calories   = cursor.getString(caloriesIndex);
+                String quantity   = cursor.getString(quantityIndex);
+
+                android.util.Log.d("FOOD NOTES",
+                        "Transferred Data: " + dateTime + " | " + food + " | " + calories + " | " + quantity);
+
+                // Safely add row
+                addRowToTable(food, calories, quantity);
+
+            } while (cursor.moveToNext());
+
+        } catch (Exception e) {
+            // ✅ Catch any unexpected error instead of crashing
+            android.util.Log.e("FOOD NOTES", "Error loading data: " + e.getMessage(), e);
+        } finally {
+            // ✅ Always close cursor if it was opened
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
+        }
+    }
+
+    private void addRowToTable(String food, String calories, String quantity) {
+        TableLayout tableLayout = findViewById(R.id.foodTableLayout);
+
+        // Create a row
+        TableRow row = new TableRow(this);
+        row.setLayoutParams(new TableLayout.LayoutParams(
+                TableLayout.LayoutParams.MATCH_PARENT,
+                TableLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        // Food column
+        row.addView(createColumnTextView(food, 2f, Gravity.START));
+
+        // Calories column
+        row.addView(createColumnTextView(calories, 1f, Gravity.END));
+
+        // Quantity column
+        row.addView(createColumnTextView(quantity, 1f, Gravity.END));
+
+        // Insert before first EditText row
+        TableRow firstEditTextRow = findViewById(R.id.tablerow2);
+        int insertIndex = tableLayout.indexOfChild(firstEditTextRow);
+
+        // Add row
+        tableLayout.addView(row, insertIndex);
+
+        // Add divider (a thin View)
+        View divider = new View(this);
+        TableLayout.LayoutParams params = new TableLayout.LayoutParams(
+                TableLayout.LayoutParams.MATCH_PARENT,
+                2 // thickness of divider
+        );
+        params.setMargins(0, 5, 0, 0); // spacing above and below
+        divider.setLayoutParams(params);
+        divider.setBackgroundColor(Color.BLACK);
+
+        tableLayout.addView(divider, insertIndex + 1);
+    }
+
+    private TextView createColumnTextView(String text, float weight, int gravity) {
+        TextView textView = new TextView(this);
+        textView.setText(text);
+        textView.setTextColor(Color.BLACK);
+        textView.setGravity(gravity | Gravity.CENTER_VERTICAL);
+        textView.setLayoutParams(new TableRow.LayoutParams(
+                0, // width 0dp → use weight
+                TableRow.LayoutParams.WRAP_CONTENT,
+                weight // weight determines column width
+        ));
+        textView.setPadding(15, 15, 15, 15); // uniform padding
+        textView.setTextSize(16);
+        textView.setSingleLine(false); // allow wrapping if needed
+        textView.setEllipsize(null);   // prevent truncation
+        return textView;
+    }
 
 }
 

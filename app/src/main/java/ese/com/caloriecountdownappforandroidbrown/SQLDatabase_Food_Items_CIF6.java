@@ -258,6 +258,15 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_Client_DATA_SOURCES = "client_data_sources";
     private static final String COLUMN_Client_MANUAL_SOURCES = "client_manual_sources";
 
+    //    Quick Food Note
+    private static final String TABLE_QUICK_FOOD_NOTE = "quick_food_note";
+    private static final String COLUMN_QUICK_FOOD_NOTE_ID = "note_id";
+    private static final String COLUMN_QUICK_FOOD_NOTE_DATE = "note_date";
+    private static final String COLUMN_QUICK_FOOD_NOTE_FOOD = "note_food";
+    private static final String COLUMN_QUICK_FOOD_NOTE_CALORIES = "note_calories";
+    private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
+    private static final String COLUMN_IS_TRANSFERRED = "isTransferred";
+
 
     private static final String TABLE_CACHE_TABLE = "cache";
     //Here Check if the Food item the User is entering has already been entered and updated successfully in the past.
@@ -390,7 +399,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String TABLE_FAVOURITE_FOOD_ITEMS_TABLE = "favourites_table";
 
 
-
     public static final String TABLE_WATER_TRACKER = "WaterTracker";
     public static final String COLUMN_WATER_UNIQUE_ID = "uniqueId";
     public static final String COLUMN_WATER_DATE = "date";
@@ -402,12 +410,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private Boolean time_is_After_Four_Thirty_PM = false;
     private Boolean BMR_has_been_performed = false;
     private Boolean havePerformedDayENDCFWD = false;
-
-
-
-
-
-
 
 
     //or onCreate
@@ -628,12 +630,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             db.execSQL("Create table if not exists dayend_balance (" + "_id integer primary key autoincrement, " +
                     "balance_date integer, " +
                     "balance_dayend integer)");
-        } catch (SQLException alreadyexist)
-        {
+        } catch (SQLException alreadyexist) {
 
         }
-
-
 
 
         try //at launch take all table creations to OnCreate
@@ -771,6 +770,23 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
 
         //Create Food / Drinks Item Table
+        //Quick Food Note
+        try {
+            android.util.Log.d("Table creation", "Table quick note creation start");
+            String CREATE_QUICK_FOOD_NOTE_TABLE = "CREATE TABLE " + TABLE_QUICK_FOOD_NOTE + " ("
+                    + COLUMN_QUICK_FOOD_NOTE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_QUICK_FOOD_NOTE_DATE + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_FOOD + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_CALORIES + " TEXT, "
+                    + COLUMN_QUICK_FOOD_NOTE_QUANTITY + " TEXT, "
+                    + COLUMN_IS_TRANSFERRED + " INTEGER DEFAULT 0" // 0 = false, 1 = true
+                    + ")";
+            db.execSQL(CREATE_QUICK_FOOD_NOTE_TABLE);
+            android.util.Log.d("Table creation", "created" + TABLE_QUICK_FOOD_NOTE);
+        } catch (Exception e) {
+            android.util.Log.d("Table creation", "Table creation in catch block");
+            throw new RuntimeException(e);
+        }
 
 
     }
@@ -1169,8 +1185,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-    public HealthProfileCiF3 GetHealthProfile_CIF3(SHealth_Cursor_241 bc)
-    {
+    public HealthProfileCiF3 GetHealthProfile_CIF3(SHealth_Cursor_241 bc) {
 
         HealthProfileCiF3 dc = bc.Get_HealthProfileCIF3();
         return dc;
@@ -1394,8 +1409,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         //int affected = getWritableDatabase().delete(TABLE_DAYEND_BALANCE, null, null);
         long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE2, null, cv);
 
-        if(isTimeAfter4pm() && !havePerformedDayENDCFWD)
-        {
+        if (isTimeAfter4pm() && !havePerformedDayENDCFWD) {
             Insert_Dayend2Row(new Long(new Date().getTime()).toString(), null, new Integer(bal - 2000).toString());
             havePerformedDayENDCFWD = true;
         }
@@ -2411,8 +2425,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         long res = Insert_Target_Weight(Input1);
     }
 
-    public void PostDayEnd2Row(DayCiF1005 IN)
-    {
+    public void PostDayEnd2Row(DayCiF1005 IN) {
         //Algorithm Engineering -> Step One
         //extract all properties individually that need to be stored in Table DayEnd2
         //but them individually declared vars
@@ -2423,23 +2436,20 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         String date = mDate.toString();
         String nextDay = plus24hour(convertLocalDateTimeToDate(mDate)).toString();
-        String nextDayBudget = new Integer(IN.getActualDayEndBalance()-300).toString();
+        String nextDayBudget = new Integer(IN.getActualDayEndBalance() - 300).toString();
         String budget = new Integer(IN.getStartBalanceBFWD() - 300).toString();
         String actualDayEnd = new Integer(IN.getActualDayEndBalance()).toString();
 
-        Insert_Dayend2Row(date, IN.getBudget(),IN.getActualDayEnd());
+        Insert_Dayend2Row(date, IN.getBudget(), IN.getActualDayEnd());
         //Insert_Dayend2Row(nextDay,nextDayBudget,"0");
     }
 
-    public void Insert_Dayend2Row(String date, String budget, String actualDayEnd)
-    {
+    public void Insert_Dayend2Row(String date, String budget, String actualDayEnd) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMN_DAYEND_BALANCE_DATE2, new Date().getTime());
-        if(budget == null) {
+        if (budget == null) {
             cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, "N/A");
-        }
-        else
-        {
+        } else {
             cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, budget);
         }
 
@@ -2455,8 +2465,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public CountdownToZeroDayCiF1004 Retrieve_CountdownToZeroDayCiF1004()
-    {
+    public CountdownToZeroDayCiF1004 Retrieve_CountdownToZeroDayCiF1004() {
         //Go through Table DayEnd2, Retreive and convert each row to a DayTypeCiF1003 add
         //to a newly created CountdownToZeroDayType1004 and return as OUTPUT of this
         //Module*
@@ -2465,28 +2474,23 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
-    public CountdownToZeroDayCiF1004 Retrieve_All_DayEnd2_Rows()
-    {
+    public CountdownToZeroDayCiF1004 Retrieve_All_DayEnd2_Rows() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_DAYEND_BALANCE2, null);
         cursor.moveToFirst();
 
-       // Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
+        // Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
         CountdownToXeroDayType1004_Cursor TransactionCursor = new CountdownToXeroDayType1004_Cursor(cursor);
         CountdownToZeroDayCiF1004 OUTPUT = new CountdownToZeroDayCiF1004(0, new HealthProfileCiF3());
 
 
-        if (TransactionCursor.getCount() < 1)
-        {
+        if (TransactionCursor.getCount() < 1) {
             Log.d(TAG, "NOTHING FOUND IN Transaction DATABASE");
             TransactionCursor.close();
             return OUTPUT;
-        }
-        else
-        {
+        } else {
             try {
                 Log.d(TAG, "CONTENTS IN Transaction DATABASE");
                 OUTPUT = GetTransactions(TransactionCursor);
-
 
 
                 //BBox.Set_Breakfast_ID((new RoundingCIF13()).StringToInt((getString(getColumnIndex(COLUMN_TRANSACTIONS_ID)))));
@@ -2511,9 +2515,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 //BoxCIF17 OUTPUTc = Transform_Breakfast_Box_to_Box(OUTPUTb);
                 //long Transaction_ID = OUTPUTc.Get_Transaction_ID();
                 //OUTPUT.add_BOX_to_Line(Transaction_ID, OUTPUTc);
-            }
-            catch(Exception x)
-            {
+            } catch (Exception x) {
                 Toast.makeText(mContext, "Meal Box is empty aborting function", Toast.LENGTH_SHORT);
             }
 
@@ -2522,15 +2524,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
     }
 
-    private Date plus24hour(Date time)
-    {
+    private Date plus24hour(Date time) {
         long OneMinute = (1000 * 60 * 60 * 24);
         time.setTime(time.getTime() + (OneMinute * 3000));
         return time;
     }
 
-    private void Delete_Dummy_Rows()
-    {
+    private void Delete_Dummy_Rows() {
 
         //Alogrithm Engineering -> Delete Row Where Meal_Type = 'Dummy"
 //ve        //Delete all Rows where Meal_type = Dummy.
@@ -2542,24 +2542,66 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         db.close();
     }
 
-    private boolean isTimeAfter4pm()
-    {
-         java.time.LocalDateTime Four_Thirty_const_ref = java.time.LocalDateTime.now();
-         java.time.LocalDateTime Four_Thirty_const = java.time.LocalDateTime.of(Four_Thirty_const_ref.getYear(), Four_Thirty_const_ref.getMonth().getValue(), Four_Thirty_const_ref.getDayOfMonth(),16,35);
+    private boolean isTimeAfter4pm() {
+        java.time.LocalDateTime Four_Thirty_const_ref = java.time.LocalDateTime.now();
+        java.time.LocalDateTime Four_Thirty_const = java.time.LocalDateTime.of(Four_Thirty_const_ref.getYear(), Four_Thirty_const_ref.getMonth().getValue(), Four_Thirty_const_ref.getDayOfMonth(), 16, 35);
 
-        if(Four_Thirty_const_ref.isAfter(Four_Thirty_const))
-        {
+        if (Four_Thirty_const_ref.isAfter(Four_Thirty_const)) {
             time_is_After_Four_Thirty_PM = true;
             BMR_has_been_performed = true;
         }
         return time_is_After_Four_Thirty_PM;
     }
 
-    private boolean haveNotYetPerformedDayENDCFWD()
-    {
+    private boolean haveNotYetPerformedDayENDCFWD() {
         return BMR_has_been_performed;
     }
 
+    public void insertFoodNote(String date, String food, String calories, String quantity) {
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Insert Note function called");
+        SQLiteDatabase db = this.getWritableDatabase();
+        android.util.Log.d("INSERT ALL FOOD NOTES", "getWritableDatabase called");
+        ContentValues values = new ContentValues();
+        android.util.Log.d("INSERT ALL FOOD NOTES", "ContentValues");
+        values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
+        values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, food);
+        values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
+        values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
+        values.put(COLUMN_IS_TRANSFERRED, 0); // false when inserting
+        db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted");
+        db.close();
+    }
+
+
+    // DBHelper
+    public void markAllAsTransferred() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_IS_TRANSFERRED, 1);
+
+        int rows = db.update(
+                TABLE_QUICK_FOOD_NOTE,
+                values,
+                null,  // no WHERE → update all rows
+                null
+        );
+
+        android.util.Log.d("UPDATE FOOD NOTE", "Rows updated: " + rows);
+        db.close();
+    }
+
+    public Cursor getAllFoodNotes() {
+        android.util.Log.d("GET ALL FOOD NOTES", "getAllFoodNotes CAlled");
+        SQLiteDatabase db = this.getReadableDatabase();
+        android.util.Log.d("GET ALL FOOD NOTES", "getReadableDatabase call done");
+        return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE, null);
+    }
+
+    public Cursor getTransferredQuickFoodNotes() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE + " WHERE isTransferred = 1", null);
+    }
 
     public int getTotalCalories() {
         int totalCalories = 0;
@@ -2635,22 +2677,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return waterList;
     }
 
-    private java.util.Date getCurrentTime()
-    {
+    private java.util.Date getCurrentTime() {
         return new Date();
     }
 
 
-    private Date convertLocalDateTimeToDate(java.time.LocalDateTime Input)
-    {
+    private Date convertLocalDateTimeToDate(java.time.LocalDateTime Input) {
         Date date = Date.from(Input.atZone(ZoneId.systemDefault()).toInstant());
 
         return date;
     }
-
-
-
-
 
 
 }

@@ -26,18 +26,14 @@
 
 
     <TableLayout
+        android:id="@+id/foodTableLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-
-
-
-
 
         <TableRow
             android:id="@+id/tablerow1"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            >
+            android:layout_height="wrap_content">
 
             <TextView
                 android:id="@+id/textview6"
