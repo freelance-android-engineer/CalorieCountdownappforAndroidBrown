@@ -43,7 +43,7 @@
         android:id="@+id/caloriesTextField"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Calories"
+        android:hint="@string/calories_guesstimate"
         app:layout_constraintTop_toBottomOf="@id/quantityTextField"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
