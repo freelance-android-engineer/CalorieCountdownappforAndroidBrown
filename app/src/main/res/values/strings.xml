@@ -117,6 +117,7 @@
     <string name="weight">Add Food item Weight</string>
     <string name="just">Just Add Raw Calories</string>
     <string name="guesstimate">Guesstimate Calories</string>
+    <string name="calories_guesstimate">Calories Guesstimate</string>
     <string name="countdown_debit">Countdown       Debit</string>
     <string name="countup_credit">Credit</string>
     <string name="import_image_instruction">Tap on box to import the image from your device</string>
