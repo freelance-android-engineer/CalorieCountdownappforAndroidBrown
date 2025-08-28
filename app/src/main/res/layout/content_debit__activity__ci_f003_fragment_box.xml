@@ -73,6 +73,12 @@
             android:text= "@string/cancel4"/>
 
         <Button
+            android:id="@+id/button_open_step_app"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text= "@string/open_step_app"/>
+
+        <Button
             android:id="@+id/button13"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

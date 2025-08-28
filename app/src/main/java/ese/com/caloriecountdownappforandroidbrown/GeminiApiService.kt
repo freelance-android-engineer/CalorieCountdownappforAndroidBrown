@@ -11,6 +11,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.*
 import java.util.regex.*
+import java.io.IOException;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 
 object GeminiApiService {
@@ -96,6 +105,146 @@ Salt:
             }
         }.start()
     }
+
+
+    private val client = OkHttpClient()
+    @JvmStatic
+//    fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
+//        val apiKey = context.getString(R.string.gemini_api_key)
+//
+//        val jsonBody = JSONObject()
+//        val contentsArray = JSONArray()
+//        val partsArray = JSONArray()
+//        val textObject = JSONObject()
+//        textObject.put("text", prompt)
+//        partsArray.put(textObject)
+//
+//        val contentObject = JSONObject()
+//        contentObject.put("parts", partsArray)
+//        contentsArray.put(contentObject)
+//        jsonBody.put("contents", contentsArray)
+//
+//        val body = RequestBody.create(
+//            "application/json".toMediaTypeOrNull(),
+//            jsonBody.toString()
+//        )
+//
+//        val request = Request.Builder()
+//            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+//            .post(body)
+//            .build()
+//
+//        client.newCall(request).enqueue(object : Callback {
+//            override fun onFailure(call: Call, e: IOException) {
+//                callback.onResult(null)  // ✅ fix here
+//            }
+//
+//            override fun onResponse(call: Call, response: Response) {
+//                response.use {
+//                    if (!response.isSuccessful) {
+//                        callback.onResult(null)  // ✅ fix here
+//                        return
+//                    }
+//                    val responseData = response.body?.string()
+//                    val jsonResponse = JSONObject(responseData)
+//                    val candidates = jsonResponse.optJSONArray("candidates")
+//                    val contentText = candidates?.getJSONObject(0)
+//                        ?.getJSONObject("content")
+//                        ?.getJSONArray("parts")
+//                        ?.getJSONObject(0)
+//                        ?.optString("text")
+//
+//                    callback.onResult(contentText)  // ✅ fix here
+//                }
+//            }
+//        })
+//    }
+
+    fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
+        val apiKey = context.getString(R.string.gemini_api_key)
+
+        Log.d("GeminiApiService", "🔥 calculateCalories() called with prompt: $prompt")
+
+        val jsonBody = JSONObject()
+        val contentsArray = JSONArray()
+        val partsArray = JSONArray()
+        val textObject = JSONObject()
+        textObject.put("text", prompt)
+        partsArray.put(textObject)
+
+        val contentObject = JSONObject()
+        contentObject.put("parts", partsArray)
+        contentsArray.put(contentObject)
+        jsonBody.put("contents", contentsArray)
+
+        Log.d("GeminiApiService", "📦 Request body JSON: $jsonBody")
+
+        val body = RequestBody.create(
+            "application/json".toMediaTypeOrNull(),
+            jsonBody.toString()
+        )
+
+        val request = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+            .post(body)
+            .build()
+
+        Log.d("GeminiApiService", "🌍 Sending request to Gemini API")
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("GeminiApiService", "❌ Request failed: ${e.message}", e)
+                (context as? Activity)?.runOnUiThread {
+                    callback.onResult(null)
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                Log.d("GeminiApiService", "✅ Response received, status=${response.code}")
+
+                response.use {
+                    if (!response.isSuccessful) {
+                        Log.e("GeminiApiService", "⚠️ Unsuccessful response: ${response.code}")
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(null)
+                        }
+                        return
+                    }
+
+                    val responseData = response.body?.string()
+                    Log.d("GeminiApiService", "📥 Raw response: $responseData")
+
+                    try {
+                        val jsonResponse = JSONObject(responseData)
+                        val candidates = jsonResponse.optJSONArray("candidates")
+                        val contentText = candidates?.getJSONObject(0)
+                            ?.getJSONObject("content")
+                            ?.getJSONArray("parts")
+                            ?.getJSONObject(0)
+                            ?.optString("text")
+
+                        Log.d("GeminiApiService", "🍽 Parsed text: $contentText")
+
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(contentText)
+                        }
+                    } catch (ex: Exception) {
+                        Log.e("GeminiApiService", "❌ Exception parsing response", ex)
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(null)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+
+    interface CalorieCallback {
+        fun onResult(result: String?)
+    }
+
+
 }
 
 

@@ -6,6 +6,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Bundle;
 
 import android.view.LayoutInflater;
@@ -17,8 +18,10 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
 import androidx.appcompat.widget.Toolbar;
 
 public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implements SensorEventListener {
@@ -30,6 +33,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mSteps;
     private Button mCancel;
     private Button mStepsManaul;
+    private Button mOpenStepApp;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -52,7 +56,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View view) {
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                       // .setAction("Action", null).show();
+                // .setAction("Action", null).show();
                 Update_with_Step_Count();
 
             }
@@ -62,6 +66,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         mSteps = (Button) findViewById(R.id.button123);
         mCancel = (Button) findViewById(R.id.button13);
         mStepsManaul = (Button) findViewById(R.id.button124);
+        mOpenStepApp = (Button) findViewById(R.id.button_open_step_app);
         //In one of these Logic if time is beyone 4pm (0nce)
         //execute dayend on CiF001 current balance
         //mBalance goes in the right DayType0014 for current day
@@ -111,6 +116,12 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             }
         });
 
+        mOpenStepApp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openStepApp(view.getContext());
+            }
+        });
 
 
         android.util.Log.d("STEPS", "Above Sensor Manager");
@@ -120,16 +131,50 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         running = true;
 
         mCount_Sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-        if(mCount_Sensor != null)
-        {
+        if (mCount_Sensor != null) {
             sensorManager.registerListener(this, mCount_Sensor, SensorManager.SENSOR_DELAY_UI);
-        }
-        else
-        {
-            Toast.makeText(this,"Sensor not Found :(",Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Sensor not Found :(", Toast.LENGTH_SHORT).show();
         }
 
 
+    }
+
+    private void openStepApp(Context context) {
+        String[] stepAppPackages = {
+                "com.google.android.apps.fitness", // Google Fit
+                "com.sec.android.app.shealth",     // Samsung Health
+                "com.xiaomi.hm.health"             // Mi Fit
+        };
+
+        boolean isAppOpened = false;
+
+        for (String pkg : stepAppPackages) {
+            try {
+                Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(pkg);
+                if (launchIntent != null) {
+                    context.startActivity(launchIntent);
+                    isAppOpened = true;
+                    break;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (!isAppOpened) {
+            // If no step app found, open Play Store search
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("market://search?q=step+counter"));
+                context.startActivity(intent);
+            } catch (android.content.ActivityNotFoundException anfe) {
+                // Fallback if Play Store not available
+                Intent intent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/search?q=step+counter"));
+                context.startActivity(intent);
+            }
+        }
     }
 
 
@@ -138,11 +183,10 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         View v = inflater.inflate(R.layout.fragment_debit__activity__cif13, container, false);
 
 
-
         return v;
     }
-    private int GetCountdownDebit(Fitness_Item_CIF5 fizz)
-    {
+
+    private int GetCountdownDebit(Fitness_Item_CIF5 fizz) {
         //Alogrithm Engineering -> Android : GetCountdownDebit() (Track, hence eta date Transition Date = 5pm December 12, 2011 (strictly on Track)
         //Step 1. return weight * min * fizz data value.
 
@@ -154,8 +198,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
     }
 
-    private void Update_with_Step_Count()
-    {
+    private void Update_with_Step_Count() {
         android.util.Log.d("We are in Update with Steps", "Position 1");
         //Steps_Activity_CiF1003_fragment_box_Class mStep_Count = new Steps_Activity_CiF1003_fragment_box_Class();
         android.util.Log.d("We are in Update with Steps", "Position 2");
@@ -173,8 +216,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         BackToParent(fizz.getmCalorie_Debit_Value());
     }
 
-    private void BackToParent(int debit)
-    {
+    private void BackToParent(int debit) {
         //return intent call with intent packed with value of Debit or Credit and Summary String as well as summarybox ready
         Intent i2 = new Intent();
         i2.putExtra(TOTAL_DEBIT_VALUE, debit);
@@ -185,11 +227,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
 
-
-
-
-    public int Output_Step_Count()
-    {
+    public int Output_Step_Count() {
 
         //android.util.Log.d("STEPS", "Above Sensor Manager");
         //sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -201,22 +239,17 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     @Override
-    protected void onResume()
-    {
+    protected void onResume() {
         super.onResume();
 
-        if(running == false)
-        {
+        if (running == false) {
             running = true;
 
             mCount_Sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
 
-            if (mCount_Sensor != null)
-            {
+            if (mCount_Sensor != null) {
                 sensorManager.registerListener(this, mCount_Sensor, SensorManager.SENSOR_DELAY_UI);
-            }
-            else
-            {
+            } else {
                 Toast.makeText(this, "Sensor not Found :(", Toast.LENGTH_SHORT).show();
             }
         }
@@ -224,12 +257,10 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
 
     @Override
-    public void onPause()
-    {
+    public void onPause() {
         super.onPause();
 
-        if(running == false)
-        {
+        if (running == false) {
             //sensorManager.unregisterListener(this);
         }
     }
@@ -249,8 +280,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
     }
 
-    public int Get_Step_Count()
-    {
+    public int Get_Step_Count() {
         return mStep_Count;
     }
 
@@ -260,14 +290,12 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
     }
 
-    private void weaselpop()
-    {
+    private void weaselpop() {
         setResult(1);
         finish();
     }
 
-    private void StoreDayEnd2(int fourPMDayEndBalance)
-    {
+    private void StoreDayEnd2(int fourPMDayEndBalance) {
         //Algorithm Engineering Noir:
         //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
         //remember to implement those double try bug fixes.

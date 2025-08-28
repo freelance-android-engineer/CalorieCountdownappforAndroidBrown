@@ -1,5 +1,6 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -8,6 +9,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -15,7 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -45,6 +49,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnSumCalories = findViewById(R.id.btnSumCalories);
         Button btnInputNote = findViewById(R.id.btnInputNote);
         Button btnTransferCredit = findViewById(R.id.btnTransferCredit);
+        Button btnFoodNoteAi = findViewById(R.id.btnFoodNoteAi);
 
         // Load existing data into the table
         loadFoodNotesFromDatabase();
@@ -93,6 +98,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 transferAllFoodNotes();
             }
         });
+
+
+        btnFoodNoteAi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleAiButtonClick();
+            }
+        });
     }
 
 
@@ -120,6 +133,28 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+//        btnSave.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                String food = etFood.getText().toString().trim();
+//                String quantity = etQuantity.getText().toString().trim();
+//                String calories = etCalories.getText().toString().trim();
+//
+//                if (food.isEmpty()) {
+//                    Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
+//                    return;
+//                }
+//
+//                // Insert data into the database
+//                databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+//
+//                // Add the new row to the table
+//                addRowToTable(food, quantity, calories, currentDateTime);
+//
+//                dialog.dismiss();
+//            }
+//        });
+
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -132,65 +167,106 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Insert data into the database
-                databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                // Check if food contains "water" (case-insensitive)
+                if (food.toLowerCase().contains("water")) {
+                    new AlertDialog.Builder(FoodNoteTableActivity.this)
+                            .setTitle("Confirm!")
+                            .setMessage("Do you want to add this data to your Water Tracker?")
+                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int which) {
+                                    // Launch Water Tracker activity
+                                    Intent intent = new Intent(FoodNoteTableActivity.this, AddWaterData.class);
+                                    startActivity(intent);
 
-                // Add the new row to the table
-                addRowToTable(food, quantity, calories, currentDateTime);
+                                    // Close both dialogs
+                                    dialog.dismiss();      // closes the current add-food dialog
+                                    dialogInterface.dismiss(); // closes the confirmation dialog
+                                }
+                            })
+                            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int which) {
+                                    // Just close the current add-food dialog
+                                    databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                                    addRowToTable(food, quantity, calories, currentDateTime);
 
-                dialog.dismiss();
+                                    dialog.dismiss();
+                                    dialogInterface.dismiss();
+                                }
+                            })
+                            .show();
+
+                } else {
+                    // Normal save flow
+                    databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                    addRowToTable(food, quantity, calories, currentDateTime);
+
+                    dialog.dismiss(); // close the input dialog only
+                }
             }
         });
+
 
         dialog.show();
     }
 
+//    private void addRowToTable(String food, String quantity, String calories, String dateTime) {
+//        // Create a new TableRow
+//        TableRow row = new TableRow(this);
+//
+//        // LayoutParams to set margins for the TableRow
+//        TableLayout.LayoutParams rowParams = new TableLayout.LayoutParams(
+//                TableLayout.LayoutParams.MATCH_PARENT,
+//                TableLayout.LayoutParams.WRAP_CONTENT
+//        );
+//        rowParams.setMargins(0, 10, 0, 10); // Add top and bottom margins
+//        row.setLayoutParams(rowParams);
+//
+//        // Create and configure TextViews for each column
+//        TextView tvFood = createColumnTextView(food);
+//        TextView tvQuantity = createColumnTextView(quantity);
+//        TextView tvCalories = createColumnTextView(calories);
+//        TextView tvDateTime = createColumnTextView(dateTime);
+//
+//        // Add TextViews to the TableRow
+//        row.addView(tvFood);
+//        row.addView(tvCalories);
+//        row.addView(tvQuantity);
+//        row.addView(tvDateTime);
+//
+//        // Add the TableRow to the TableLayout
+//        tableLayout.addView(row);
+//    }
+
+
     private void addRowToTable(String food, String quantity, String calories, String dateTime) {
-        // Create a new TableRow
         TableRow row = new TableRow(this);
 
-        // LayoutParams to set margins for the TableRow
-        TableLayout.LayoutParams rowParams = new TableLayout.LayoutParams(
-                TableLayout.LayoutParams.MATCH_PARENT,
-                TableLayout.LayoutParams.WRAP_CONTENT
-        );
-        rowParams.setMargins(0, 10, 0, 10); // Add top and bottom margins
-        row.setLayoutParams(rowParams);
+        // Checkbox
+        CheckBox checkBox = new CheckBox(this);
+        row.addView(checkBox);
 
-        // Create and configure TextViews for each column
-        TextView tvFood = createColumnTextView(food);
-        TextView tvQuantity = createColumnTextView(quantity);
-        TextView tvCalories = createColumnTextView(calories);
-        TextView tvDateTime = createColumnTextView(dateTime);
+        // Food
+        row.addView(createColumnTextView(food));
+        // Calories
+        row.addView(createColumnTextView(calories));
+        // Quantity
+        row.addView(createColumnTextView(quantity));
+        // DateTime
+        row.addView(createColumnTextView(dateTime));
 
-        // Add TextViews to the TableRow
-        row.addView(tvFood);
-        row.addView(tvCalories);
-        row.addView(tvQuantity);
-        row.addView(tvDateTime);
-
-        // Add the TableRow to the TableLayout
         tableLayout.addView(row);
     }
 
-    // Helper method to create a TextView with specific properties
     private TextView createColumnTextView(String text) {
         TextView textView = new TextView(this);
         textView.setText(text);
         textView.setGravity(Gravity.CENTER);
-        textView.setLayoutParams(new TableRow.LayoutParams(
-                0, // Set width to 0dp for weight distribution
-                TableRow.LayoutParams.WRAP_CONTENT,
-                1f // Set weight for equal distribution
-        ));
-        textView.setEllipsize(TextUtils.TruncateAt.END); // Truncate long text with "..."
-        textView.setMaxLines(3); // Allow up to 3 lines of text
-        textView.setPadding(2, 5, 2, 5); // Optional padding inside each cell
-//        textView.setTextColor(getResources().getColor(android.R.color.black)); // Set text color
-        textView.setTextSize(15); // Set text size
+        textView.setPadding(10, 5, 10, 5);
+        textView.setTextSize(15);
         return textView;
     }
-
 
     private void loadFoodNotesFromDatabase() {
         android.util.Log.d("FOOD NOTES", "Loading...");
@@ -359,4 +435,122 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             executorService.shutdown();
         }
     }
+
+    //AI LOGICAL PART
+    private void handleAiButtonClick() {
+        // Use correct type instead of Object
+        ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
+
+        // Skip index 0 (header row)
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            TextView foodText = (TextView) row.getChildAt(1);     // food column
+            TextView quantityText = (TextView) row.getChildAt(2); // quantity column
+
+            if (checkBox.isChecked()) {
+                Map<String, String> foodMap = new HashMap<>();
+                foodMap.put("food", foodText.getText().toString());
+                foodMap.put("quantity", quantityText.getText().toString());
+                selectedFoods.add(foodMap);
+            }
+        }
+
+        if (selectedFoods.isEmpty()) {
+            showNoSelectionDialog();
+        } else {
+            // ✅ Now types match
+            showSelectedItemsDialog(selectedFoods);
+        }
+    }
+
+
+    private void showNoSelectionDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("No Items Selected")
+                .setMessage("Please select food items to proceed")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    private void showSelectedItemsDialog(List<Map<String, String>> selectedFoods) {
+        StringBuilder message = new StringBuilder();
+        for (Map<String, String> food : selectedFoods) {
+            message.append(food.get("food"))
+                    .append(" - ")
+                    .append(food.get("quantity"))
+                    .append("\n");
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Selected food items to calculate calories")
+                .setMessage(message.toString())
+                .setPositiveButton("Proceed", (dialog, which) -> {
+                    // 👉 Build the prompt
+                    String prompt = buildCaloriesPrompt(selectedFoods);
+
+                    // 👉 Call your Gemini API service
+
+
+                    GeminiApiService.calculateCalories(this, prompt, new GeminiApiService.CalorieCallback() {
+                        @Override
+                        public void onResult(String result) {
+                            runOnUiThread(() -> {
+                                if (result != null) {
+                                    showCaloriesResult(result);
+                                } else {
+                                    Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories", Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                    });
+                })
+                .setNegativeButton("Select More", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+
+    private String buildCaloriesPrompt(List<Map<String, String>> foods) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Calculate the calories for the following foods:\n\n");
+
+        for (Map<String, String> food : foods) {
+            String name = food.getOrDefault("food", "");
+            String qty = food.getOrDefault("quantity", "").trim();
+
+            if (!qty.isEmpty()) {
+                sb.append("- ").append(name)
+                        .append(", Quantity: ").append(qty).append("\n");
+            } else {
+                sb.append("- ").append(name)
+                        .append(" (assume 100g serving)").append("\n");
+            }
+        }
+
+        sb.append("\nFor each item, provide estimated calories. If quantity is missing, assume per 100g.\n");
+        sb.append("Finally, provide the total calories.\n");
+
+        return sb.toString();
+    }
+
+    private void showCaloriesResult(String response) {
+        String message;
+
+        if (response != null && response.toLowerCase().contains("calorie")) {
+            // Clean / format response if needed
+            message = response.trim();
+        } else {
+            message = "Something went wrong. Please try again.";
+        }
+
+        // Show dialog
+        new AlertDialog.Builder(this)
+                .setTitle("Calorie Estimation")
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+
 }

@@ -2153,6 +2153,7 @@
     <string name="cancel17">Debit Balance with Step Count</string>
     <string name="Steps">Debit Balance with Steps</string>
     <string name="Steps2">Debit Balance with Steps Manually</string>
+    <string name="open_step_app">Open Step app</string>
     <string name="title_activity_debit___ci_f003_fragment_box">Debit_Activity_CiF003_fragment_box
     </string>
 
