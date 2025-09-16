@@ -33,28 +33,25 @@ import java.util.Locale;
 public class FoodNoteTableActivity extends AppCompatActivity {
 
     private TableLayout tableLayout;
-    private SQLDatabase_Food_Items_CIF6 databaseHelper; // Assuming you have a DatabaseHelper class
-    private ExecutorService executorService = Executors.newSingleThreadExecutor(); // Initializes a single-thread executor
+    private SQLDatabase_Food_Items_CIF6 databaseHelper;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_food_note_table);
-
-        // Bind views
         tableLayout = findViewById(R.id.tableLayout);
-        databaseHelper = new SQLDatabase_Food_Items_CIF6(this); // Initialize the database helper
+        databaseHelper = new SQLDatabase_Food_Items_CIF6(this);
         Button btnAddNewRow = findViewById(R.id.btnAddNewRow);
         Button btnAddCertainty = findViewById(R.id.btnAddCertainty);
         Button btnSumCalories = findViewById(R.id.btnSumCalories);
         Button btnInputNote = findViewById(R.id.btnInputNote);
         Button btnTransferCredit = findViewById(R.id.btnTransferCredit);
         Button btnFoodNoteAi = findViewById(R.id.btnFoodNoteAi);
+        Button btnDeleteFoodNote = findViewById(R.id.btnDeleteNote);
 
-        // Load existing data into the table
         loadFoodNotesFromDatabase();
 
-        // Add New Row Button
         btnAddNewRow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -62,7 +59,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
-        // Add Certainty Button
         btnAddCertainty.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -71,11 +67,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         });
 
         btnSumCalories.setOnClickListener(v -> {
-            // Run the database query in a background thread
             executorService.submit(() -> {
-                int totalCalories = databaseHelper.getTotalCalories();  // Get total calories from the database
-
-                // Update UI on the main thread
+                int totalCalories = databaseHelper.getTotalCalories();
                 runOnUiThread(() -> {
                     Toast.makeText(FoodNoteTableActivity.this, "Total calories" + totalCalories, Toast.LENGTH_SHORT).show();
                     showTotalCaloriesDialog(totalCalories);
@@ -83,7 +76,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             });
         });
 
-        // Input Food/Drink Note Button
         btnInputNote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -91,7 +83,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
-        // Transfer to Credit Button
         btnTransferCredit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -103,7 +94,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnFoodNoteAi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleAiButtonClick();
+                handleAiButtonClick(true);
+            }
+        });
+
+        btnDeleteFoodNote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleAiButtonClick(false);
             }
         });
     }
@@ -133,28 +131,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
-//        btnSave.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                String food = etFood.getText().toString().trim();
-//                String quantity = etQuantity.getText().toString().trim();
-//                String calories = etCalories.getText().toString().trim();
-//
-//                if (food.isEmpty()) {
-//                    Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
-//                    return;
-//                }
-//
-//                // Insert data into the database
-//                databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
-//
-//                // Add the new row to the table
-//                addRowToTable(food, quantity, calories, currentDateTime);
-//
-//                dialog.dismiss();
-//            }
-//        });
-
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -175,21 +151,18 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int which) {
-                                    // Launch Water Tracker activity
                                     Intent intent = new Intent(FoodNoteTableActivity.this, AddWaterData.class);
                                     startActivity(intent);
 
-                                    // Close both dialogs
-                                    dialog.dismiss();      // closes the current add-food dialog
-                                    dialogInterface.dismiss(); // closes the confirmation dialog
+                                    dialog.dismiss();
+                                    dialogInterface.dismiss();
                                 }
                             })
                             .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int which) {
-                                    // Just close the current add-food dialog
-                                    databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
-                                    addRowToTable(food, quantity, calories, currentDateTime);
+                                    long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                                    addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
 
                                     dialog.dismiss();
                                     dialogInterface.dismiss();
@@ -198,11 +171,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             .show();
 
                 } else {
-                    // Normal save flow
-                    databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
-                    addRowToTable(food, quantity, calories, currentDateTime);
+                    long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                    addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
 
-                    dialog.dismiss(); // close the input dialog only
+                    dialog.dismiss();
                 }
             }
         });
@@ -211,51 +183,16 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         dialog.show();
     }
 
-//    private void addRowToTable(String food, String quantity, String calories, String dateTime) {
-//        // Create a new TableRow
-//        TableRow row = new TableRow(this);
-//
-//        // LayoutParams to set margins for the TableRow
-//        TableLayout.LayoutParams rowParams = new TableLayout.LayoutParams(
-//                TableLayout.LayoutParams.MATCH_PARENT,
-//                TableLayout.LayoutParams.WRAP_CONTENT
-//        );
-//        rowParams.setMargins(0, 10, 0, 10); // Add top and bottom margins
-//        row.setLayoutParams(rowParams);
-//
-//        // Create and configure TextViews for each column
-//        TextView tvFood = createColumnTextView(food);
-//        TextView tvQuantity = createColumnTextView(quantity);
-//        TextView tvCalories = createColumnTextView(calories);
-//        TextView tvDateTime = createColumnTextView(dateTime);
-//
-//        // Add TextViews to the TableRow
-//        row.addView(tvFood);
-//        row.addView(tvCalories);
-//        row.addView(tvQuantity);
-//        row.addView(tvDateTime);
-//
-//        // Add the TableRow to the TableLayout
-//        tableLayout.addView(row);
-//    }
-
-
-    private void addRowToTable(String food, String quantity, String calories, String dateTime) {
+    private void addRowToTable(int noteId, String food, String quantity, String calories, String dateTime) {
         TableRow row = new TableRow(this);
-
+        row.setTag(noteId);
         // Checkbox
         CheckBox checkBox = new CheckBox(this);
         row.addView(checkBox);
-
-        // Food
         row.addView(createColumnTextView(food));
-        // Calories
         row.addView(createColumnTextView(calories));
-        // Quantity
         row.addView(createColumnTextView(quantity));
-        // DateTime
         row.addView(createColumnTextView(dateTime));
-
         tableLayout.addView(row);
     }
 
@@ -269,12 +206,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     private void loadFoodNotesFromDatabase() {
-        android.util.Log.d("FOOD NOTES", "Loading...");
         Cursor cursor = databaseHelper.getAllFoodNotes();
         if (cursor != null && cursor.moveToFirst()) {
-            android.util.Log.d("FOOD NOTES", "Data found");
-
-            // Get column indices safely
+            int noteId = cursor.getColumnIndex("note_id");
             int dateIndex = cursor.getColumnIndex("note_date");
             int foodIndex = cursor.getColumnIndex("note_food");
             int caloriesIndex = cursor.getColumnIndex("note_calories");
@@ -288,24 +222,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 return;
             }
 
-            // Iterate through the rows
             do {
                 int isTransferred = cursor.getInt(transferredIndex);
 
-                if (isTransferred == 0) {  // Only add if not transferred
+                if (isTransferred == 0) {
+                    long id = cursor.getLong(noteId);
                     String dateTime = cursor.getString(dateIndex);
                     String food = cursor.getString(foodIndex);
                     String calories = cursor.getString(caloriesIndex);
                     String quantity = cursor.getString(quantityIndex);
-
-                    android.util.Log.d("FOOD NOTES", "Adding row: " + dateTime + food + calories + quantity);
-                    addRowToTable(food, quantity, calories, dateTime);
+                    addRowToTable((int) id, food, quantity, calories, dateTime);
                 }
             } while (cursor.moveToNext());
-
             cursor.close();
-        } else {
-            android.util.Log.d("FOOD NOTES", "DatabaseWarning No data found in the food notes table or cursor is null.");
         }
     }
 
@@ -349,10 +278,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     int uncertainCalories = calculateExtraCalories(certainty);
                     String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
 
-                    databaseHelper.insertFoodNote(currentDateTime, "Uncertainty", String.valueOf(uncertainCalories), // int → String
+                    long insertedId = databaseHelper.insertFoodNote(currentDateTime, "Uncertainty", String.valueOf(uncertainCalories), // int → String
                             String.valueOf(1));
                     Toast.makeText(FoodNoteTableActivity.this, "Certainty Saved: " + certainty + ". Extra Points: " + uncertainCalories, Toast.LENGTH_SHORT).show();
-                    addRowToTable("Uncertainty", String.valueOf(1), String.valueOf(uncertainCalories), currentDateTime);
+                    addRowToTable((int) insertedId, "Uncertainty", String.valueOf(1), String.valueOf(uncertainCalories), currentDateTime);
                     dialog.dismiss();
 
                 } catch (NumberFormatException e) {
@@ -372,7 +301,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     // Function to show the dialog with the total calories
     public void showTotalCaloriesDialog(int totalCalories) {
-        // Create an instance of the dialog builder
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setView(R.layout.dialog_sum_calories);
 
@@ -381,11 +309,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         TextView tvTotalCalories = dialog.findViewById(R.id.tvTotalCalories);
         if (tvTotalCalories != null) {
-            tvTotalCalories.setText(String.valueOf(totalCalories));  // Explicitly convert to string// Update with the calculated value
+            tvTotalCalories.setText(String.valueOf(totalCalories));
         }
         Button btnOk = dialog.findViewById(R.id.btnOk);
         if (btnOk != null) {
-            btnOk.setOnClickListener(v1 -> dialog.dismiss());  // Close the dialog when OK is clicked
+            btnOk.setOnClickListener(v1 -> dialog.dismiss());
         }
     }
 
@@ -436,12 +364,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
     }
 
-    //AI LOGICAL PART
-    private void handleAiButtonClick() {
-        // Use correct type instead of Object
+    private void handleAiButtonClick(boolean isAi) {
         ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
 
-        // Skip index 0 (header row)
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
             TableRow row = (TableRow) tableLayout.getChildAt(i);
 
@@ -451,6 +376,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
             if (checkBox.isChecked()) {
                 Map<String, String> foodMap = new HashMap<>();
+                foodMap.put("note_id", String.valueOf(row.getTag()));
                 foodMap.put("food", foodText.getText().toString());
                 foodMap.put("quantity", quantityText.getText().toString());
                 selectedFoods.add(foodMap);
@@ -460,8 +386,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         if (selectedFoods.isEmpty()) {
             showNoSelectionDialog();
         } else {
-            // ✅ Now types match
-            showSelectedItemsDialog(selectedFoods);
+            showSelectedItemsDialog(isAi, selectedFoods);
         }
     }
 
@@ -469,12 +394,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void showNoSelectionDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("No Items Selected")
-                .setMessage("Please select food items to proceed")
+                .setMessage("Please select food note(s) to proceed")
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                 .show();
     }
 
-    private void showSelectedItemsDialog(List<Map<String, String>> selectedFoods) {
+    private void showSelectedItemsDialog(boolean isAi, List<Map<String, String>> selectedFoods) {
         StringBuilder message = new StringBuilder();
         for (Map<String, String> food : selectedFoods) {
             message.append(food.get("food"))
@@ -484,27 +409,43 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Selected food items to calculate calories")
+                .setTitle("Selected food notes to " + (isAi ? "calculate calories" : "delete"))
                 .setMessage(message.toString())
                 .setPositiveButton("Proceed", (dialog, which) -> {
-                    // 👉 Build the prompt
-                    String prompt = buildCaloriesPrompt(selectedFoods);
 
-                    // 👉 Call your Gemini API service
-
-
-                    GeminiApiService.calculateCalories(this, prompt, new GeminiApiService.CalorieCallback() {
-                        @Override
-                        public void onResult(String result) {
-                            runOnUiThread(() -> {
-                                if (result != null) {
-                                    showCaloriesResult(result);
-                                } else {
-                                    Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories", Toast.LENGTH_LONG).show();
+                    if (isAi) {
+                        String prompt = buildCaloriesPrompt(selectedFoods);
+                        GeminiApiService.calculateCalories(this, prompt, new GeminiApiService.CalorieCallback() {
+                            @Override
+                            public void onResult(String result) {
+                                runOnUiThread(() -> {
+                                    if (result != null) {
+                                        showCaloriesResult(result);
+                                    } else {
+                                        Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        List<Integer> selectedIds = new ArrayList<>();
+                        for (Map<String, String> food : selectedFoods) {
+                            String idStr = food.get("note_id");
+                            if (idStr != null) {
+                                try {
+                                    selectedIds.add(Integer.parseInt(idStr));
+                                } catch (NumberFormatException e) {
+                                    e.printStackTrace();
                                 }
-                            });
+                            }
                         }
-                    });
+
+                        if (!selectedIds.isEmpty()) {
+                            databaseHelper.deleteFoodNotes(selectedIds);
+                            Toast.makeText(FoodNoteTableActivity.this, "Deleted " + selectedIds.size() + " items", Toast.LENGTH_SHORT).show();
+                            removeRowsByIds(selectedIds);
+                        }
+                    }
                 })
                 .setNegativeButton("Select More", (dialog, which) -> dialog.dismiss())
                 .show();
@@ -550,6 +491,20 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 .setMessage(message)
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                 .show();
+    }
+
+    private void removeRowsByIds(List<Integer> idsToDelete) {
+        List<View> rowsToRemove = new ArrayList<>();
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            View row = tableLayout.getChildAt(i);
+            Object tag = row.getTag();
+            if (tag instanceof Integer && idsToDelete.contains((Integer) tag)) {
+                rowsToRemove.add(row);
+            }
+        }
+        for (View row : rowsToRemove) {
+            tableLayout.removeView(row);
+        }
     }
 
 

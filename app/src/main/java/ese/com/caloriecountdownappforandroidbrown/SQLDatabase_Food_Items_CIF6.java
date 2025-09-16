@@ -2557,10 +2557,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return BMR_has_been_performed;
     }
 
-    public void insertFoodNote(String date, String food, String calories, String quantity) {
+    public long insertFoodNote(String date, String food, String calories, String quantity) {
         android.util.Log.d("INSERT ALL FOOD NOTES", "Insert Note function called");
         SQLiteDatabase db = this.getWritableDatabase();
         android.util.Log.d("INSERT ALL FOOD NOTES", "getWritableDatabase called");
+
         ContentValues values = new ContentValues();
         android.util.Log.d("INSERT ALL FOOD NOTES", "ContentValues");
         values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
@@ -2568,9 +2569,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
         values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
         values.put(COLUMN_IS_TRANSFERRED, 0); // false when inserting
-        db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
-        android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted");
+
+        long insertedId = db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted with ID: " + insertedId);
+
         db.close();
+        return insertedId;
     }
 
 
@@ -2616,6 +2620,42 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
         return totalCalories;
     }
+
+
+    public void deleteFoodNotes(List<Integer> noteIds) {
+        android.util.Log.d("DELETE FOOD NOTES", "Delete multiple notes function called");
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        if (noteIds == null || noteIds.isEmpty()) {
+            android.util.Log.d("DELETE FOOD NOTES", "No IDs provided to delete");
+            return;
+        }
+
+        // Create placeholders (?, ?, ? ...) for the IN clause
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < noteIds.size(); i++) {
+            placeholders.append("?");
+            if (i < noteIds.size() - 1) {
+                placeholders.append(",");
+            }
+        }
+
+        String whereClause = COLUMN_QUICK_FOOD_NOTE_ID + " IN (" + placeholders.toString() + ")";
+
+        // Convert List<Integer> to String[] for whereArgs
+        String[] whereArgs = new String[noteIds.size()];
+        for (int i = 0; i < noteIds.size(); i++) {
+            whereArgs[i] = String.valueOf(noteIds.get(i));
+        }
+
+        // Execute delete
+        int rowsDeleted = db.delete(TABLE_QUICK_FOOD_NOTE, whereClause, whereArgs);
+
+        android.util.Log.d("DELETE FOOD NOTES", "Deleted " + rowsDeleted + " note(s)");
+
+        db.close();
+    }
+
 
 
     public void insertWaterData(int mlWaterDrunk, double equivalentCups) {
