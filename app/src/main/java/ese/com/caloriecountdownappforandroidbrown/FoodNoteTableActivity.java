@@ -4,7 +4,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,6 +42,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         tableLayout = findViewById(R.id.tableLayout);
         databaseHelper = new SQLDatabase_Food_Items_CIF6(this);
         Button btnAddNewRow = findViewById(R.id.btnAddNewRow);
+        Button btnEditNote = findViewById(R.id.btnEditRow);
         Button btnAddCertainty = findViewById(R.id.btnAddCertainty);
         Button btnSumCalories = findViewById(R.id.btnSumCalories);
         Button btnInputNote = findViewById(R.id.btnInputNote);
@@ -55,7 +55,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnAddNewRow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showFoodInputDialog();
+                showFoodInputDialog(null, "", "", "");
             }
         });
 
@@ -83,6 +83,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+        btnEditNote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleAiButtonClick(false, true);
+            }
+        });
+
         btnTransferCredit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -94,20 +101,20 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnFoodNoteAi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleAiButtonClick(true);
+                handleAiButtonClick(true, false);
             }
         });
 
         btnDeleteFoodNote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleAiButtonClick(false);
+                handleAiButtonClick(false, false);
             }
         });
     }
 
 
-    private void showFoodInputDialog() {
+    private void showFoodInputDialog(String noteId, String food, String quantity, String calories) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View view = LayoutInflater.from(this).inflate(R.layout.add_row_food_note_dialog, null);
         builder.setView(view);
@@ -120,6 +127,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         TextView tvDateTime = view.findViewById(R.id.tvDateTime);
         Button btnCancel = view.findViewById(R.id.btnCancel);
         Button btnSave = view.findViewById(R.id.btnSave);
+
+        etFood.setText(food);
+        etQuantity.setText(quantity);
+        etCalories.setText(calories);
 
         String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
         tvDateTime.setText("Date & Time: " + currentDateTime);
@@ -142,6 +153,21 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
                     return;
                 }
+
+                // === Update case ===
+                if (noteId != null) {
+                    databaseHelper.updateFoodNote(
+                            Integer.parseInt(noteId),
+                            currentDateTime,
+                            food,
+                            calories,
+                            quantity
+                    );
+                    updateRowInTable(Integer.parseInt(noteId), food, quantity, calories, currentDateTime);
+                    dialog.dismiss();
+                    return;
+                }
+
 
                 // Check if food contains "water" (case-insensitive)
                 if (food.toLowerCase().contains("water")) {
@@ -186,15 +212,43 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void addRowToTable(int noteId, String food, String quantity, String calories, String dateTime) {
         TableRow row = new TableRow(this);
         row.setTag(noteId);
-        // Checkbox
+
+        // 1. Add Checkbox (Index 0)
         CheckBox checkBox = new CheckBox(this);
         row.addView(checkBox);
-        row.addView(createColumnTextView(food));
-        row.addView(createColumnTextView(calories));
-        row.addView(createColumnTextView(quantity));
-        row.addView(createColumnTextView(dateTime));
+
+        // 2. Add new S. No. column (Index 1)
+        // The serial number is the current number of rows (including the header)
+        // which equals the correct next number.
+        int serialNumber = tableLayout.getChildCount();
+        row.addView(createColumnTextView(String.valueOf(serialNumber)));
+
+        // 3. Add the rest of the columns at their new indices
+        row.addView(createColumnTextView(food));      // Index 2
+        row.addView(createColumnTextView(calories));  // Index 3
+        row.addView(createColumnTextView(quantity));  // Index 4
+        row.addView(createColumnTextView(dateTime));  // Index 5
+
         tableLayout.addView(row);
     }
+
+    private void updateRowInTable(int noteId, String food, String quantity, String calories, String dateTime) {
+        for (int i = 1; i < tableLayout.getChildCount(); i++) { // start from 1 to skip header
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+
+            if (row.getTag() != null && row.getTag().toString().equals(String.valueOf(noteId))) {
+                // The indices must be updated to account for the new "S. No." column.
+                // childAt(0) -> CheckBox
+                // childAt(1) -> S. No. (We don't need to update this)
+                ((TextView) row.getChildAt(2)).setText(food);      // Food
+                ((TextView) row.getChildAt(3)).setText(calories);  // Calories
+                ((TextView) row.getChildAt(4)).setText(quantity);  // Quantity
+                ((TextView) row.getChildAt(5)).setText(dateTime);  // DateTime
+                break;
+            }
+        }
+    }
+
 
     private TextView createColumnTextView(String text) {
         TextView textView = new TextView(this);
@@ -364,27 +418,44 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
     }
 
-    private void handleAiButtonClick(boolean isAi) {
+    private void handleAiButtonClick(boolean isAi, boolean isEditRow) {
         ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
 
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
             TableRow row = (TableRow) tableLayout.getChildAt(i);
 
             CheckBox checkBox = (CheckBox) row.getChildAt(0);
-            TextView foodText = (TextView) row.getChildAt(1);     // food column
-            TextView quantityText = (TextView) row.getChildAt(2); // quantity column
+            TextView foodText = (TextView) row.getChildAt(2);     // food column
+            TextView caloriesText = (TextView) row.getChildAt(3); // quantity column
+            TextView quantityText = (TextView) row.getChildAt(4); // quantity column
+
 
             if (checkBox.isChecked()) {
                 Map<String, String> foodMap = new HashMap<>();
                 foodMap.put("note_id", String.valueOf(row.getTag()));
                 foodMap.put("food", foodText.getText().toString());
                 foodMap.put("quantity", quantityText.getText().toString());
+                foodMap.put("calories", caloriesText.getText().toString());
                 selectedFoods.add(foodMap);
             }
         }
 
+
         if (selectedFoods.isEmpty()) {
             showNoSelectionDialog();
+        } else if (isEditRow) {
+            if (selectedFoods.size() > 1) {
+                Toast.makeText(this, "Please select only one food note to edit", Toast.LENGTH_SHORT).show();
+            } else {
+                // Exactly one row selected → pre-populate dialog
+                Map<String, String> selectedFood = selectedFoods.get(0);
+                showFoodInputDialog(
+                        selectedFood.get("note_id"),
+                        selectedFood.get("food"),
+                        selectedFood.get("quantity"),
+                        selectedFood.get("calories")
+                );
+            }
         } else {
             showSelectedItemsDialog(isAi, selectedFoods);
         }
@@ -479,13 +550,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         String message;
 
         if (response != null && response.toLowerCase().contains("calorie")) {
-            // Clean / format response if needed
             message = response.trim();
         } else {
             message = "Something went wrong. Please try again.";
         }
 
-        // Show dialog
         new AlertDialog.Builder(this)
                 .setTitle("Calorie Estimation")
                 .setMessage(message)
@@ -495,7 +564,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     private void removeRowsByIds(List<Integer> idsToDelete) {
         List<View> rowsToRemove = new ArrayList<>();
-        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+        for (int i = 1; i < tableLayout.getChildCount(); i++) { // skip header
             View row = tableLayout.getChildAt(i);
             Object tag = row.getTag();
             if (tag instanceof Integer && idsToDelete.contains((Integer) tag)) {
@@ -505,7 +574,17 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         for (View row : rowsToRemove) {
             tableLayout.removeView(row);
         }
+        renumberTableRows();
     }
 
+    private void renumberTableRows() {
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            TextView snoTextView = (TextView) row.getChildAt(1);
+            if (snoTextView != null) {
+                snoTextView.setText(String.valueOf(i));
+            }
+        }
+    }
 
 }

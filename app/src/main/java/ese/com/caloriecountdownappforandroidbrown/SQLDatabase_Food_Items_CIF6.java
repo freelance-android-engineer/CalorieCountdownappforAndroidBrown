@@ -2577,6 +2577,32 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return insertedId;
     }
 
+    public int updateFoodNote(int noteId, String date, String food, String calories, String quantity) {
+        android.util.Log.d("UPDATE FOOD NOTE", "Update Note function called");
+        SQLiteDatabase db = this.getWritableDatabase();
+        android.util.Log.d("UPDATE FOOD NOTE", "getWritableDatabase called");
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
+        values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, food);
+        values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
+        values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
+        values.put(COLUMN_IS_TRANSFERRED, 0); // reset transfer flag when updating
+
+        int rowsAffected = db.update(
+                TABLE_QUICK_FOOD_NOTE,
+                values,
+                COLUMN_QUICK_FOOD_NOTE_ID + " = ?",
+                new String[]{String.valueOf(noteId)}
+        );
+
+        android.util.Log.d("UPDATE FOOD NOTE", "Rows updated: " + rowsAffected);
+
+        db.close();
+        return rowsAffected;
+    }
+
+
 
     // DBHelper
     public void markAllAsTransferred() {
