@@ -1,110 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <LinearLayout
+    <HorizontalScrollView
+        android:id="@+id/tableScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="0dp"
+        android:layout_weight="5"
+        android:scrollbars="horizontal">
 
-        <!-- Table with fixed height and two-way scrolling -->
-        <HorizontalScrollView
-            android:id="@+id/tableScroll"
-            android:layout_width="match_parent"
-            android:layout_height="500dp"
-            android:scrollbars="horizontal">
+        <ScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="vertical">
 
-            <ScrollView
+            <TableLayout
+                android:id="@+id/tableLayout"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:fillViewport="true"
-                android:scrollbars="vertical">
+                android:layout_height="wrap_content"
+                android:divider="@android:drawable/divider_horizontal_bright"
+                android:showDividers="middle"
+                android:stretchColumns="2,3,4,5">
 
-                <TableLayout
-                    android:id="@+id/tableLayout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:divider="@android:drawable/divider_horizontal_bright"
-                    android:showDividers="middle"
-                    android:stretchColumns="2,3,4,5"> <!-- MODIFIED: Updated stretch columns -->
+                <!-- Header Row -->
+                <TableRow
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
 
-                    <!-- Header Row -->
-                    <TableRow
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="Select"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="Select"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="S. No."
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <!-- ADDED: New S. No. Header Column -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="S. No."
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="Food/Drink"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="Food/Drink"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="@string/calories_guesstimate"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="@string/calories_guesstimate"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="Quantity"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="Quantity"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="5dp"
+                        android:text="Date &amp; Time"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </TableRow>
+            </TableLayout>
+        </ScrollView>
+    </HorizontalScrollView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:text="Date &amp; Time"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </TableRow>
-                </TableLayout>
-            </ScrollView>
-        </HorizontalScrollView>
+    <!-- Buttons / Other content take remaining 2/3 of screen -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:fillViewport="true">
 
-
-        <!-- Buttons Layout -->
         <LinearLayout
             android:id="@+id/buttonLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:gravity="center">
 
             <Button
                 android:id="@+id/btnAddNewRow"
@@ -122,46 +119,39 @@
                 android:id="@+id/btnAddCertainty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Add Certainty" />
 
             <Button
                 android:id="@+id/btnSumCalories"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Sum Calories" />
 
             <Button
                 android:id="@+id/btnInputNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Input Food/Drink Note" />
 
             <Button
                 android:id="@+id/btnTransferCredit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Transfer to Credit" />
 
             <Button
                 android:id="@+id/btnFoodNoteAi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Ai" />
 
             <Button
                 android:id="@+id/btnDeleteNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="Delete Note(s)" />
 
-
         </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 
-</ScrollView>
+</LinearLayout>
