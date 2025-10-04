@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const ExerciseItem_controller_1 = require("@/controllers/ExerciseItem.controller");
+const express_1 = require("express");
+const router = (0, express_1.Router)();
+const controller = new ExerciseItem_controller_1.ExerciseItemController();
+router.post('/', controller.create.bind(controller));
+router.get('/', controller.findAll.bind(controller));
+router.get('/:id', controller.findOne.bind(controller));
+router.post('/search', controller.search.bind(controller));
+exports.default = router;

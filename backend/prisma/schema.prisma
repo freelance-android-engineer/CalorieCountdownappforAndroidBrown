@@ -36,3 +36,14 @@ model FoodItem {
 
   @@map("Food_Items") 
 }
+
+model ExerciseItem {
+  id           Int   @id @default(autoincrement())
+  exercise_name         String?  @db.Text
+  energy_burnt_per_min  Float?
+  client_weight         Float?
+  client_height_cm      Int?
+  cardio_or_strength    Boolean?
+
+  @@map("Exercise_Items")
+}

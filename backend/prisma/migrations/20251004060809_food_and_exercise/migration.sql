@@ -28,3 +28,15 @@ CREATE TABLE "public"."Food_Items" (
 
     CONSTRAINT "Food_Items_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "public"."Exercise_Items" (
+    "id" SERIAL NOT NULL,
+    "exercise_name" TEXT,
+    "energy_burnt_per_min" DOUBLE PRECISION,
+    "client_weight" DOUBLE PRECISION,
+    "client_height_cm" INTEGER,
+    "cardio_or_strength" BOOLEAN,
+
+    CONSTRAINT "Exercise_Items_pkey" PRIMARY KEY ("id")
+);
