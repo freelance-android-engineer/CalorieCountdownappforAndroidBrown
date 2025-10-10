@@ -419,6 +419,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     private void handleAiButtonClick(boolean isAi, boolean isEditRow) {
+        android.util.Log.d("FoodNoteAI", "handleAiButtonClick called - isAi=" + isAi + ", isEditRow=" + isEditRow);
+
         ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
 
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
@@ -437,9 +439,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 foodMap.put("quantity", quantityText.getText().toString());
                 foodMap.put("calories", caloriesText.getText().toString());
                 selectedFoods.add(foodMap);
+                android.util.Log.d("FoodNoteAI", "Selected: " + foodText.getText().toString());
             }
         }
 
+        android.util.Log.d("FoodNoteAI", "Total selected items: " + selectedFoods.size());
 
         if (selectedFoods.isEmpty()) {
             showNoSelectionDialog();
@@ -485,15 +489,26 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 .setPositiveButton("Proceed", (dialog, which) -> {
 
                     if (isAi) {
+                        // Show loading indicator
+                        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+                        progressDialog.setMessage("Calculating calories with AI...");
+                        progressDialog.setCancelable(false);
+                        progressDialog.show();
+
                         String prompt = buildCaloriesPrompt(selectedFoods);
+                        android.util.Log.d("FoodNoteAI", "Starting AI calculation for " + selectedFoods.size() + " items");
+
                         GeminiApiService.calculateCalories(this, prompt, new GeminiApiService.CalorieCallback() {
                             @Override
                             public void onResult(String result) {
                                 runOnUiThread(() -> {
-                                    if (result != null) {
+                                    progressDialog.dismiss();
+                                    if (result != null && !result.trim().isEmpty()) {
+                                        android.util.Log.d("FoodNoteAI", "AI result received: " + result);
                                         showCaloriesResult(result);
                                     } else {
-                                        Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories", Toast.LENGTH_LONG).show();
+                                        android.util.Log.e("FoodNoteAI", "AI returned null or empty result");
+                                        Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
                                     }
                                 });
                             }

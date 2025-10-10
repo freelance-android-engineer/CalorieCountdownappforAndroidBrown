@@ -65,6 +65,10 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private ArrayList<Food_Item_CIF4> resultList;
     private ArrayList<Food_Item_CIF4> resultList2 = new ArrayList<Food_Item_CIF4>();
 
+    // Track pending async searches
+    private int pendingSearchCount = 0;
+    private int totalSearchCount = 0;
+
     private Food_Item_CIF4 enter;
     private String OUTsb = "empty";
     private Merge_List_fragment_object mPivot = new Merge_List_fragment_object();
@@ -174,16 +178,20 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 android.util.Log.d("Multi-search", "We are above Show Fetch c");
                 FoodItemsLab_CIF9.get(getApplicationContext()).reset();
                 android.util.Log.d("Multi-search", "We are above Show Fetch d");
+
+                // Initialize search counters
+                totalSearchCount = mFoodItems.size();
+                pendingSearchCount = totalSearchCount;
+
                 for (int c = 0; c < mFoodItems.size(); c++) {
                     //mPivot.merge(MultiSearch(mFoodItems.get(c)));
                     MultiSearch(mFoodItems.get(c));
                 }
 
-                android.util.Log.d("Multi-search", "We are above Show Fetch");
+                android.util.Log.d("Multi-search", "Started " + totalSearchCount + " async searches");
 
-                mFoodItems = ShowFetch(mFoodItems);
-
-                android.util.Log.d("Multi-search", "We are below Show Fetch");
+                // REMOVED: ShowFetch will be called when all async searches complete
+                // mFoodItems = ShowFetch(mFoodItems);
 
             }
         });
@@ -624,11 +632,35 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         } else {
             //GoogleSearch the Food items name, if no Calories.
             //Return set of similar matches
-            FetchedFoodItems = GoogleSearch(foodextracted, getApplicationContext());
-            FetchedFoodItems = MissingItems(FetchedFoodItems);
-            //Food_Item_CIF4 checking = FetchedFoodItems.get(0);
-            //Place data in Singleton Storage, for all.
-            FoodItemsLab_CIF9.get(getApplicationContext()).appendmFoodItems(FetchedFoodItems);
+            GoogleSearch(foodextracted, getApplicationContext(), new FoodSearchCallback() {
+                @Override
+                public void onResult(ArrayList<Food_Item_CIF4> results) {
+                    FetchedFoodItems = results;
+                    FetchedFoodItems = MissingItems(FetchedFoodItems);
+                    //Food_Item_CIF4 checking = FetchedFoodItems.get(0);
+                    //Place data in Singleton Storage, for all.
+                    FoodItemsLab_CIF9.get(getApplicationContext()).appendmFoodItems(FetchedFoodItems);
+
+                    // Decrement pending search counter
+                    synchronized (Food_Diary_Sheet_CIF3.this) {
+                        pendingSearchCount--;
+                        android.util.Log.d("Multi-search", "Search completed. Remaining: " + pendingSearchCount + "/" + totalSearchCount);
+
+                        // Only show results once all searches complete
+                        if (pendingSearchCount == 0) {
+                            // Notify UI to update
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    android.util.Log.d("Multi-search", "All searches complete. Showing results.");
+                                    ArrayList<Food_Item_CIF4> allResults = FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems();
+                                    ShowFetch(allResults);
+                                }
+                            });
+                        }
+                    }
+                }
+            });
 
         }
 
@@ -640,12 +672,12 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         return false;
     }
 
-    private ArrayList<Food_Item_CIF4> GoogleSearch(Food_Item_CIF4 foodfetch, Context c) {
+    private void GoogleSearch(Food_Item_CIF4 foodfetch, Context c, final FoodSearchCallback callback) {
 
         //return array of food items from database via Controller Database Adapter matching food item name
 
         MIF4_Data_Model_Adapter dama = new MIF4_Data_Model_Adapter(foodfetch, c);
-        return dama.FetchMatches();
+        dama.FetchMatches(callback);
 
 
     }

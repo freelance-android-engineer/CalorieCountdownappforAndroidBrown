@@ -1,0 +1,129 @@
+package ese.com.caloriecountdownappforandroidbrown
+
+import android.content.Context
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import org.json.JSONObject
+
+class SQLHeavyClientType008(private val context: Context) {
+
+    companion object {
+        private const val BASE_URL = "https://api.carbonemissionstrading.eu/api/v1"
+        private const val ENDPOINT_FOOD_SEARCH = "$BASE_URL/food/search"
+        private const val ENDPOINT_ADD_FOOD = "$BASE_URL/food"
+        private const val CONTENT_TYPE_JSON = "application/json"
+    }
+
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder().build()
+    }
+
+    // -------------------- GENERIC POST REQUEST --------------------
+    private fun postRequestAsync(url: String, jsonBody: JSONObject, callback: ApiResultCallback) {
+        Thread {
+            try {
+                val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+                val body = RequestBody.create(mediaType, jsonBody.toString())
+
+                val request = Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    if (!response.isSuccessful) {
+                        println("❌ HTTP Error: ${response.code} - ${response.message}")
+                        println("📤 Sent JSON: ${jsonBody.toString(2)}")  // log JSON for debug
+                        callback.onFailure()
+                        return@use
+                    }
+                    println("✔️ Response: $responseBody")
+                    callback.onSuccess(responseBody)
+                }
+            } catch (e: Exception) {
+                println("💥 Exception Type: ${e::class.java.name}")
+                e.printStackTrace()
+                callback.onFailure()
+            }
+        }.start()
+    }
+
+
+    // -------------------- FOOD APIs --------------------
+
+    /** 🔍 Search for food item by name (raw JSON) */
+    fun searchFood(foodName: String, callback: ApiResultCallback) {
+        val json = JSONObject().apply {
+            put("@context", "https://schema.org")
+            put("@type", "SearchAction")
+            put("query", JSONObject().apply {
+                put("food_item_name", foodName)
+            })
+        }
+
+        println("🔎 Searching food: $foodName $json")
+        postRequestAsync(ENDPOINT_FOOD_SEARCH, json, callback)
+    }
+
+    /** 🔍 Search for food item and parse results into Food_Item_CIF4 objects */
+    fun searchFoodParsed(foodName: String, callback: FoodSearchCallback) {
+        searchFood(foodName, object : ApiResultCallback {
+            override fun onSuccess(response: String?) {
+                val results = ArrayList<Food_Item_CIF4>()
+                if (!response.isNullOrEmpty()) {
+                    try {
+                        val jsonArray = JSONObject(response).optJSONArray("results")
+                        if (jsonArray != null) {
+                            for (i in 0 until jsonArray.length()) {
+                                val obj = jsonArray.getJSONObject(i)
+                                val item = Food_Item_CIF4()
+
+                                obj.optString("food_item_name")?.let { item.Set_food_item_name(it) }
+                                item.Set_calories_per_100g(obj.optDouble("calories_per_100g", 0.0).toFloat())
+                                item.Set_fat_per_100g(obj.optDouble("fat_per_100g", 0.0).toFloat())
+                                item.Set_saturated_fat(obj.optDouble("saturated_fat", 0.0).toFloat())
+                                item.Set_trans_fat(obj.optDouble("trans_fat", 0.0).toFloat())
+                                item.Set_protein_per_100g(obj.optDouble("protein_per_100g", 0.0).toFloat())
+                                item.Set_carbs_per_100g(obj.optDouble("carbs_per_100g", 0.0).toFloat())
+                                item.Set_sugar_per_100g(obj.optDouble("sugar_per_100g", 0.0).toFloat())
+                                item.Set_salt_per_100g(obj.optDouble("salt_per_100g", 0.0).toFloat())
+                                item.Set_wellbeing_index(obj.optBoolean("wellbeing_index", false))
+
+                                results.add(item)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                callback.onResult(results)
+            }
+
+            override fun onFailure() {
+                callback.onResult(ArrayList()) // empty list on failure
+            }
+        })
+    }
+
+    /** ➕ Add a new food item */
+    fun addFoodItem(foodData: Map<String, Any>, callback: ApiResultCallback) {
+        val json = JSONObject(foodData)
+        println("🍴 Adding food item: ${foodData["food_item_name"]}")
+        postRequestAsync(ENDPOINT_ADD_FOOD, json, callback)
+    }
+}
+
+// -------------------- CALLBACK INTERFACES --------------------
+
+interface ApiResultCallback {
+    fun onSuccess(response: String?) // called with API response
+    fun onFailure()                   // called on network error
+}
+
+interface FoodSearchCallback {
+    fun onResult(results: ArrayList<Food_Item_CIF4>)
+}

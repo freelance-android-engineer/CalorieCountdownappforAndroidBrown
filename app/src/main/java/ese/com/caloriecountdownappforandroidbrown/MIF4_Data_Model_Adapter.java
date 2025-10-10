@@ -38,11 +38,10 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
     }
 
 
-    public java.util.ArrayList<Food_Item_CIF4> FetchMatches()
+    public void FetchMatches(final FoodSearchCallback callback)
     {
         SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
-        java.util.ArrayList<Food_Item_CIF4> jackmatch = jackie.QueryForMatches(mDama_food_item_cif4.Get_food_item_name());
-        return jackmatch;
+        jackie.QueryForMatches(mDama_food_item_cif4.Get_food_item_name(), callback);
     }
 
 

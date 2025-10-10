@@ -7,8 +7,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.Cursor;
 import android.content.Context;
 import android.content.ContentValues;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -800,19 +805,28 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 // List of Food item attributes and Food Item database Table Fields
 //Category Eat in /Out Type Ingrediend meal etc restaurate items google search add guess etc for layers exe Name of Food or  Item	Calories per 100g or 100ml 	Grams in a Serving/Portion	Carbhydrates	of which are Sugars	Protein	Fat 	of which are saturated Fat	Polyunsaturated	Monounsaturated	Trans	Cholesterol (mg)	Sodium (mg)	Salt (g)	Potassuim (mg)	Fibre	Sugars	Vitamin A (%)	Vitamin C (%)	Calcium (%)	Iron (%)
 // N.B arrange files to match initial orignial Blackberry fields then extend field with what you have leftover
-    public ArrayList<Food_Item_CIF4> QueryForMatches(String food_item_subname) {
+    public void QueryForMatches(String food_item_subname, final FoodSearchCallback callback) {
         //Insert test data
         //long result = InsertDummyRice();
 
-
-        ArrayList<Food_Item_CIF4> list = new ArrayList<Food_Item_CIF4>();
         String fooditemname = food_item_subname;
-        list = Query_Specific_Food_Items_Table(fooditemname);
+
+        Query_Specific_Food_Items_Table(mContext, fooditemname, new FoodSearchCallback() {
+            @Override
+            public void onResult(final ArrayList<Food_Item_CIF4> results) {
+                // Update UI on main thread
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Pass results to caller's callback
+                        callback.onResult(results);
+                    }
+                });
+            }
+        });
 
         //See Results of Query for Matches
         // Check_Results(list);
-
-        return list;
     }
 
     public long InsertDummyRice(String Category, String food_item_name, float grams_per_serving_portion, float calories_per_serving_portion, float fat_per_serving_portion, float carbohydrates_per_serving, float protein_per_serving) {
@@ -841,25 +855,182 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         //data_model_adapter.InsertDummyRice("ING","Coke : Can : Coke",100,190,(float)0,(float) 0,(float) 0);
     }
 
-    public ArrayList<Food_Item_CIF4> Query_Specific_Food_Items_Table(String food_item_name) {
-        //Alogrithm Engineering : Get cursor pointing row and columns
+//    public ArrayList<Food_Item_CIF4> Query_Specific_Food_Items_Table(String food_item_name) {
+//        //Alogrithm Engineering : Get cursor pointing row and columns
+//
+//        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_FOODITEMS + " WHERE " + COLUMN_FOODITEMS_FOOD_ITEM_NAME + " LIKE " + "'" + "%" + food_item_name + "%" + "'", null);
+//        cursor.moveToFirst();
+//        FoodItemsCursor foodItemCursor = new FoodItemsCursor(cursor);
+//        Log.d("Calorie Countdown", "Check to state of Cursor");
+//        if (foodItemCursor.getCount() < 1) {
+//            ArrayList<Food_Item_CIF4> placebo = new ArrayList<Food_Item_CIF4>();
+//            Food_Item_CIF4 not_found = new Food_Item_CIF4();
+//            not_found.Set_food_item_name(food_item_name + " not found");
+//            placebo.add(not_found);
+//            foodItemCursor.close();
+//            return placebo;
+//        } else {
+//            return GetFoodItemII(new FoodItemsCursor(cursor));
+//        }
+//
+//    }
+//
 
-        Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_FOODITEMS + " WHERE " + COLUMN_FOODITEMS_FOOD_ITEM_NAME + " LIKE " + "'" + "%" + food_item_name + "%" + "'", null);
-        cursor.moveToFirst();
-        FoodItemsCursor foodItemCursor = new FoodItemsCursor(cursor);
-        Log.d("Calorie Countdown", "Check to state of Cursor");
-        if (foodItemCursor.getCount() < 1) {
-            ArrayList<Food_Item_CIF4> placebo = new ArrayList<Food_Item_CIF4>();
-            Food_Item_CIF4 not_found = new Food_Item_CIF4();
-            not_found.Set_food_item_name(food_item_name + " not found");
-            placebo.add(not_found);
-            foodItemCursor.close();
-            return placebo;
+    public void Query_Specific_Food_Items_Table(final Context context, final String food_item_name, final FoodSearchCallback callback) {
+        ArrayList<Food_Item_CIF4> results = new ArrayList<>();
+        final SQLiteDatabase db = getWritableDatabase();
+
+        // Initialize API client with proper context
+        SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(context);
+
+        // Check internet
+        if (NetworkUtil.isInternetAvailable(context)) {
+            Log.d("FoodSearch", "🌐 Internet available, searching from API...");
+
+            apiClient.searchFood(food_item_name, new ApiResultCallback() { // <-- Use ApiResultCallback
+                @Override
+                public void onSuccess(String response) {
+                    if (response != null && !response.trim().isEmpty()) {
+                        ArrayList<Food_Item_CIF4> parsedList = parseFoodApiResponse(response);
+                        if (parsedList != null && !parsedList.isEmpty()) {
+                            Log.d("FoodSearch", "✅ Found " + parsedList.size() + " items from API");
+                            callback.onResult(parsedList);
+                            return;
+                        } else {
+                            Log.d("FoodSearch", "⚠️ API returned empty list, falling back to local DB");
+                        }
+                    } else {
+                        Log.d("FoodSearch", "⚠️ API response is null or empty, falling back to local DB");
+                    }
+
+                    // Fallback to local DB if API fails
+                    searchLocalDB(db, food_item_name, callback);
+                }
+
+                @Override
+                public void onFailure() {
+                    Log.d("FoodSearch", "⚠️ API call failed, searching local DB");
+                    searchLocalDB(db, food_item_name, callback);
+                }
+            });
+
         } else {
-            return GetFoodItemII(new FoodItemsCursor(cursor));
+            Log.d("FoodSearch", "📴 No Internet, searching only from SQLite");
+            searchLocalDB(db, food_item_name, callback);
+        }
+    }
+
+
+    private void searchLocalDB(SQLiteDatabase db, String food_item_name, FoodSearchCallback callback) {
+        ArrayList<Food_Item_CIF4> results = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_FOODITEMS + " WHERE " + COLUMN_FOODITEMS_FOOD_ITEM_NAME + " LIKE ?",
+                    new String[]{"%" + food_item_name + "%"}
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                FoodItemsCursor foodItemCursor = new FoodItemsCursor(cursor);
+
+                if (foodItemCursor.getCount() > 0) {
+                    results.addAll(GetFoodItemII(foodItemCursor));
+                } else {
+                    Food_Item_CIF4 notFound = new Food_Item_CIF4();
+                    notFound.Set_food_item_name(food_item_name + " not found");
+                    results.add(notFound);
+                }
+
+                foodItemCursor.close();
+            } else {
+                Food_Item_CIF4 notFound = new Food_Item_CIF4();
+                notFound.Set_food_item_name(food_item_name + " not found");
+                results.add(notFound);
+            }
+
+        } catch (Exception e) {
+            Log.e("FoodSearch", "❌ Error while searching food: " + e.getMessage(), e);
+            Food_Item_CIF4 errorItem = new Food_Item_CIF4();
+            errorItem.Set_food_item_name("Error: " + e.getMessage());
+            results.add(errorItem);
+        } finally {
+            if (cursor != null) cursor.close();
+            if (db != null && db.isOpen()) db.close();
         }
 
+        callback.onResult(results);
     }
+
+
+
+    private ArrayList<Food_Item_CIF4> parseFoodApiResponse(String jsonResponse) {
+        ArrayList<Food_Item_CIF4> foodList = new ArrayList<>();
+
+        try {
+            if (jsonResponse == null || jsonResponse.isEmpty()) {
+                Log.w("FoodSearch", "⚠️ Empty API response");
+                return foodList;
+            }
+
+            JSONObject root = new JSONObject(jsonResponse);
+
+            // Validate success
+            boolean success = root.optBoolean("success", false);
+            if (!success) {
+                Log.w("FoodSearch", "⚠️ API returned success=false");
+                return foodList;
+            }
+
+            // Extract items array
+            JSONArray itemsArray = root.optJSONArray("items");
+            if (itemsArray == null) {
+                Log.w("FoodSearch", "⚠️ No 'items' array found in JSON");
+                return foodList;
+            }
+
+            // Loop through each item
+            for (int i = 0; i < itemsArray.length(); i++) {
+                JSONObject obj = itemsArray.getJSONObject(i);
+                Food_Item_CIF4 item = new Food_Item_CIF4();
+
+                // ✅ Map JSON keys → model fields
+                item.Set_food_item_name(obj.optString("food_item_name", ""));
+                item.Set_id(obj.optInt("id", 0));
+                item.Set_food_type(obj.optString("food_type", null));
+                item.Set_grams_per_serving_portion((float) obj.optDouble("grams_per_serving", 0));
+                item.Set_calories_per_100g((float) obj.optDouble("calories_per_100g", 0));
+                item.Set_fat_per_100g((float) obj.optDouble("fat_per_100g", 0));
+                item.Set_saturated_fat((float) obj.optDouble("saturated_fat", 0));
+                item.Set_trans_fat((float) obj.optDouble("trans_fat", 0));
+                item.Set_protein_per_100g((float) obj.optDouble("protein_per_100g", 0));
+                item.Set_carbs_per_100g((float) obj.optDouble("carbs_per_100g", 0));
+                item.Set_sugar_per_100g((float) obj.optDouble("sugar_per_100g", 0));
+                item.Set_salt_per_100g((float) obj.optDouble("salt_per_100g", 0));
+                item.Set_wellbeing_index(obj.optDouble("wellbeing_index", 0) > 0);
+                item.Set_fiber((float) obj.optDouble("fiber", 0));
+                item.Set_price_sterling((float) obj.optDouble("price_sterling", 0));
+                item.Set_polyunsaturated((float) obj.optDouble("polyunsaturated", 0));
+                item.Set_monounsaturated((float) obj.optDouble("monounsaturated", 0));
+                item.Set_cholesterol_mg((float) obj.optDouble("cholesterol_mg", 0));
+                item.Set_sodium_mg((float) obj.optDouble("sodium_mg", 0));
+                item.Set_potassium_mg((float) obj.optDouble("potassium_mg", 0));
+                item.Set_vitamin_a_percent((float) obj.optDouble("vitamin_a_percent", 0));
+                item.Set_vitamin_c_percent((float) obj.optDouble("vitamin_c_percent", 0));
+                item.Set_calcium_percent((float) obj.optDouble("calcium_percent", 0));
+                item.Set_iron_percent((float) obj.optDouble("iron_percent", 0));
+
+
+                foodList.add(item);
+            }
+
+        } catch (Exception e) {
+            Log.e("FoodSearch", "❌ Error parsing API response: " + e.getMessage());
+        }
+
+        return foodList;
+    }
+
+
 
     public String GetLatestBalance() {
         Date today = new Date();
