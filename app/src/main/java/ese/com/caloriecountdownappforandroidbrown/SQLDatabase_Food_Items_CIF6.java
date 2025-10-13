@@ -962,7 +962,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-
     private ArrayList<Food_Item_CIF4> parseFoodApiResponse(String jsonResponse) {
         ArrayList<Food_Item_CIF4> foodList = new ArrayList<>();
 
@@ -1029,7 +1028,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         return foodList;
     }
-
 
 
     public String GetLatestBalance() {
@@ -2774,7 +2772,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
-
     // DBHelper
     public void markAllAsTransferred() {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -2807,7 +2804,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public int getTotalCalories() {
         int totalCalories = 0;
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_QUICK_FOOD_NOTE_CALORIES + ") FROM " + TABLE_QUICK_FOOD_NOTE, null);
+        String query = "SELECT SUM(" + COLUMN_QUICK_FOOD_NOTE_CALORIES + ") FROM "
+                + TABLE_QUICK_FOOD_NOTE + " WHERE " + COLUMN_IS_TRANSFERRED + " = 0";
+        Cursor cursor = db.rawQuery(query, null);
         if (cursor.moveToFirst()) {
             totalCalories = cursor.getInt(0);
             android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
@@ -2852,7 +2851,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         db.close();
     }
-
 
 
     public void insertWaterData(int mlWaterDrunk, double equivalentCups) {

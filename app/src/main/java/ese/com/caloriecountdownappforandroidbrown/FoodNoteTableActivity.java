@@ -2,6 +2,7 @@ package ese.com.caloriecountdownappforandroidbrown;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -49,6 +50,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnTransferCredit = findViewById(R.id.btnTransferCredit);
         Button btnFoodNoteAi = findViewById(R.id.btnFoodNoteAi);
         Button btnDeleteFoodNote = findViewById(R.id.btnDeleteNote);
+        Button btnKitty = findViewById(R.id.btnKitty);
 
         loadFoodNotesFromDatabase();
 
@@ -109,6 +111,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 handleAiButtonClick(false, false);
+            }
+        });
+        btnKitty.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleKittyButtonClick();
             }
         });
     }
@@ -601,5 +609,43 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void handleKittyButtonClick() {
+        int totalCalories = databaseHelper.getTotalCalories();
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        String userGender = pref.getString("user_gender", null);
+        if (userGender == null) {
+            SharedPreferences.Editor editor = pref.edit();
+            editor.putString("user_gender", "female");
+            editor.apply();
+            userGender = "female";
+        }
+
+        int budget = userGender.equalsIgnoreCase("female") ? 2000 : 2500;
+        int result = budget - totalCalories;
+        String message;
+
+        if (result > 0) {
+            message = "You have " + result + " Calories left in your Kitty.";
+        } else if (result == 0) {
+            message = "You have 0 Calories left in your Kitty.";
+        } else {
+            int stepChallenge = StepChallengeFun(Math.abs(result)); // placeholder function
+            message = "You have 0 Calories left in your Kitty and have the additional challenge of doing "
+                    + stepChallenge + " steps by 7 PM or midnight.";
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Kitty Report")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private int StepChallengeFun(int calories) {
+        // TODO: Implement your logic later
+        return calories * 20; // Example placeholder conversion
+    }
+
 
 }
