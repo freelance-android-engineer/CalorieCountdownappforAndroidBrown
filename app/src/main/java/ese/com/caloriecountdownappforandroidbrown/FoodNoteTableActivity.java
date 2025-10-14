@@ -411,7 +411,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             cursor.close();
 
             if (hasZeroValue) {
-                databaseHelper.markAllAsTransferred();
+                databaseHelper.transferLastNFoodNotes(10);  // Transfer only last 10 notes
                 launchCreditView();
             } else {
                 Toast.makeText(FoodNoteTableActivity.this, "No notes to transfer", Toast.LENGTH_SHORT).show();

@@ -7,10 +7,7 @@ import android.content.Intent;
 import androidx.fragment.app.FragmentActivity;
 //import android.support.v7.app.ActionBarActivity;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,8 +24,6 @@ import android.view.textservice.SuggestionsInfo;
 import android.view.textservice.SentenceSuggestionsInfo;
 import android.view.textservice.TextInfo;
 import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
 
 // Controller Class for Food Diary Screen/Credit/Menuitem
 
@@ -1320,19 +1315,60 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 return;
             }
 
+            // Array to store EditText field IDs for each row
+            // Each inner array contains: [food_id, calories_id, quantity_id]
+            int[][] editTextIds = {
+                {R.id.edit_text6, R.id.edit_text7, R.id.edit_text8},       // Row 1
+                {R.id.edit_text9, R.id.edit_text10, R.id.edit_text11},     // Row 2
+                {R.id.edit_text12, R.id.edit_text13, R.id.edit_text14},    // Row 3
+                {R.id.edit_text15, R.id.edit_text16, R.id.edit_text17},    // Row 4
+                {R.id.edit_text18, R.id.edit_text19, R.id.edit_text20},    // Row 5
+                {R.id.edit_text21, R.id.edit_text22, R.id.edit_text23},    // Row 6
+                {R.id.edit_text24, R.id.edit_text25, R.id.edit_text26},    // Row 7
+                {R.id.edit_text27, R.id.edit_text28, R.id.edit_text29},    // Row 8
+                {R.id.edit_text30, R.id.edit_text31, R.id.edit_text32},    // Row 9
+                {R.id.edit_text33, R.id.edit_text34, R.id.edit_text35}     // Row 10
+            };
+
+            int rowIndex = 0;
+            int maxRows = editTextIds.length; // Maximum 10 rows
+
             do {
+                // Check if we've reached the maximum number of rows
+                if (rowIndex >= maxRows) {
+                    android.util.Log.w("FOOD NOTES", "Maximum " + maxRows + " rows reached. Remaining data will not be displayed.");
+                    break;
+                }
+
                 String dateTime   = cursor.getString(dateIndex);
                 String food       = cursor.getString(foodIndex);
                 String calories   = cursor.getString(caloriesIndex);
                 String quantity   = cursor.getString(quantityIndex);
 
                 android.util.Log.d("FOOD NOTES",
-                        "Transferred Data: " + dateTime + " | " + food + " | " + calories + " | " + quantity);
+                        "Transferred Data [Row " + (rowIndex + 1) + "]: " + dateTime + " | " + food + " | " + calories + " | " + quantity);
 
-                // Safely add row
-                addRowToTable(food, calories, quantity);
+                // Get EditText fields for current row
+                EditText foodEditText = findViewById(editTextIds[rowIndex][0]);
+                EditText caloriesEditText = findViewById(editTextIds[rowIndex][1]);
+                EditText quantityEditText = findViewById(editTextIds[rowIndex][2]);
+
+                // Populate EditText fields with data
+                if (foodEditText != null) {
+                    foodEditText.setText(food != null ? food : "");
+                }
+                if (caloriesEditText != null) {
+                    caloriesEditText.setText(calories != null ? calories : "");
+                }
+                if (quantityEditText != null) {
+                    quantityEditText.setText(quantity != null ? quantity : "");
+                }
+
+                rowIndex++;
 
             } while (cursor.moveToNext());
+
+            android.util.Log.d("FOOD NOTES", "Successfully loaded " + rowIndex + " transferred food notes into EditText fields.");
 
         } catch (Exception e) {
             // ✅ Catch any unexpected error instead of crashing
@@ -1343,62 +1379,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 cursor.close();
             }
         }
-    }
-
-    private void addRowToTable(String food, String calories, String quantity) {
-        TableLayout tableLayout = findViewById(R.id.foodTableLayout);
-
-        // Create a row
-        TableRow row = new TableRow(this);
-        row.setLayoutParams(new TableLayout.LayoutParams(
-                TableLayout.LayoutParams.MATCH_PARENT,
-                TableLayout.LayoutParams.WRAP_CONTENT
-        ));
-
-        // Food column
-        row.addView(createColumnTextView(food, 2f, Gravity.START));
-
-        // Calories column
-        row.addView(createColumnTextView(calories, 1f, Gravity.END));
-
-        // Quantity column
-        row.addView(createColumnTextView(quantity, 1f, Gravity.END));
-
-        // Insert before first EditText row
-        TableRow firstEditTextRow = findViewById(R.id.tablerow2);
-        int insertIndex = tableLayout.indexOfChild(firstEditTextRow);
-
-        // Add row
-        tableLayout.addView(row, insertIndex);
-
-        // Add divider (a thin View)
-        View divider = new View(this);
-        TableLayout.LayoutParams params = new TableLayout.LayoutParams(
-                TableLayout.LayoutParams.MATCH_PARENT,
-                2 // thickness of divider
-        );
-        params.setMargins(0, 5, 0, 0); // spacing above and below
-        divider.setLayoutParams(params);
-        divider.setBackgroundColor(Color.BLACK);
-
-        tableLayout.addView(divider, insertIndex + 1);
-    }
-
-    private TextView createColumnTextView(String text, float weight, int gravity) {
-        TextView textView = new TextView(this);
-        textView.setText(text);
-        textView.setTextColor(Color.BLACK);
-        textView.setGravity(gravity | Gravity.CENTER_VERTICAL);
-        textView.setLayoutParams(new TableRow.LayoutParams(
-                0, // width 0dp → use weight
-                TableRow.LayoutParams.WRAP_CONTENT,
-                weight // weight determines column width
-        ));
-        textView.setPadding(15, 15, 15, 15); // uniform padding
-        textView.setTextSize(16);
-        textView.setSingleLine(false); // allow wrapping if needed
-        textView.setEllipsize(null);   // prevent truncation
-        return textView;
     }
 
 }

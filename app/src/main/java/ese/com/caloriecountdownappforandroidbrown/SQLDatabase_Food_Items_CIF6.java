@@ -2801,6 +2801,130 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE + " WHERE isTransferred = 1", null);
     }
 
+    /**
+     * Transfers up to N food notes while maintaining a maximum of N transferred notes at all times.
+     * <p>
+     * Logic:
+     * 1. Count existing transferred notes (isTransferred = 1)
+     * 2. Count available notes to transfer (isTransferred = 0)
+     * 3. Calculate how many to transfer (minimum of available or limit)
+     * 4. Calculate total after transfer
+     * 5. If total > limit, delete oldest transferred notes by datetime to make room
+     * 6. Mark new notes as transferred
+     * <p>
+     * Example scenarios:
+     * - 15 available, 0 transferred, limit=10 → Transfer 10, delete 0
+     * - 15 available, 10 transferred, limit=10 → Transfer 10, delete 10 (oldest by date)
+     * - 5 available, 10 transferred, limit=10 → Transfer 5, delete 5 (oldest by date)
+     * - 8 available, 3 transferred, limit=10 → Transfer 8, delete 1 (to keep total at 10)
+     *
+     * @param limit Maximum number of transferred notes to maintain (e.g., 10)
+     */
+    public void transferLastNFoodNotes(int limit) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        try {
+            db.beginTransaction();
+
+            // Step 1: Count existing transferred notes (isTransferred = 1)
+            String countExistingQuery = "SELECT COUNT(*) FROM " + TABLE_QUICK_FOOD_NOTE +
+                    " WHERE " + COLUMN_IS_TRANSFERRED + " = 1";
+            Cursor existingCursor = db.rawQuery(countExistingQuery, null);
+            int existingCount = 0;
+            if (existingCursor.moveToFirst()) {
+                existingCount = existingCursor.getInt(0);
+            }
+            existingCursor.close();
+
+            // Step 2: Count available notes to transfer (isTransferred = 0)
+            String countAvailableQuery = "SELECT COUNT(*) FROM " + TABLE_QUICK_FOOD_NOTE +
+                    " WHERE " + COLUMN_IS_TRANSFERRED + " = 0";
+            Cursor availableCursor = db.rawQuery(countAvailableQuery, null);
+            int availableCount = 0;
+            if (availableCursor.moveToFirst()) {
+                availableCount = availableCursor.getInt(0);
+            }
+            availableCursor.close();
+
+            // Step 3: Calculate how many we want to transfer (minimum of available or limit)
+            int wantToTransfer = Math.min(availableCount, limit);
+
+            // Step 4: Calculate total after transfer
+            int totalAfterTransfer = existingCount + wantToTransfer;
+
+            // Step 5: Calculate how many to delete to maintain max limit
+            int deleteCount = Math.max(0, totalAfterTransfer - limit);
+
+            android.util.Log.d("TRANSFER NOTES",
+                    "Existing transferred: " + existingCount +
+                            ", Available to transfer: " + availableCount +
+                            ", Want to transfer: " + wantToTransfer +
+                            ", Total after: " + totalAfterTransfer +
+                            ", Will delete: " + deleteCount);
+
+            // Step 6: Delete oldest transferred notes by datetime if needed
+            if (deleteCount > 0) {
+                String deleteQuery = "DELETE FROM " + TABLE_QUICK_FOOD_NOTE +
+                        " WHERE " + COLUMN_QUICK_FOOD_NOTE_ID + " IN (" +
+                        "SELECT " + COLUMN_QUICK_FOOD_NOTE_ID + " FROM " + TABLE_QUICK_FOOD_NOTE +
+                        " WHERE " + COLUMN_IS_TRANSFERRED + " = 1" +
+                        " ORDER BY " + COLUMN_QUICK_FOOD_NOTE_DATE + " ASC" +
+                        " LIMIT " + deleteCount +
+                        ")";
+                db.execSQL(deleteQuery);
+                android.util.Log.d("TRANSFER NOTES", "Deleted " + deleteCount + " oldest transferred notes (by datetime)");
+            }
+
+            // Step 7: Get the IDs of notes to transfer (newest first by note_id)
+            if (wantToTransfer > 0) {
+                String query = "SELECT " + COLUMN_QUICK_FOOD_NOTE_ID + " FROM " + TABLE_QUICK_FOOD_NOTE +
+                        " WHERE " + COLUMN_IS_TRANSFERRED + " = 0" +
+                        " ORDER BY " + COLUMN_QUICK_FOOD_NOTE_ID + " DESC" +
+                        " LIMIT " + wantToTransfer;
+
+                Cursor cursor = db.rawQuery(query, null);
+                ArrayList<Integer> noteIdsToTransfer = new ArrayList<>();
+
+                if (cursor != null && cursor.moveToFirst()) {
+                    int idIndex = cursor.getColumnIndex(COLUMN_QUICK_FOOD_NOTE_ID);
+                    do {
+                        noteIdsToTransfer.add(cursor.getInt(idIndex));
+                    } while (cursor.moveToNext());
+                    cursor.close();
+                }
+
+                android.util.Log.d("TRANSFER NOTES", "Found " + noteIdsToTransfer.size() + " notes to transfer");
+
+                // Step 8: Mark those specific notes as transferred
+                if (!noteIdsToTransfer.isEmpty()) {
+                    ContentValues transferValues = new ContentValues();
+                    transferValues.put(COLUMN_IS_TRANSFERRED, 1);
+
+                    for (Integer noteId : noteIdsToTransfer) {
+                        db.update(
+                                TABLE_QUICK_FOOD_NOTE,
+                                transferValues,
+                                COLUMN_QUICK_FOOD_NOTE_ID + " = ?",
+                                new String[]{String.valueOf(noteId)}
+                        );
+                    }
+
+                    android.util.Log.d("TRANSFER NOTES", "Marked " + noteIdsToTransfer.size() + " notes as transferred");
+                }
+            }
+
+            db.setTransactionSuccessful();
+
+            android.util.Log.d("TRANSFER NOTES", "Transfer completed successfully. Max " + limit + " transferred notes maintained.");
+
+        } catch (Exception e) {
+            android.util.Log.e("TRANSFER NOTES", "Error during transfer: " + e.getMessage(), e);
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+    }
+
     public int getTotalCalories() {
         int totalCalories = 0;
         SQLiteDatabase db = this.getReadableDatabase();
