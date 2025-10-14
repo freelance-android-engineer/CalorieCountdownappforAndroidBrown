@@ -69,13 +69,23 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         });
 
         btnSumCalories.setOnClickListener(v -> {
-            executorService.submit(() -> {
-                int totalCalories = databaseHelper.getTotalCalories();
-                runOnUiThread(() -> {
-                    Toast.makeText(FoodNoteTableActivity.this, "Total calories" + totalCalories, Toast.LENGTH_SHORT).show();
-                    showTotalCaloriesDialog(totalCalories);
+            // First check if any notes are selected
+            int selectedCalories = sumSelectedNotes();
+
+            if (selectedCalories != -1) {
+                // If notes are selected, use the sum of selected notes only
+                Toast.makeText(FoodNoteTableActivity.this, "Total calories (selected): " + selectedCalories, Toast.LENGTH_SHORT).show();
+                showTotalCaloriesDialog(selectedCalories);
+            } else {
+                // Otherwise, use the existing logic (sum all where is_transferred = 0)
+                executorService.submit(() -> {
+                    int totalCalories = databaseHelper.getTotalCalories();
+                    runOnUiThread(() -> {
+                        Toast.makeText(FoodNoteTableActivity.this, "Total calories: " + totalCalories, Toast.LENGTH_SHORT).show();
+                        showTotalCaloriesDialog(totalCalories);
+                    });
                 });
-            });
+            }
         });
 
         btnInputNote.setOnClickListener(new View.OnClickListener() {
@@ -645,6 +655,42 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private int StepChallengeFun(int calories) {
         // TODO: Implement your logic later
         return calories * 20; // Example placeholder conversion
+    }
+
+    /**
+     * Calculates the sum of calories for only the selected food notes (checked checkboxes)
+     * @return total calories of selected notes, or -1 if no notes are selected
+     */
+    private int sumSelectedNotes() {
+        int totalCalories = 0;
+        boolean hasSelection = false;
+
+        // Iterate through table rows (skip header at index 0)
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+
+            // Get checkbox (index 0) and calories (index 3)
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            TextView caloriesText = (TextView) row.getChildAt(3);
+
+            if (checkBox.isChecked()) {
+                hasSelection = true;
+                String caloriesStr = caloriesText.getText().toString().trim();
+
+                // Parse calories, handle empty or invalid values
+                if (!caloriesStr.isEmpty()) {
+                    try {
+                        int calories = Integer.parseInt(caloriesStr);
+                        totalCalories += calories;
+                    } catch (NumberFormatException e) {
+                        android.util.Log.w("FoodNote", "Invalid calories value: " + caloriesStr);
+                    }
+                }
+            }
+        }
+
+        // Return -1 if no selection, otherwise return the sum
+        return hasSelection ? totalCalories : -1;
     }
 
 
