@@ -772,34 +772,50 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     /**
      * Check on activity open and show mandatory date picker if needed.
-     * Dialog only shows automatically AFTER 4 PM if user hasn't selected a date today.
+     * Dialog shows when:
+     * 1. After 4 PM and user hasn't selected a date for the current period
+     * 2. First-time user (no date ever selected)
      * Before 4 PM, user can continue with the previously selected date.
      */
     private void checkAndShowMandatoryDatePicker() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String lastSelectedDate = prefs.getString(PREF_LAST_SELECTED_DATE, null);
 
+        android.util.Log.d("DATE_PICKER", "checkAndShowMandatoryDatePicker called");
+        android.util.Log.d("DATE_PICKER", "Last selected date: " + lastSelectedDate);
+
+        // First-time user - must select a date before proceeding
+        if (lastSelectedDate == null) {
+            android.util.Log.d("DATE_PICKER", "First-time user - showing mandatory date picker");
+            showMandatoryDatePickerDialog();
+            return;
+        }
+
         // Get current time
         Calendar now = Calendar.getInstance();
         int currentHour = now.get(Calendar.HOUR_OF_DAY);
+        android.util.Log.d("DATE_PICKER", "Current hour: " + currentHour);
+
+        // Check if user needs to select a new date
+        boolean needsNewSelection = canSelectDateToday();
+        android.util.Log.d("DATE_PICKER", "Needs new selection: " + needsNewSelection);
 
         // Only show automatic dialog if it's after 4 PM (16:00)
         if (currentHour >= 16) {
-            if (lastSelectedDate != null && !canSelectDateToday()) {
-                // User has already selected a date today, just show the title
-                updateDateRangeTitle(lastSelectedDate);
-            } else {
+            android.util.Log.d("DATE_PICKER", "After 4 PM");
+            if (needsNewSelection) {
                 // User needs to select a date - show mandatory dialog
+                android.util.Log.d("DATE_PICKER", "User can select a new date - showing dialog");
                 showMandatoryDatePickerDialog();
+            } else {
+                // User has already selected a date for this period, just show the title
+                android.util.Log.d("DATE_PICKER", "User already selected for this period - showing title");
+                updateDateRangeTitle(lastSelectedDate);
             }
         } else {
-            // Before 4 PM, just show last selected date if exists
-            if (lastSelectedDate != null) {
-                updateDateRangeTitle(lastSelectedDate);
-            } else {
-                // First time user, show default title
-                tvDateRangeTitle.setText("Food Notes for Today");
-            }
+            // Before 4 PM, just show last selected date
+            android.util.Log.d("DATE_PICKER", "Before 4 PM - showing last selected date");
+            updateDateRangeTitle(lastSelectedDate);
         }
     }
 
@@ -879,13 +895,18 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         long lastSelectionTime = prefs.getLong(PREF_SELECTED_DATE_TIMESTAMP, 0);
 
+        android.util.Log.d("DATE_PICKER", "canSelectDateToday - Last selection timestamp: " + lastSelectionTime);
+
         if (lastSelectionTime == 0) {
             // Never selected before
+            android.util.Log.d("DATE_PICKER", "Never selected before - returning true");
             return true;
         }
 
         // Get current time
         Calendar now = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
+        android.util.Log.d("DATE_PICKER", "Current time: " + sdf.format(now.getTime()));
 
         // Calculate the 4 PM (16:00) boundary
         Calendar resetBoundary = Calendar.getInstance();
@@ -896,11 +917,18 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         // If current time is before 4 PM today, use yesterday's 4 PM as boundary
         if (now.before(resetBoundary)) {
+            android.util.Log.d("DATE_PICKER", "Before 4 PM - adjusting boundary to yesterday");
             resetBoundary.add(Calendar.DAY_OF_MONTH, -1);
         }
 
+        android.util.Log.d("DATE_PICKER", "Reset boundary: " + sdf.format(resetBoundary.getTime()));
+        android.util.Log.d("DATE_PICKER", "Last selection was: " + sdf.format(new Date(lastSelectionTime)));
+
+        boolean canSelect = lastSelectionTime < resetBoundary.getTimeInMillis();
+        android.util.Log.d("DATE_PICKER", "Can select date: " + canSelect);
+
         // Check if last selection was before the boundary
-        return lastSelectionTime < resetBoundary.getTimeInMillis();
+        return canSelect;
     }
 
     /**
