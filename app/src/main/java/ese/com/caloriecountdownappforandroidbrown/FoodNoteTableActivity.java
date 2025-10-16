@@ -1,30 +1,48 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import android.Manifest;
+import android.app.DatePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,13 +54,39 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private SQLDatabase_Food_Items_CIF6 databaseHelper;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+    // SharedPreferences constants
+    private static final String PREFS_NAME = "FoodNotePrefs";
+    private static final String PREF_LAST_SELECTED_DATE = "last_selected_date";
+    private static final String PREF_SELECTED_DATE_TIMESTAMP = "selected_date_timestamp";
+
+    private TextView tvDateRangeTitle;
+
+    // Camera and Gallery constants
+    private static final int REQUEST_CAMERA_PERMISSION = 100;
+    private static final int REQUEST_STORAGE_PERMISSION = 101;
+    private static final int REQUEST_CAMERA_CAPTURE = 102;
+    private static final int REQUEST_GALLERY_PICK = 103;
+
+    // Dialog components for image upload
+    private AlertDialog imageUploadDialog;
+    private ImageView dialogImageView;
+    private TextView dialogOverlayText;
+    private Button dialogScanButton;
+    private ProgressBar dialogProgressBar;
+    private TextView dialogStatusText;
+    private String currentImageBase64 = null;
+    private FoodDetectionService foodDetectionService;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_food_note_table);
         tableLayout = findViewById(R.id.tableLayout);
         databaseHelper = new SQLDatabase_Food_Items_CIF6(this);
+        foodDetectionService = new FoodDetectionService(this, databaseHelper);
+
         Button btnAddNewRow = findViewById(R.id.btnAddNewRow);
+        Button btnAddRowWithImage = findViewById(R.id.btnAddRowWithImage);
         Button btnEditNote = findViewById(R.id.btnEditRow);
         Button btnAddCertainty = findViewById(R.id.btnAddCertainty);
         Button btnSumCalories = findViewById(R.id.btnSumCalories);
@@ -52,12 +96,34 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnDeleteFoodNote = findViewById(R.id.btnDeleteNote);
         Button btnKitty = findViewById(R.id.btnKitty);
 
+        // Initialize date range title
+        tvDateRangeTitle = findViewById(R.id.tvDateRangeTitle);
+
+        // Initialize edit icon for date selection
+        ImageView ivEditDate = findViewById(R.id.ivEditDate);
+        ivEditDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showMandatoryDatePickerDialog();
+            }
+        });
+
+        // Check if user needs to select date and show mandatory dialog
+        checkAndShowMandatoryDatePicker();
+
         loadFoodNotesFromDatabase();
 
         btnAddNewRow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showFoodInputDialog(null, "", "", "");
+            }
+        });
+
+        btnAddRowWithImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAddRowWithImageDialog();
             }
         });
 
@@ -278,8 +344,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     private void loadFoodNotesFromDatabase() {
+        android.util.Log.d("FOOD NOTES", "Loading food notes from database...");
         Cursor cursor = databaseHelper.getAllFoodNotes();
         if (cursor != null && cursor.moveToFirst()) {
+            android.util.Log.d("FOOD NOTES", "Cursor has data, total rows: " + cursor.getCount());
             int noteId = cursor.getColumnIndex("note_id");
             int dateIndex = cursor.getColumnIndex("note_date");
             int foodIndex = cursor.getColumnIndex("note_food");
@@ -294,8 +362,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 return;
             }
 
+            int loadedCount = 0;
             do {
                 int isTransferred = cursor.getInt(transferredIndex);
+                android.util.Log.d("FOOD NOTES", "Row isTransferred: " + isTransferred);
 
                 if (isTransferred == 0) {
                     long id = cursor.getLong(noteId);
@@ -303,10 +373,15 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     String food = cursor.getString(foodIndex);
                     String calories = cursor.getString(caloriesIndex);
                     String quantity = cursor.getString(quantityIndex);
+                    android.util.Log.d("FOOD NOTES", "Loading row: ID=" + id + ", Food=" + food + ", Calories=" + calories + ", Quantity=" + quantity);
                     addRowToTable((int) id, food, quantity, calories, dateTime);
+                    loadedCount++;
                 }
             } while (cursor.moveToNext());
+            android.util.Log.d("FOOD NOTES", "Loaded " + loadedCount + " food notes from database");
             cursor.close();
+        } else {
+            android.util.Log.d("FOOD NOTES", "No data in cursor or cursor is null");
         }
     }
 
@@ -693,5 +768,426 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         return hasSelection ? totalCalories : -1;
     }
 
+    // ========== DATE PICKER LOGIC ==========
+
+    /**
+     * Check on activity open and show mandatory date picker if needed.
+     * Dialog only shows automatically AFTER 4 PM if user hasn't selected a date today.
+     * Before 4 PM, user can continue with the previously selected date.
+     */
+    private void checkAndShowMandatoryDatePicker() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String lastSelectedDate = prefs.getString(PREF_LAST_SELECTED_DATE, null);
+
+        // Get current time
+        Calendar now = Calendar.getInstance();
+        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+
+        // Only show automatic dialog if it's after 4 PM (16:00)
+        if (currentHour >= 16) {
+            if (lastSelectedDate != null && !canSelectDateToday()) {
+                // User has already selected a date today, just show the title
+                updateDateRangeTitle(lastSelectedDate);
+            } else {
+                // User needs to select a date - show mandatory dialog
+                showMandatoryDatePickerDialog();
+            }
+        } else {
+            // Before 4 PM, just show last selected date if exists
+            if (lastSelectedDate != null) {
+                updateDateRangeTitle(lastSelectedDate);
+            } else {
+                // First time user, show default title
+                tvDateRangeTitle.setText("Food Notes for Today");
+            }
+        }
+    }
+
+    /**
+     * Show a mandatory date picker dialog (non-dismissible).
+     * User cannot proceed without selecting a date.
+     */
+    private void showMandatoryDatePickerDialog() {
+        Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                R.style.DatePickerTheme,  // Your custom theme
+                new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker view, int selectedYear, int selectedMonth, int selectedDay) {
+                        // Create a calendar for the selected date
+                        Calendar selectedDate = Calendar.getInstance();
+                        selectedDate.set(selectedYear, selectedMonth, selectedDay);
+
+                        // Format the selected date as "dd MMM yy" (e.g., "10 OCT 25")
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yy", Locale.getDefault());
+                        String formattedDate = dateFormat.format(selectedDate.getTime());
+
+                        // Save the selected date to SharedPreferences
+                        saveSelectedDate(formattedDate);
+
+                        // Update the title
+                        updateDateRangeTitle(formattedDate);
+
+                        Toast.makeText(FoodNoteTableActivity.this,
+                                "Date selected: " + formattedDate,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                },
+                year, month, day
+        );
+
+        // Prevent dismissing without selection
+        datePickerDialog.setCancelable(false);
+        datePickerDialog.setCanceledOnTouchOutside(false);
+
+        // Remove the Cancel button entirely
+        datePickerDialog.setButton(DialogInterface.BUTTON_NEGATIVE, null, (DialogInterface.OnClickListener) null);
+
+        // Disable future dates
+        datePickerDialog.getDatePicker().setMaxDate(calendar.getTimeInMillis());
+
+        // Show the dialog
+        datePickerDialog.show();
+
+        // After showing, explicitly hide the cancel button (for some OEMs that auto-add it)
+        Button cancelButton = datePickerDialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        if (cancelButton != null) {
+            cancelButton.setVisibility(View.GONE);
+        }
+    }
+
+
+
+    /**
+     * Check if the user can select a date today.
+     * The user can select a date once per day. After 4 PM the next day, they can select again.
+     *
+     * Logic:
+     * 1. Get current time
+     * 2. Calculate the "reset boundary" - today at 4 PM (16:00)
+     * 3. If current time < 4 PM, use yesterday at 4 PM as the boundary
+     * 4. Check if last selection was before this boundary
+     *
+     * @return true if the user can select a date, false otherwise
+     */
+    private boolean canSelectDateToday() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        long lastSelectionTime = prefs.getLong(PREF_SELECTED_DATE_TIMESTAMP, 0);
+
+        if (lastSelectionTime == 0) {
+            // Never selected before
+            return true;
+        }
+
+        // Get current time
+        Calendar now = Calendar.getInstance();
+
+        // Calculate the 4 PM (16:00) boundary
+        Calendar resetBoundary = Calendar.getInstance();
+        resetBoundary.set(Calendar.HOUR_OF_DAY, 16);
+        resetBoundary.set(Calendar.MINUTE, 0);
+        resetBoundary.set(Calendar.SECOND, 0);
+        resetBoundary.set(Calendar.MILLISECOND, 0);
+
+        // If current time is before 4 PM today, use yesterday's 4 PM as boundary
+        if (now.before(resetBoundary)) {
+            resetBoundary.add(Calendar.DAY_OF_MONTH, -1);
+        }
+
+        // Check if last selection was before the boundary
+        return lastSelectionTime < resetBoundary.getTimeInMillis();
+    }
+
+    /**
+     * Save the selected date to SharedPreferences
+     * @param selectedDate The selected date in "dd MMM yy" format
+     */
+    private void saveSelectedDate(String selectedDate) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(PREF_LAST_SELECTED_DATE, selectedDate);
+        editor.putLong(PREF_SELECTED_DATE_TIMESTAMP, System.currentTimeMillis());
+        editor.apply();
+
+        android.util.Log.d("DATE_PICKER", "Saved selected date: " + selectedDate + " at " + System.currentTimeMillis());
+    }
+
+    /**
+     * Update the date range title based on the selected date
+     *
+     * Format: "Food Notes between 4pm [previous_day] and 4pm [selected_day]"
+     * Example: User selects "10 OCT 25" → "Food Notes between 4pm 9 OCT and 4pm 10 OCT 25"
+     *
+     * @param selectedDateStr The selected date in "dd MMM yy" format
+     */
+    private void updateDateRangeTitle(String selectedDateStr) {
+        try {
+            // Parse the selected date
+            SimpleDateFormat inputFormat = new SimpleDateFormat("dd MMM yy", Locale.getDefault());
+            Date selectedDate = inputFormat.parse(selectedDateStr);
+
+            if (selectedDate != null) {
+                // Calculate previous day
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(selectedDate);
+                calendar.add(Calendar.DAY_OF_MONTH, -1);
+                Date previousDay = calendar.getTime();
+
+                // Format dates for display
+                SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM", Locale.getDefault());
+                String previousDayStr = outputFormat.format(previousDay);
+                String selectedDayStr = outputFormat.format(selectedDate) + " " + new SimpleDateFormat("yy", Locale.getDefault()).format(selectedDate);
+
+                // Build the title
+                String title = "Food Notes between 4pm " + previousDayStr + " and 4pm " + selectedDayStr;
+                tvDateRangeTitle.setText(title);
+
+                android.util.Log.d("DATE_PICKER", "Updated title: " + title);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("DATE_PICKER", "Error updating date range title: " + e.getMessage());
+            tvDateRangeTitle.setText("Food Notes for " + selectedDateStr);
+        }
+    }
+
+    // ========== ADD ROW WITH IMAGE LOGIC ==========
+
+    /**
+     * Show dialog to add food note with image
+     */
+    private void showAddRowWithImageDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_row_with_image, null);
+        builder.setView(view);
+        builder.setCancelable(false); // Prevent dismissing on outside click
+
+        imageUploadDialog = builder.create();
+        imageUploadDialog.setCanceledOnTouchOutside(false); // Extra safety
+
+        // Initialize dialog views
+        dialogImageView = view.findViewById(R.id.imageBox);
+        dialogOverlayText = view.findViewById(R.id.tvOverlayText);
+        dialogScanButton = view.findViewById(R.id.btnScanAndAdd);
+        dialogProgressBar = view.findViewById(R.id.progressBar);
+        dialogStatusText = view.findViewById(R.id.tvStatus);
+        Button btnCancel = view.findViewById(R.id.btnCancel);
+
+        // Reset state
+        currentImageBase64 = null;
+        dialogScanButton.setEnabled(false);
+        dialogProgressBar.setVisibility(View.GONE);
+        dialogStatusText.setVisibility(View.GONE);
+
+        // Image box click listener
+        dialogImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showImageSourceDialog();
+            }
+        });
+
+        // Cancel button
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                imageUploadDialog.dismiss();
+            }
+        });
+
+        // Scan and Add button
+        dialogScanButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (currentImageBase64 != null) {
+                    scanAndAddFoodNote();
+                } else {
+                    Toast.makeText(FoodNoteTableActivity.this, "Please upload an image first", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        imageUploadDialog.show();
+    }
+
+    /**
+     * Show dialog to choose between camera and gallery
+     */
+    private void showImageSourceDialog() {
+        String[] options = {"Camera", "Gallery"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Choose Image Source")
+                .setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which == 0) {
+                            // Camera
+                            openCamera();
+                        } else {
+                            // Gallery
+                            openGallery();
+                        }
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * Open camera to capture image
+     */
+    private void openCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+        } else {
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(intent, REQUEST_CAMERA_CAPTURE);
+            } else {
+                Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Open gallery to select image
+     * Note: ACTION_PICK doesn't require READ_EXTERNAL_STORAGE permission on modern Android
+     */
+    private void openGallery() {
+        // No permission needed for ACTION_PICK - it uses system picker with scoped storage
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, REQUEST_GALLERY_PICK);
+        } else {
+            Toast.makeText(this, "No gallery app found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Scan image and add food note to table
+     */
+    private void scanAndAddFoodNote() {
+        // Disable button and show loading
+        dialogScanButton.setEnabled(false);
+        dialogScanButton.setText("Scanning...");
+        dialogProgressBar.setVisibility(View.VISIBLE);
+        dialogStatusText.setVisibility(View.VISIBLE);
+        dialogStatusText.setText("Analyzing food image...");
+
+        foodDetectionService.fetchFoodNoteData(currentImageBase64, new FoodNoteCallback() {
+            @Override
+            public void onSuccess(String foodName, String calories, String quantity) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Insert into database
+                        String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
+                        android.util.Log.d("ADD_ROW_IMAGE", "Inserting food note: " + foodName + ", calories: " + calories + ", quantity: " + quantity);
+                        long insertedId = databaseHelper.insertFoodNote(currentDateTime, foodName, calories, quantity);
+                        android.util.Log.d("ADD_ROW_IMAGE", "Inserted with ID: " + insertedId);
+
+                        // Verify insertion by querying the database
+                        android.util.Log.d("ADD_ROW_IMAGE", "Verifying data was saved...");
+
+                        // Add to table
+                        addRowToTable((int) insertedId, foodName, quantity, calories, currentDateTime);
+                        android.util.Log.d("ADD_ROW_IMAGE", "Added row to table with ID: " + insertedId);
+
+                        Toast.makeText(FoodNoteTableActivity.this, "Food note added successfully! ID: " + insertedId, Toast.LENGTH_SHORT).show();
+
+                        // Close dialog
+                        imageUploadDialog.dismiss();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(String error) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Re-enable button and hide loading
+                        dialogScanButton.setEnabled(true);
+                        dialogScanButton.setText("Scan & Add Row");
+                        dialogProgressBar.setVisibility(View.GONE);
+                        dialogStatusText.setVisibility(View.GONE);
+
+                        Toast.makeText(FoodNoteTableActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Convert bitmap to base64 string
+     */
+    private String convertBitmapToBase64(Bitmap bitmap) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
+        byte[] imageBytes = outputStream.toByteArray();
+        return Base64.encodeToString(imageBytes, Base64.NO_WRAP);
+    }
+
+    /**
+     * Handle activity result from camera or gallery
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK && data != null) {
+            try {
+                Bitmap bitmap = null;
+
+                if (requestCode == REQUEST_CAMERA_CAPTURE) {
+                    // Get image from camera
+                    bitmap = (Bitmap) data.getExtras().get("data");
+                } else if (requestCode == REQUEST_GALLERY_PICK) {
+                    // Get image from gallery
+                    Uri selectedImage = data.getData();
+                    bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
+                }
+
+                if (bitmap != null) {
+                    // Display image in dialog
+                    dialogImageView.setImageBitmap(bitmap);
+                    dialogOverlayText.setVisibility(View.GONE);
+
+                    // Convert to base64
+                    currentImageBase64 = convertBitmapToBase64(bitmap);
+
+                    // Enable scan button
+                    dialogScanButton.setEnabled(true);
+
+                    Toast.makeText(this, "Image loaded! Ready to scan.", Toast.LENGTH_SHORT).show();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Handle permission results
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (requestCode == REQUEST_CAMERA_PERMISSION) {
+                openCamera();
+            } else if (requestCode == REQUEST_STORAGE_PERMISSION) {
+                openGallery();
+            }
+        } else {
+            Toast.makeText(this, "Permission denied. Cannot access " + (requestCode == REQUEST_CAMERA_PERMISSION ? "camera" : "gallery"), Toast.LENGTH_SHORT).show();
+        }
+    }
 
 }

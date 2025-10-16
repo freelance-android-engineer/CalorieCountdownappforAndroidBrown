@@ -62,8 +62,9 @@ Salt:
                     )
                 }
 
+                val model = "gemini-2.5-flash" // or use "gemini-2.5-pro" for higher quality
                 val url =
-                    URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-002:generateContent?key=$apiKey")
+                    URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.setRequestProperty("Content-Type", "application/json")
@@ -73,7 +74,19 @@ Salt:
                     os.write(requestBody.toString().toByteArray())
                 }
 
-                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                // Check response code before reading
+                val responseCode = conn.responseCode
+                Log.d("NutritionInfo", "Response Code: $responseCode")
+
+                val response = if (responseCode in 200..299) {
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    val errorResponse = conn.errorStream?.bufferedReader()?.use { it.readText() }
+                        ?: "No error details"
+                    Log.e("NutritionError", "API Error ($responseCode): $errorResponse")
+                    throw IOException("API request failed with code $responseCode: $errorResponse")
+                }
+
                 Log.d("NutritionInfo", "Response: $response")
 
                 val responseJson = JSONObject(response)
@@ -108,58 +121,8 @@ Salt:
 
 
     private val client = OkHttpClient()
-    @JvmStatic
-//    fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
-//        val apiKey = context.getString(R.string.gemini_api_key)
-//
-//        val jsonBody = JSONObject()
-//        val contentsArray = JSONArray()
-//        val partsArray = JSONArray()
-//        val textObject = JSONObject()
-//        textObject.put("text", prompt)
-//        partsArray.put(textObject)
-//
-//        val contentObject = JSONObject()
-//        contentObject.put("parts", partsArray)
-//        contentsArray.put(contentObject)
-//        jsonBody.put("contents", contentsArray)
-//
-//        val body = RequestBody.create(
-//            "application/json".toMediaTypeOrNull(),
-//            jsonBody.toString()
-//        )
-//
-//        val request = Request.Builder()
-//            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
-//            .post(body)
-//            .build()
-//
-//        client.newCall(request).enqueue(object : Callback {
-//            override fun onFailure(call: Call, e: IOException) {
-//                callback.onResult(null)  // ✅ fix here
-//            }
-//
-//            override fun onResponse(call: Call, response: Response) {
-//                response.use {
-//                    if (!response.isSuccessful) {
-//                        callback.onResult(null)  // ✅ fix here
-//                        return
-//                    }
-//                    val responseData = response.body?.string()
-//                    val jsonResponse = JSONObject(responseData)
-//                    val candidates = jsonResponse.optJSONArray("candidates")
-//                    val contentText = candidates?.getJSONObject(0)
-//                        ?.getJSONObject("content")
-//                        ?.getJSONArray("parts")
-//                        ?.getJSONObject(0)
-//                        ?.optString("text")
-//
-//                    callback.onResult(contentText)  // ✅ fix here
-//                }
-//            }
-//        })
-//    }
 
+    @JvmStatic
     fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
         val apiKey = context.getString(R.string.gemini_api_key)
 
@@ -184,8 +147,14 @@ Salt:
             jsonBody.toString()
         )
 
+
+        val model = "gemini-2.5-flash" // or "gemini-2.5-pro" for higher quality
+        val url =
+            "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+
+
         val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+            .url(url)
             .post(body)
             .build()
 

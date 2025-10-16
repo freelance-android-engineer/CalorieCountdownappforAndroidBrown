@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add Food with Image"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="#000000" />
+
+    <!-- Instruction Text -->
+    <TextView
+        android:id="@+id/tvImageInstruction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="8dp"
+        android:text="Tap the box below to upload food image"
+        android:textColor="#666666"
+        android:textSize="14sp" />
+
+    <!-- Image Container -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/imageBox"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/rounded_border"
+            android:contentDescription="Image Container"
+            android:scaleType="centerCrop"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Overlay Text (shown when no image) -->
+        <TextView
+            android:id="@+id/tvOverlayText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Tap to upload image"
+            android:textColor="#999999"
+            android:textSize="16sp"
+            android:textStyle="italic" />
+    </FrameLayout>
+
+    <!-- Progress Bar (hidden by default) -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone" />
+
+    <!-- Status Text -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Cancel"
+            android:textColor="#666666"
+            android:backgroundTint="#EEEEEE" />
+
+        <Button
+            android:id="@+id/btnScanAndAdd"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Scan &amp; Add Row"
+            android:enabled="false" />
+    </LinearLayout>
+
+</LinearLayout>

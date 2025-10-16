@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 1;
+    private static final int VERSION = 2; // Incremented to add isTransferred column
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -798,7 +798,21 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        //Implement schema changes and data massages here when upgrading
+        android.util.Log.d("DB_UPGRADE", "Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        // Add isTransferred column if upgrading from version 1 to 2
+        if (oldVersion < 2) {
+            try {
+                android.util.Log.d("DB_UPGRADE", "Adding isTransferred column to quick_food_note table");
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_IS_TRANSFERRED + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "Successfully added isTransferred column");
+            } catch (Exception e) {
+                android.util.Log.e("DB_UPGRADE", "Error adding isTransferred column: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
     }
 
     //From Green i
@@ -2728,21 +2742,47 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     public long insertFoodNote(String date, String food, String calories, String quantity) {
         android.util.Log.d("INSERT ALL FOOD NOTES", "Insert Note function called");
-        SQLiteDatabase db = this.getWritableDatabase();
-        android.util.Log.d("INSERT ALL FOOD NOTES", "getWritableDatabase called");
+        android.util.Log.d("INSERT ALL FOOD NOTES", "Parameters - date: " + date + ", food: " + food + ", calories: " + calories + ", quantity: " + quantity);
 
-        ContentValues values = new ContentValues();
-        android.util.Log.d("INSERT ALL FOOD NOTES", "ContentValues");
-        values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
-        values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, food);
-        values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
-        values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
-        values.put(COLUMN_IS_TRANSFERRED, 0); // false when inserting
+        SQLiteDatabase db = null;
+        long insertedId = -1;
 
-        long insertedId = db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
-        android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted with ID: " + insertedId);
+        try {
+            db = this.getWritableDatabase();
+            android.util.Log.d("INSERT ALL FOOD NOTES", "getWritableDatabase called");
 
-        db.close();
+            ContentValues values = new ContentValues();
+            android.util.Log.d("INSERT ALL FOOD NOTES", "ContentValues created");
+            values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
+            values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, food);
+            values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, calories);
+            values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, quantity);
+            values.put(COLUMN_IS_TRANSFERRED, 0); // false when inserting
+
+            android.util.Log.d("INSERT ALL FOOD NOTES", "Attempting insert into table: " + TABLE_QUICK_FOOD_NOTE);
+            insertedId = db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
+
+            if (insertedId == -1) {
+                android.util.Log.e("INSERT ALL FOOD NOTES", "Insert FAILED - returned -1");
+                // Try insertOrThrow to get the actual error
+                try {
+                    db.insertOrThrow(TABLE_QUICK_FOOD_NOTE, null, values);
+                } catch (Exception e) {
+                    android.util.Log.e("INSERT ALL FOOD NOTES", "insertOrThrow exception: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                android.util.Log.d("INSERT ALL FOOD NOTES", "Data inserted successfully with ID: " + insertedId);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("INSERT ALL FOOD NOTES", "Exception during insert: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
+
         return insertedId;
     }
 

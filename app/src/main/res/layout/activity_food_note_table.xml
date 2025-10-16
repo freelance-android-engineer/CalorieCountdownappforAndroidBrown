@@ -5,6 +5,42 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Date Range Title with Edit Icon -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:layout_marginBottom="8dp"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvDateRangeTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_toStartOf="@+id/ivEditDate"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="4dp"
+            android:text="Food Notes for Today"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <ImageView
+            android:id="@+id/ivEditDate"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@android:drawable/ic_menu_edit"
+            android:contentDescription="Edit Date"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+    </RelativeLayout>
+
     <HorizontalScrollView
         android:id="@+id/tableScroll"
         android:layout_width="match_parent"
@@ -108,6 +144,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Add New NOTE" />
+
+            <Button
+                android:id="@+id/btnAddRowWithImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add Row with Image" />
 
             <Button
                 android:id="@+id/btnEditRow"
