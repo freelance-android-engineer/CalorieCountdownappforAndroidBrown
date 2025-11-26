@@ -398,6 +398,12 @@
                 android:layout_height="wrap_content"
                 android:text= "@string/cancel4a1"/>
 
+            <Button
+                android:id="@+id/clearButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text= "@string/clear_all"/>
+
 
 
 

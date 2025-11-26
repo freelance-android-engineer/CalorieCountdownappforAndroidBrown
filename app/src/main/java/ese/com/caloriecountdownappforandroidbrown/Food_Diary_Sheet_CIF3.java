@@ -53,6 +53,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Button mAddNewItem;
     private Button mRecalibrate;
     private Button mJustAdd;
+    private Button mClearButton;
 
     private Context mAppContext;
 
@@ -188,6 +189,14 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 // REMOVED: ShowFetch will be called when all async searches complete
                 // mFoodItems = ShowFetch(mFoodItems);
 
+            }
+        });
+
+        mClearButton = (Button) findViewById(R.id.clearButton);
+        mClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearAllEditTextFields();
             }
         });
 
@@ -1318,16 +1327,16 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             // Array to store EditText field IDs for each row
             // Each inner array contains: [food_id, calories_id, quantity_id]
             int[][] editTextIds = {
-                {R.id.edit_text6, R.id.edit_text7, R.id.edit_text8},       // Row 1
-                {R.id.edit_text9, R.id.edit_text10, R.id.edit_text11},     // Row 2
-                {R.id.edit_text12, R.id.edit_text13, R.id.edit_text14},    // Row 3
-                {R.id.edit_text15, R.id.edit_text16, R.id.edit_text17},    // Row 4
-                {R.id.edit_text18, R.id.edit_text19, R.id.edit_text20},    // Row 5
-                {R.id.edit_text21, R.id.edit_text22, R.id.edit_text23},    // Row 6
-                {R.id.edit_text24, R.id.edit_text25, R.id.edit_text26},    // Row 7
-                {R.id.edit_text27, R.id.edit_text28, R.id.edit_text29},    // Row 8
-                {R.id.edit_text30, R.id.edit_text31, R.id.edit_text32},    // Row 9
-                {R.id.edit_text33, R.id.edit_text34, R.id.edit_text35}     // Row 10
+                    {R.id.edit_text6, R.id.edit_text7, R.id.edit_text8},       // Row 1
+                    {R.id.edit_text9, R.id.edit_text10, R.id.edit_text11},     // Row 2
+                    {R.id.edit_text12, R.id.edit_text13, R.id.edit_text14},    // Row 3
+                    {R.id.edit_text15, R.id.edit_text16, R.id.edit_text17},    // Row 4
+                    {R.id.edit_text18, R.id.edit_text19, R.id.edit_text20},    // Row 5
+                    {R.id.edit_text21, R.id.edit_text22, R.id.edit_text23},    // Row 6
+                    {R.id.edit_text24, R.id.edit_text25, R.id.edit_text26},    // Row 7
+                    {R.id.edit_text27, R.id.edit_text28, R.id.edit_text29},    // Row 8
+                    {R.id.edit_text30, R.id.edit_text31, R.id.edit_text32},    // Row 9
+                    {R.id.edit_text33, R.id.edit_text34, R.id.edit_text35}     // Row 10
             };
 
             int rowIndex = 0;
@@ -1340,10 +1349,10 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                     break;
                 }
 
-                String dateTime   = cursor.getString(dateIndex);
-                String food       = cursor.getString(foodIndex);
-                String calories   = cursor.getString(caloriesIndex);
-                String quantity   = cursor.getString(quantityIndex);
+                String dateTime = cursor.getString(dateIndex);
+                String food = cursor.getString(foodIndex);
+                String calories = cursor.getString(caloriesIndex);
+                String quantity = cursor.getString(quantityIndex);
 
                 android.util.Log.d("FOOD NOTES",
                         "Transferred Data [Row " + (rowIndex + 1) + "]: " + dateTime + " | " + food + " | " + calories + " | " + quantity);
@@ -1379,6 +1388,32 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 cursor.close();
             }
         }
+    }
+
+    private void clearAllEditTextFields() {
+        // Array of all EditText IDs in the three columns (Food Item, Calories, Quantity)
+        int[] editTextIds = {
+                R.id.edit_text6, R.id.edit_text7, R.id.edit_text8,       // Row 1
+                R.id.edit_text9, R.id.edit_text10, R.id.edit_text11,     // Row 2
+                R.id.edit_text12, R.id.edit_text13, R.id.edit_text14,    // Row 3
+                R.id.edit_text15, R.id.edit_text16, R.id.edit_text17,    // Row 4
+                R.id.edit_text18, R.id.edit_text19, R.id.edit_text20,    // Row 5
+                R.id.edit_text21, R.id.edit_text22, R.id.edit_text23,    // Row 6
+                R.id.edit_text24, R.id.edit_text25, R.id.edit_text26,    // Row 7
+                R.id.edit_text27, R.id.edit_text28, R.id.edit_text29,    // Row 8
+                R.id.edit_text30, R.id.edit_text31, R.id.edit_text32,    // Row 9
+                R.id.edit_text33, R.id.edit_text34, R.id.edit_text35     // Row 10
+        };
+
+        // Clear all EditText fields
+        for (int id : editTextIds) {
+            EditText editText = (EditText) findViewById(id);
+            if (editText != null) {
+                editText.setText("");
+            }
+        }
+
+        android.util.Log.d("Clear Button", "All EditText fields have been cleared.");
     }
 
 }

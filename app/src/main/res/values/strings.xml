@@ -111,6 +111,7 @@
     <string name="cancel3a">Magic Number</string>
     <string name="cancel4a">Re-calibrate and Re-try</string>
     <string name="cancel4a1">Diet Planner and Generator</string>
+    <string name="clear_all">Clear</string>
     <string name="search">Multi Search</string>
     <string name="uploadImage">Upload Food or Drink Image</string>
     <string name="scanWithAi">Scan with AI</string>
