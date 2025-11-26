@@ -44,6 +44,7 @@ model ExerciseItem {
   client_weight         Float?
   client_height_cm      Int?
   cardio_or_strength    Boolean?
+  Unit_Weight_lbs       Float     @default(100)
 
   @@map("Exercise_Items")
 }
