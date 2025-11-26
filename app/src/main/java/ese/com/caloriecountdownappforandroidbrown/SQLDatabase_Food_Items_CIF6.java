@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 2; // Incremented to add isTransferred column
+    private static final int VERSION = 3; // Incremented to add memo table
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -271,6 +271,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_CALORIES = "note_calories";
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
     private static final String COLUMN_IS_TRANSFERRED = "isTransferred";
+
+    //    Memo Table (FIFO max 10 entries)
+    private static final String TABLE_MEMO = "memo";
+    private static final String COLUMN_MEMO_ID = "memo_id";
+    private static final String COLUMN_MEMO_DATE = "memo_date";
+    private static final String COLUMN_MEMO_TEXT = "memo_text";
+    private static final String COLUMN_MEMO_IMAGE = "memo_image";
+    private static final int MAX_MEMO_COUNT = 10;
 
 
     private static final String TABLE_CACHE_TABLE = "cache";
@@ -793,6 +801,20 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             throw new RuntimeException(e);
         }
 
+        // Create Memo Table
+        try {
+            android.util.Log.d("Table creation", "Table memo creation start");
+            String CREATE_MEMO_TABLE = "CREATE TABLE " + TABLE_MEMO + " ("
+                    + COLUMN_MEMO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_MEMO_DATE + " TEXT, "
+                    + COLUMN_MEMO_TEXT + " TEXT, "
+                    + COLUMN_MEMO_IMAGE + " TEXT"
+                    + ")";
+            db.execSQL(CREATE_MEMO_TABLE);
+            android.util.Log.d("Table creation", "created " + TABLE_MEMO);
+        } catch (Exception e) {
+            android.util.Log.d("Table creation", "Memo table creation in catch block: " + e.getMessage());
+        }
 
     }
 
@@ -808,6 +830,24 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "Successfully added isTransferred column");
             } catch (Exception e) {
                 android.util.Log.e("DB_UPGRADE", "Error adding isTransferred column: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        // Create memo table if upgrading from version < 3
+        if (oldVersion < 3) {
+            try {
+                android.util.Log.d("DB_UPGRADE", "Creating memo table");
+                String CREATE_MEMO_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_MEMO + " ("
+                        + COLUMN_MEMO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_MEMO_DATE + " TEXT, "
+                        + COLUMN_MEMO_TEXT + " TEXT, "
+                        + COLUMN_MEMO_IMAGE + " TEXT"
+                        + ")";
+                db.execSQL(CREATE_MEMO_TABLE);
+                android.util.Log.d("DB_UPGRADE", "Successfully created memo table");
+            } catch (Exception e) {
+                android.util.Log.e("DB_UPGRADE", "Error creating memo table: " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -3085,6 +3125,198 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         Date date = Date.from(Input.atZone(ZoneId.systemDefault()).toInstant());
 
         return date;
+    }
+
+    // ==================== MEMO TABLE CRUD OPERATIONS ====================
+
+    /**
+     * Insert a new memo with FIFO logic (max 10 entries).
+     * If there are already MAX_MEMO_COUNT memos, the oldest one is deleted.
+     *
+     * @param memoText  The memo text content
+     * @param memoImage Base64 encoded image string (can be null)
+     * @return The ID of the inserted memo, or -1 if failed
+     */
+    public long insertMemo(String memoText, String memoImage) {
+        android.util.Log.d("MEMO", "insertMemo called");
+        SQLiteDatabase db = null;
+        long insertedId = -1;
+
+        try {
+            db = this.getWritableDatabase();
+
+            // Check current count and enforce FIFO if needed
+            enforceMemoFIFO(db);
+
+            // Insert new memo
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_MEMO_DATE, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+            values.put(COLUMN_MEMO_TEXT, memoText);
+            values.put(COLUMN_MEMO_IMAGE, memoImage);
+
+            insertedId = db.insert(TABLE_MEMO, null, values);
+
+            if (insertedId == -1) {
+                android.util.Log.e("MEMO", "Insert FAILED - returned -1");
+            } else {
+                android.util.Log.d("MEMO", "Memo inserted successfully with ID: " + insertedId);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MEMO", "Exception during insert: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return insertedId;
+    }
+
+    /**
+     * Enforces FIFO logic for memo table.
+     * If memo count >= MAX_MEMO_COUNT, deletes the oldest memo(s) to make room for new one.
+     *
+     * @param db The writable database instance
+     */
+    private void enforceMemoFIFO(SQLiteDatabase db) {
+        try {
+            // Get current count
+            Cursor countCursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEMO, null);
+            int currentCount = 0;
+            if (countCursor.moveToFirst()) {
+                currentCount = countCursor.getInt(0);
+            }
+            countCursor.close();
+
+            android.util.Log.d("MEMO", "Current memo count: " + currentCount + ", Max: " + MAX_MEMO_COUNT);
+
+            // If at or over limit, delete oldest entries to make room
+            if (currentCount >= MAX_MEMO_COUNT) {
+                int deleteCount = currentCount - MAX_MEMO_COUNT + 1; // +1 to make room for new entry
+                android.util.Log.d("MEMO", "Deleting " + deleteCount + " oldest memo(s) to enforce FIFO");
+
+                // Delete oldest memos (first in, first out - oldest by date)
+                String deleteQuery = "DELETE FROM " + TABLE_MEMO +
+                        " WHERE " + COLUMN_MEMO_ID + " IN (" +
+                        "SELECT " + COLUMN_MEMO_ID + " FROM " + TABLE_MEMO +
+                        " ORDER BY " + COLUMN_MEMO_DATE + " ASC, " + COLUMN_MEMO_ID + " ASC" +
+                        " LIMIT " + deleteCount +
+                        ")";
+                db.execSQL(deleteQuery);
+                android.util.Log.d("MEMO", "Deleted oldest memo(s)");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MEMO", "Error enforcing FIFO: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Get all memos ordered by date (newest first)
+     *
+     * @return Cursor containing all memos
+     */
+    public Cursor getAllMemos() {
+        android.util.Log.d("MEMO", "getAllMemos called");
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " ORDER BY " + COLUMN_MEMO_DATE + " DESC", null);
+    }
+
+    /**
+     * Get a single memo by ID
+     *
+     * @param memoId The ID of the memo to retrieve
+     * @return Cursor containing the memo, or null if not found
+     */
+    public Cursor getMemoById(int memoId) {
+        android.util.Log.d("MEMO", "getMemoById called for ID: " + memoId);
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_ID + " = ?",
+                new String[]{String.valueOf(memoId)});
+    }
+
+    /**
+     * Update an existing memo
+     *
+     * @param memoId    The ID of the memo to update
+     * @param memoText  New memo text
+     * @param memoImage New Base64 encoded image (can be null)
+     * @return Number of rows affected
+     */
+    public int updateMemo(int memoId, String memoText, String memoImage) {
+        android.util.Log.d("MEMO", "updateMemo called for ID: " + memoId);
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_MEMO_TEXT, memoText);
+        values.put(COLUMN_MEMO_IMAGE, memoImage);
+        values.put(COLUMN_MEMO_DATE, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+
+        int rowsAffected = db.update(
+                TABLE_MEMO,
+                values,
+                COLUMN_MEMO_ID + " = ?",
+                new String[]{String.valueOf(memoId)}
+        );
+
+        android.util.Log.d("MEMO", "Rows updated: " + rowsAffected);
+        db.close();
+        return rowsAffected;
+    }
+
+    /**
+     * Delete a specific memo by ID
+     *
+     * @param memoId The ID of the memo to delete
+     * @return Number of rows deleted
+     */
+    public int deleteMemo(int memoId) {
+        android.util.Log.d("MEMO", "deleteMemo called for ID: " + memoId);
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        int rowsDeleted = db.delete(
+                TABLE_MEMO,
+                COLUMN_MEMO_ID + " = ?",
+                new String[]{String.valueOf(memoId)}
+        );
+
+        android.util.Log.d("MEMO", "Rows deleted: " + rowsDeleted);
+        db.close();
+        return rowsDeleted;
+    }
+
+    /**
+     * Delete all memos (clear the memo table)
+     *
+     * @return Number of rows deleted
+     */
+    public int clearAllMemos() {
+        android.util.Log.d("MEMO", "clearAllMemos called");
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        int rowsDeleted = db.delete(TABLE_MEMO, null, null);
+
+        android.util.Log.d("MEMO", "All memos cleared. Rows deleted: " + rowsDeleted);
+        db.close();
+        return rowsDeleted;
+    }
+
+    /**
+     * Get the count of memos in the database
+     *
+     * @return Number of memos
+     */
+    public int getMemoCount() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEMO, null);
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        db.close();
+        return count;
     }
 
 

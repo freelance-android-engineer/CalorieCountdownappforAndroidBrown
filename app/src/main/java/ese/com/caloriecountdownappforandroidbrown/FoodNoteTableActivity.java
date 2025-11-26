@@ -67,6 +67,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_CAPTURE = 102;
     private static final int REQUEST_GALLERY_PICK = 103;
 
+    // Memo Camera and Gallery constants
+    private static final int REQUEST_MEMO_CAMERA_PERMISSION = 200;
+    private static final int REQUEST_MEMO_CAMERA_CAPTURE = 201;
+    private static final int REQUEST_MEMO_GALLERY_PICK = 202;
+
+    // Memo panel views
+    private EditText etMemoText;
+    private ImageView ivMemoImagePreview;
+    private ImageView ivMemoAddImage;
+    private Button btnMemoSave;
+    private Button btnMemoClear;
+    private String memoImageBase64 = null;
+
     // Dialog components for image upload
     private AlertDialog imageUploadDialog;
     private ImageView dialogImageView;
@@ -195,6 +208,202 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 handleKittyButtonClick();
             }
         });
+
+        // Initialize Memo Panel views
+        initializeMemoPanel();
+    }
+
+    // ========== MEMO PANEL LOGIC ==========
+
+    /**
+     * Initialize memo panel views and set up click listeners
+     */
+    private void initializeMemoPanel() {
+        etMemoText = findViewById(R.id.etMemoText);
+        ivMemoImagePreview = findViewById(R.id.ivMemoImagePreview);
+        ivMemoAddImage = findViewById(R.id.ivMemoAddImage);
+        btnMemoSave = findViewById(R.id.btnMemoSave);
+        btnMemoClear = findViewById(R.id.btnMemoClear);
+
+        // Image icon click - shows dialog with Camera/Gallery options
+        ivMemoAddImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showMemoImageSourceDialog();
+            }
+        });
+
+        // Image preview click - also shows dialog to change image
+        ivMemoImagePreview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showMemoImageSourceDialog();
+            }
+        });
+
+        // Save button - saves memo with FIFO logic (max 10)
+        btnMemoSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveMemo();
+            }
+        });
+
+        // Clear button - clears memo text and image
+        btnMemoClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearMemoPanel();
+            }
+        });
+
+        // Load the last added memo (if any)
+        loadLastMemo();
+    }
+
+    /**
+     * Load and display the last added memo from the database
+     */
+    private void loadLastMemo() {
+        Cursor cursor = databaseHelper.getAllMemos();
+        if (cursor != null && cursor.moveToFirst()) {
+            // Get column indices
+            int textIndex = cursor.getColumnIndex("memo_text");
+            int imageIndex = cursor.getColumnIndex("memo_image");
+
+            if (textIndex != -1) {
+                String memoText = cursor.getString(textIndex);
+                if (memoText != null && !memoText.isEmpty()) {
+                    etMemoText.setText(memoText);
+                }
+            }
+
+            if (imageIndex != -1) {
+                String imageBase64 = cursor.getString(imageIndex);
+                if (imageBase64 != null && !imageBase64.isEmpty()) {
+                    // Convert base64 to bitmap and display
+                    try {
+                        byte[] decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT);
+                        Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+                        if (bitmap != null) {
+                            ivMemoAddImage.setVisibility(View.GONE);
+                            ivMemoImagePreview.setImageBitmap(bitmap);
+                            ivMemoImagePreview.setVisibility(View.VISIBLE);
+                            memoImageBase64 = imageBase64;
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("MEMO", "Error decoding memo image: " + e.getMessage());
+                    }
+                }
+            }
+
+            cursor.close();
+            android.util.Log.d("MEMO", "Loaded last memo into view");
+        } else {
+            android.util.Log.d("MEMO", "No memos found, showing default empty state");
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Show dialog to choose between camera and gallery for memo image
+     */
+    private void showMemoImageSourceDialog() {
+        String[] options = {"Camera", "Gallery"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Choose Image Source")
+                .setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which == 0) {
+                            openMemoCamera();
+                        } else {
+                            openMemoGallery();
+                        }
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * Open camera to capture image for memo
+     */
+    private void openMemoCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_MEMO_CAMERA_PERMISSION);
+        } else {
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(intent, REQUEST_MEMO_CAMERA_CAPTURE);
+            } else {
+                Toast.makeText(this, "No camera app found", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Open gallery to select image for memo
+     */
+    private void openMemoGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, REQUEST_MEMO_GALLERY_PICK);
+        } else {
+            Toast.makeText(this, "No gallery app found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Save memo to database with FIFO logic (max 10 entries)
+     */
+    private void saveMemo() {
+        String memoText = etMemoText.getText().toString().trim();
+
+        if (memoText.isEmpty() && memoImageBase64 == null) {
+            Toast.makeText(this, "Please enter some text or add an image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Insert memo into database (FIFO logic is handled in the database helper)
+        long insertedId = databaseHelper.insertMemo(memoText, memoImageBase64);
+
+        if (insertedId != -1) {
+            Toast.makeText(this, "Memo saved successfully!", Toast.LENGTH_SHORT).show();
+//            clearMemoPanel();
+        } else {
+            Toast.makeText(this, "Failed to save memo", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Clear memo panel - reset text and image
+     */
+    private void clearMemoPanel() {
+        etMemoText.setText("");
+        memoImageBase64 = null;
+        ivMemoImagePreview.setImageDrawable(null);
+        ivMemoImagePreview.setVisibility(View.GONE);
+        ivMemoAddImage.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "Memo cleared", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Handle memo image result from camera or gallery
+     */
+    private void handleMemoImageResult(Bitmap bitmap) {
+        if (bitmap != null) {
+            // Hide the add image icon and show preview
+            ivMemoAddImage.setVisibility(View.GONE);
+            ivMemoImagePreview.setImageBitmap(bitmap);
+            ivMemoImagePreview.setVisibility(View.VISIBLE);
+
+            // Convert to base64 for storage
+            memoImageBase64 = convertBitmapToBase64(bitmap);
+
+            Toast.makeText(this, "Image added to memo", Toast.LENGTH_SHORT).show();
+        }
     }
 
 
@@ -1167,32 +1376,58 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK && data != null) {
+        if (resultCode == RESULT_OK) {
             try {
                 Bitmap bitmap = null;
 
+                // Handle Food Note image dialog requests
                 if (requestCode == REQUEST_CAMERA_CAPTURE) {
-                    // Get image from camera
-                    bitmap = (Bitmap) data.getExtras().get("data");
+                    if (data != null && data.getExtras() != null) {
+                        bitmap = (Bitmap) data.getExtras().get("data");
+                    }
                 } else if (requestCode == REQUEST_GALLERY_PICK) {
-                    // Get image from gallery
-                    Uri selectedImage = data.getData();
-                    bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
+                    if (data != null) {
+                        Uri selectedImage = data.getData();
+                        bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
+                    }
                 }
 
-                if (bitmap != null) {
+                // Handle image for food note dialog
+                if ((requestCode == REQUEST_CAMERA_CAPTURE || requestCode == REQUEST_GALLERY_PICK) && bitmap != null) {
                     // Display image in dialog
-                    dialogImageView.setImageBitmap(bitmap);
-                    dialogOverlayText.setVisibility(View.GONE);
+                    if (dialogImageView != null) {
+                        dialogImageView.setImageBitmap(bitmap);
+                    }
+                    if (dialogOverlayText != null) {
+                        dialogOverlayText.setVisibility(View.GONE);
+                    }
 
                     // Convert to base64
                     currentImageBase64 = convertBitmapToBase64(bitmap);
 
                     // Enable scan button
-                    dialogScanButton.setEnabled(true);
+                    if (dialogScanButton != null) {
+                        dialogScanButton.setEnabled(true);
+                    }
 
                     Toast.makeText(this, "Image loaded! Ready to scan.", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+
+                // Handle Memo image requests
+                if (requestCode == REQUEST_MEMO_CAMERA_CAPTURE) {
+                    if (data != null && data.getExtras() != null) {
+                        bitmap = (Bitmap) data.getExtras().get("data");
+                        handleMemoImageResult(bitmap);
+                    }
+                } else if (requestCode == REQUEST_MEMO_GALLERY_PICK) {
+                    if (data != null) {
+                        Uri selectedImage = data.getData();
+                        bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
+                        handleMemoImageResult(bitmap);
+                    }
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
@@ -1212,9 +1447,15 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 openCamera();
             } else if (requestCode == REQUEST_STORAGE_PERMISSION) {
                 openGallery();
+            } else if (requestCode == REQUEST_MEMO_CAMERA_PERMISSION) {
+                openMemoCamera();
             }
         } else {
-            Toast.makeText(this, "Permission denied. Cannot access " + (requestCode == REQUEST_CAMERA_PERMISSION ? "camera" : "gallery"), Toast.LENGTH_SHORT).show();
+            String source = "camera";
+            if (requestCode == REQUEST_STORAGE_PERMISSION) {
+                source = "gallery";
+            }
+            Toast.makeText(this, "Permission denied. Cannot access " + source, Toast.LENGTH_SHORT).show();
         }
     }
 
