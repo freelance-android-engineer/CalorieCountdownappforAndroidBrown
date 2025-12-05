@@ -24,6 +24,7 @@ import android.view.textservice.SuggestionsInfo;
 import android.view.textservice.SentenceSuggestionsInfo;
 import android.view.textservice.TextInfo;
 import android.widget.TableLayout;
+import android.widget.Toast;
 
 // Controller Class for Food Diary Screen/Credit/Menuitem
 

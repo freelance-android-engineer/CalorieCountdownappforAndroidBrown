@@ -28,9 +28,9 @@
         android:inputType="textPersonName"
         android:minHeight="48dp"
         android:text="Calories per unit"
-
         tools:layout_editor_absoluteX="143dp"
-        tools:layout_editor_absoluteY="121dp" />
+        tools:layout_editor_absoluteY="121dp"
+        tools:ignore="MissingConstraints" />
 
     <EditText
         android:id="@+id/editTextTextPersonName4"
@@ -44,7 +44,8 @@
         app:layout_constraintBottom_toTopOf="@+id/nav_host_fragment_content_raw_calories"
         app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName3"
         app:layout_constraintVertical_bias="0.0"
-        tools:layout_editor_absoluteX="143dp" />
+        tools:layout_editor_absoluteX="143dp"
+        tools:ignore="MissingConstraints" />
 
     <Button
         android:id="@+id/button22"
@@ -52,6 +53,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="110dp"
         android:text="Credit Raw Calories"
-        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName4"
-        tools:layout_editor_absoluteX="162dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName4" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -84,6 +84,13 @@
             android:layout_height="wrap_content"
             android:text= "@string/cancel2"/>
 
+        <Button
+            android:id="@+id/btnDrop100Points"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/drop_100_points"/>
+
 
     </LinearLayout>
     </ScrollView>

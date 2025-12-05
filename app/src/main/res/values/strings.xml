@@ -2506,6 +2506,14 @@
     <string name="hint_start_date">Select Start Date</string>
     <string name="hint_end_date">Select End Date</string>
     <string name="lbl_filter">Filter</string>
+    <string name="food_note_memo_title">Memo eaten and/or about to eat Food item name:</string>
+    <string name="btn_save_notes">Save Note(s)</string>
+
+    <!-- Drop 100 Points Workout Feature -->
+    <string name="drop_100_points">Drop 100 Points from Balance</string>
+    <string name="workout_dialog_title">Workout Video</string>
+    <string name="btn_done">Done</string>
+    <string name="btn_cancel">Cancel</string>
 </resources>
 
 

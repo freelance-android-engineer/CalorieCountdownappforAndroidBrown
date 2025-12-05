@@ -17,6 +17,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -34,6 +35,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mCancel;
     private Button mStepsManaul;
     private Button mOpenStepApp;
+    private Button mDrop100Points;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -123,6 +125,14 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             }
         });
 
+        // Drop 100 Points button - shows workout video and deducts points on completion
+        mDrop100Points = (Button) findViewById(R.id.btnDrop100Points);
+        mDrop100Points.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showWorkoutDialog();
+            }
+        });
 
         android.util.Log.d("STEPS", "Above Sensor Manager");
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -300,5 +310,90 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
         //remember to implement those double try bug fixes.
 
+    }
+
+    private void showWorkoutDialog() {
+        final String workoutUrl = "https://www.facebook.com/share/r/19ZNuALHt4/?mibextid=wwXIfr";
+
+        // Show choice dialog - open in browser or WebView
+        AlertDialog.Builder choiceBuilder = new AlertDialog.Builder(this);
+        choiceBuilder.setTitle("Workout Video");
+        choiceBuilder.setMessage("Watch the workout video to drop 100 points from your balance.\n\nHow would you like to open the video?");
+
+        // Open in external browser
+        choiceBuilder.setPositiveButton("Open in Browser", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialogInterface, int i) {
+                // Open URL in external browser
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(workoutUrl));
+                startActivity(browserIntent);
+
+                // Show confirmation dialog after returning
+                showWorkoutCompletionDialog();
+            }
+        });
+
+        // Cancel
+        choiceBuilder.setNegativeButton("Cancel", null);
+
+        choiceBuilder.show();
+    }
+
+    private void showWorkoutCompletionDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Workout Complete?");
+        builder.setMessage("Did you complete the workout?");
+
+        builder.setPositiveButton("Yes, Done!", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                // Subtract 100 points from the main balance
+                deduct100PointsFromBalance();
+            }
+        });
+
+        builder.setNegativeButton("No, Cancel", null);
+        builder.show();
+    }
+
+    private void deduct100PointsFromBalance() {
+        try {
+            // Get current balance from data adapter
+            MIF4_Data_Model_Adapter dataAdapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            String currentBalanceStr = dataAdapter.RetrieveBalance();
+
+            android.util.Log.d("Workout", "Current balance retrieved: " + currentBalanceStr);
+
+            // Parse current balance (handle commas if present)
+            int currentBalance = 0;
+            if (currentBalanceStr != null && !currentBalanceStr.isEmpty()) {
+                // Remove commas if present
+                currentBalanceStr = currentBalanceStr.replace(",", "");
+                currentBalance = Integer.parseInt(currentBalanceStr);
+            }
+
+            // Subtract 100 points
+            int newBalance = currentBalance - 100;
+
+            android.util.Log.d("Workout", "New balance after deduction: " + newBalance);
+
+            // Store the new balance
+            String newBalanceStr = String.valueOf(newBalance);
+            dataAdapter.StoreBalance(newBalanceStr);
+
+            // Also update DayEnd balance
+            dataAdapter.StoreDayEndBalance(newBalance - 100);
+
+            Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                "100 points dropped! Balance: " + currentBalance + " -> " + newBalance,
+                Toast.LENGTH_SHORT).show();
+
+            android.util.Log.d("Workout", "100 points deducted. Old: " + currentBalance + ", New: " + newBalance);
+
+        } catch (Exception e) {
+            android.util.Log.e("Workout", "Error deducting points: " + e.getMessage(), e);
+            Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 }

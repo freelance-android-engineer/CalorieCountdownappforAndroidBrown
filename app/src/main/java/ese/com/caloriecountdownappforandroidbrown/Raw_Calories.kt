@@ -12,7 +12,7 @@ import ese.com.caloriecountdownappforandroidbrown.databinding.ActivityRawCalorie
 import java.lang.Exception
 
 class Raw_Calories : AppCompatActivity() {
-
+//
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityRawCaloriesBinding
 
@@ -23,6 +23,7 @@ class Raw_Calories : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = "Add Raw Calories"
 
         val navController = findNavController(R.id.nav_host_fragment_content_raw_calories)
         appBarConfiguration = AppBarConfiguration(navController.graph)

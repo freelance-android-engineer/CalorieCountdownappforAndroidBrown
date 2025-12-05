@@ -45,6 +45,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 
@@ -107,6 +109,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnTransferCredit = findViewById(R.id.btnTransferCredit);
         Button btnFoodNoteAi = findViewById(R.id.btnFoodNoteAi);
         Button btnDeleteFoodNote = findViewById(R.id.btnDeleteNote);
+        Button btnSaveNotes = findViewById(R.id.btnSaveNotes);
         Button btnKitty = findViewById(R.id.btnKitty);
 
         // Initialize date range title
@@ -202,6 +205,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 handleAiButtonClick(false, false);
             }
         });
+
+        btnSaveNotes.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleSaveNotesButtonClick();
+            }
+        });
+
         btnKitty.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -262,10 +273,31 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     /**
-     * Load and display the last added memo from the database
+     * Get the current food note title from the UI (tvDateRangeTitle)
+     * @return The current food note title string, or empty string if not available
+     */
+    private String getCurrentFoodNoteTitle() {
+        if (tvDateRangeTitle != null) {
+            String title = tvDateRangeTitle.getText().toString();
+            android.util.Log.d("MEMO", "Current food note title: " + title);
+            return title;
+        }
+        return "";
+    }
+
+    /**
+     * Load and display the memo associated with the current food note title.
+     * If no memo exists for this title, shows empty state.
      */
     private void loadLastMemo() {
-        Cursor cursor = databaseHelper.getAllMemos();
+        String currentTitle = getCurrentFoodNoteTitle();
+        android.util.Log.d("MEMO", "loadLastMemo called with title: " + currentTitle);
+
+        // Clear current memo state first
+        clearMemoPanelWithoutToast();
+
+        // Try to load memo for current title
+        Cursor cursor = databaseHelper.getMemoByTitle(currentTitle);
         if (cursor != null && cursor.moveToFirst()) {
             // Get column indices
             int textIndex = cursor.getColumnIndex("memo_text");
@@ -298,13 +330,24 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
 
             cursor.close();
-            android.util.Log.d("MEMO", "Loaded last memo into view");
+            android.util.Log.d("MEMO", "Loaded memo for title: " + currentTitle);
         } else {
-            android.util.Log.d("MEMO", "No memos found, showing default empty state");
+            android.util.Log.d("MEMO", "No memo found for title: " + currentTitle + ", showing empty state");
             if (cursor != null) {
                 cursor.close();
             }
         }
+    }
+
+    /**
+     * Clear memo panel without showing toast (used internally when switching titles)
+     */
+    private void clearMemoPanelWithoutToast() {
+        etMemoText.setText("");
+        memoImageBase64 = null;
+        ivMemoImagePreview.setImageDrawable(null);
+        ivMemoImagePreview.setVisibility(View.GONE);
+        ivMemoAddImage.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -356,7 +399,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     /**
-     * Save memo to database with FIFO logic (max 10 entries)
+     * Save memo to database with FIFO logic (max 10 entries).
+     * Associates the memo with the current food note title.
      */
     private void saveMemo() {
         String memoText = etMemoText.getText().toString().trim();
@@ -366,8 +410,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             return;
         }
 
-        // Insert memo into database (FIFO logic is handled in the database helper)
-        long insertedId = databaseHelper.insertMemo(memoText, memoImageBase64);
+        // Get current food note title to associate with this memo
+        String currentTitle = getCurrentFoodNoteTitle();
+        android.util.Log.d("MEMO", "Saving memo with title: " + currentTitle);
+
+        // Insert memo into database with title (FIFO logic is handled in the database helper)
+        long insertedId = databaseHelper.insertMemo(memoText, memoImageBase64, currentTitle);
 
         if (insertedId != -1) {
             Toast.makeText(this, "Memo saved successfully!", Toast.LENGTH_SHORT).show();
@@ -671,6 +719,21 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         if (btnOk != null) {
             btnOk.setOnClickListener(v1 -> dialog.dismiss());
         }
+
+        // Credit button - updates the balance in CCD_GUI_CD_CIF1
+        Button btnCredit = dialog.findViewById(R.id.btnCredit);
+        if (btnCredit != null) {
+            btnCredit.setOnClickListener(v1 -> {
+                // Call Set_Balance via the public ChangeTextColor method
+                if (CCD_GUI_CD_CIF1.instance != null) {
+                    CCD_GUI_CD_CIF1.instance.ChangeTextColor(String.valueOf(totalCalories));
+                    Toast.makeText(FoodNoteTableActivity.this, "Balance updated with " + totalCalories + " calories", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(FoodNoteTableActivity.this, "Unable to update balance - main activity not available", Toast.LENGTH_SHORT).show();
+                }
+                dialog.dismiss();
+            });
+        }
     }
 
 
@@ -766,7 +829,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             showSelectedItemsDialog(isAi, selectedFoods);
         }
     }
-
 
     private void showNoSelectionDialog() {
         new AlertDialog.Builder(this)
@@ -939,6 +1001,166 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private int StepChallengeFun(int calories) {
         // TODO: Implement your logic later
         return calories * 20; // Example placeholder conversion
+    }
+
+    /**
+     * Handle Save Notes button click.
+     * Collects selected food notes (or all if none selected) and saves them as a collection
+     * to the SQLite database using DayCiF1005's Save_Notes function.
+     *
+     * Only saves notes that haven't been saved to a collection yet (isSavedToCollection = 0).
+     * After successful save, marks those notes as saved to prevent duplicates.
+     */
+    private void handleSaveNotesButtonClick() {
+        android.util.Log.d("SAVE_NOTES", "handleSaveNotesButtonClick called");
+
+        // Collect selected food notes (or all if none selected)
+        List<Map<String, Object>> foodNotesToSave = new ArrayList<>();
+        List<Integer> noteIdsToSave = new ArrayList<>(); // Track note IDs for marking as saved
+        boolean hasSelection = false;
+        int skippedCount = 0; // Count already-saved notes that were skipped
+
+        // Check if any notes are selected
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            if (checkBox.isChecked()) {
+                hasSelection = true;
+                break;
+            }
+        }
+
+        // Collect food notes (selected only if there's a selection, otherwise all)
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            TextView foodText = (TextView) row.getChildAt(2);
+            TextView caloriesText = (TextView) row.getChildAt(3);
+            TextView quantityText = (TextView) row.getChildAt(4);
+
+            // Include if no selection made (save all) OR if this row is selected
+            if (!hasSelection || checkBox.isChecked()) {
+                // Get the note ID from the row tag
+                Object tagObj = row.getTag();
+                int noteId = -1;
+                if (tagObj != null) {
+                    try {
+                        noteId = Integer.parseInt(tagObj.toString());
+                    } catch (NumberFormatException e) {
+                        android.util.Log.w("SAVE_NOTES", "Invalid note ID in tag: " + tagObj);
+                    }
+                }
+
+                // Check if this note has already been saved to a collection
+                if (noteId > 0 && databaseHelper.isNoteSavedToCollection(noteId)) {
+                    android.util.Log.d("SAVE_NOTES", "Skipping note ID " + noteId + " - already saved to collection");
+                    skippedCount++;
+                    continue; // Skip this note as it's already saved
+                }
+
+                Map<String, Object> noteMap = new HashMap<>();
+                noteMap.put("note_food", foodText.getText().toString());
+                noteMap.put("note_id", noteId); // Include note ID in the map
+
+                // Parse calories safely
+                String caloriesStr = caloriesText.getText().toString().trim();
+                int calories = 0;
+                if (!caloriesStr.isEmpty()) {
+                    try {
+                        calories = Integer.parseInt(caloriesStr);
+                    } catch (NumberFormatException e) {
+                        android.util.Log.w("SAVE_NOTES", "Invalid calories value: " + caloriesStr);
+                    }
+                }
+                noteMap.put("note_calories", calories);
+
+                // Parse quantity safely
+                String quantityStr = quantityText.getText().toString().trim();
+                int quantity = 1;
+                if (!quantityStr.isEmpty()) {
+                    try {
+                        quantity = Integer.parseInt(quantityStr);
+                    } catch (NumberFormatException e) {
+                        android.util.Log.w("SAVE_NOTES", "Invalid quantity value: " + quantityStr);
+                    }
+                }
+                noteMap.put("note_quantity", quantity);
+
+                foodNotesToSave.add(noteMap);
+                if (noteId > 0) {
+                    noteIdsToSave.add(noteId);
+                }
+            }
+        }
+
+        // Show message if all notes were already saved
+        if (foodNotesToSave.isEmpty()) {
+            if (skippedCount > 0) {
+                Toast.makeText(this, "All selected notes have already been saved to a collection", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "No food notes to save", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        android.util.Log.d("SAVE_NOTES", "Saving " + foodNotesToSave.size() + " food notes (skipped " + skippedCount + " already saved)");
+
+        // Get the selected date from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String selectedDateStr = prefs.getString(PREF_LAST_SELECTED_DATE, null);
+
+        if (selectedDateStr == null) {
+            Toast.makeText(this, "Please select a date first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Parse the selected date and create a DayCiF1005 instance
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("dd MMM yy", Locale.getDefault());
+            Date selectedDate = inputFormat.parse(selectedDateStr);
+
+            if (selectedDate != null) {
+                // Convert to LocalDateTime
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(selectedDate);
+                LocalDateTime dateTime = LocalDateTime.of(
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH) + 1,
+                        calendar.get(Calendar.DAY_OF_MONTH),
+                        0, 0
+                );
+
+                // Create DayCiF1005 instance with the selected date
+                DayCiF1005 day = new DayCiF1005(0, 0, 0, 0, dateTime, "", "");
+
+                // Save the food notes collection
+                long insertedId = day.Save_Notes(this, foodNotesToSave);
+
+                if (insertedId > 0) {
+                    // Mark the saved notes as saved to collection
+                    if (!noteIdsToSave.isEmpty()) {
+                        int markedCount = databaseHelper.markNotesAsSavedToCollection(noteIdsToSave);
+                        android.util.Log.d("SAVE_NOTES", "Marked " + markedCount + " notes as saved to collection");
+                    }
+
+                    String message = hasSelection
+                            ? "Saved " + foodNotesToSave.size() + " selected note(s) to collection"
+                            : "Saved all " + foodNotesToSave.size() + " note(s) to collection";
+                    if (skippedCount > 0) {
+                        message += " (" + skippedCount + " already saved)";
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                    android.util.Log.d("SAVE_NOTES", "Food notes collection saved with ID: " + insertedId);
+                } else {
+                    Toast.makeText(this, "Failed to save notes collection", Toast.LENGTH_SHORT).show();
+                    android.util.Log.e("SAVE_NOTES", "Failed to save food notes collection");
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("SAVE_NOTES", "Error saving food notes: " + e.getMessage());
+            e.printStackTrace();
+            Toast.makeText(this, "Error saving notes: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -1160,6 +1382,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
      * Format: "Food Notes between 4pm [previous_day] and 4pm [selected_day]"
      * Example: User selects "10 OCT 25" → "Food Notes between 4pm 9 OCT and 4pm 10 OCT 25"
      *
+     * Also loads the memo associated with the new title.
+     *
      * @param selectedDateStr The selected date in "dd MMM yy" format
      */
     private void updateDateRangeTitle(String selectedDateStr) {
@@ -1185,6 +1409,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 tvDateRangeTitle.setText(title);
 
                 android.util.Log.d("DATE_PICKER", "Updated title: " + title);
+
+                // Load memo for the new title (only if memo panel is initialized)
+                if (etMemoText != null) {
+                    android.util.Log.d("MEMO", "Title changed, loading memo for new title");
+                    loadLastMemo();
+                }
             }
         } catch (Exception e) {
             android.util.Log.e("DATE_PICKER", "Error updating date range title: " + e.getMessage());

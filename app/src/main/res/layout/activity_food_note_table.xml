@@ -139,7 +139,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Memo"
+            android:text="@string/food_note_memo_title"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
@@ -295,6 +295,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Delete Note(s)" />
+
+            <Button
+                android:id="@+id/btnSaveNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_save_notes" />
 
             <Button
                 android:id="@+id/btnKitty"

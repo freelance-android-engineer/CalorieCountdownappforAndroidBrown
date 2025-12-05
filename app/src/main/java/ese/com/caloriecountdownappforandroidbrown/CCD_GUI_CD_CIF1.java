@@ -134,7 +134,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         setSupportActionBar(toolbar);
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setIcon(R.drawable.ic_launcher7);
-
+//=======
         countdownbalance = (TextView) findViewById(R.id.textView);
         preferencesHelper = new PreferencesHelper(this);
 
@@ -187,6 +187,25 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // Refresh balance from storage when returning to this activity
+        refreshBalanceFromStorage();
+    }
+
+    private void refreshBalanceFromStorage() {
+        try {
+            MIF4_Data_Model_Adapter model_adapter = new MIF4_Data_Model_Adapter(this);
+            String storedBalance = model_adapter.RetrieveBalance();
+            if (storedBalance != null && !storedBalance.isEmpty()) {
+                mBalance_text = storedBalance;
+                final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+                if (countdownbalance != null) {
+                    countdownbalance.setText(mBalance_text);
+                    android.util.Log.d("Balance Refresh", "Balance refreshed to: " + mBalance_text);
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("Balance Refresh", "Error refreshing balance: " + e.getMessage());
+        }
     }
 
 
@@ -1328,7 +1347,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         countdownbalance.setText(mBalance_text);
     }
-
+//==========
     private void Set_Balance(String input) {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
 
@@ -1352,15 +1371,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         return data_model_adapter.StoreBalance(mBalance_text);
 
     }
-
-
-
-
-
-
-
-
-
 
 /*    @Override
     protected void onActivityResult(int requestcode, int resultcode, Intent data) {

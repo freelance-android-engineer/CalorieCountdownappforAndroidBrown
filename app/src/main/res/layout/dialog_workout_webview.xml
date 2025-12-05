@@ -1,55 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <!-- Title -->
     <TextView
-        android:id="@+id/tvDialogTitle"
+        android:id="@+id/tvWorkoutTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Total Calories"
+        android:text="@string/workout_dialog_title"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:padding="16dp"
+        android:gravity="center"/>
 
-    <!-- Total Calories Text -->
-    <TextView
-        android:id="@+id/tvTotalCalories"
+    <WebView
+        android:id="@+id/webViewWorkout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="0"
-        android:textSize="17sp"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:layout_height="400dp"
+        android:minHeight="400dp"/>
 
-    <!-- Buttons Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:padding="16dp"
         android:gravity="center">
 
-        <!-- OK Button -->
         <Button
-            android:id="@+id/btnOk"
+            android:id="@+id/btnCancel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="OK" />
+            android:text="@string/btn_cancel"/>
 
-        <!-- Credit Button -->
         <Button
-            android:id="@+id/btnCredit"
+            android:id="@+id/btnDone"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Credit" />
+            android:text="@string/btn_done"/>
 
     </LinearLayout>
 

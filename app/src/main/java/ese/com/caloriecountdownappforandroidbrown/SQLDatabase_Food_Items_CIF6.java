@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 3; // Incremented to add memo table
+    private static final int VERSION = 6; // Incremented to add memo_title column to memo table
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -271,6 +271,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_CALORIES = "note_calories";
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
     private static final String COLUMN_IS_TRANSFERRED = "isTransferred";
+    private static final String COLUMN_IS_SAVED_TO_COLLECTION = "isSavedToCollection";
 
     //    Memo Table (FIFO max 10 entries)
     private static final String TABLE_MEMO = "memo";
@@ -278,8 +279,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_MEMO_DATE = "memo_date";
     private static final String COLUMN_MEMO_TEXT = "memo_text";
     private static final String COLUMN_MEMO_IMAGE = "memo_image";
+    private static final String COLUMN_MEMO_TITLE = "memo_title";
     private static final int MAX_MEMO_COUNT = 10;
 
+    //    Food Notes Collection Table - stores collections of food notes by date
+    private static final String TABLE_FOOD_NOTES_COLLECTION = "food_notes_collection";
+    private static final String COLUMN_COLLECTION_ID = "collection_id";
+    private static final String COLUMN_COLLECTION_DATE = "collection_date";
+    private static final String COLUMN_COLLECTION_NOTES_JSON = "notes_json";
+    private static final String COLUMN_COLLECTION_TOTAL_CALORIES = "total_calories";
+    private static final String COLUMN_COLLECTION_CREATED_AT = "created_at";
 
     private static final String TABLE_CACHE_TABLE = "cache";
     //Here Check if the Food item the User is entering has already been entered and updated successfully in the past.
@@ -792,7 +801,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + COLUMN_QUICK_FOOD_NOTE_FOOD + " TEXT, "
                     + COLUMN_QUICK_FOOD_NOTE_CALORIES + " TEXT, "
                     + COLUMN_QUICK_FOOD_NOTE_QUANTITY + " TEXT, "
-                    + COLUMN_IS_TRANSFERRED + " INTEGER DEFAULT 0" // 0 = false, 1 = true
+                    + COLUMN_IS_TRANSFERRED + " INTEGER DEFAULT 0, " // 0 = false, 1 = true
+                    + COLUMN_IS_SAVED_TO_COLLECTION + " INTEGER DEFAULT 0" // 0 = not saved, 1 = saved to collection
                     + ")";
             db.execSQL(CREATE_QUICK_FOOD_NOTE_TABLE);
             android.util.Log.d("Table creation", "created" + TABLE_QUICK_FOOD_NOTE);
@@ -808,12 +818,29 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + COLUMN_MEMO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                     + COLUMN_MEMO_DATE + " TEXT, "
                     + COLUMN_MEMO_TEXT + " TEXT, "
-                    + COLUMN_MEMO_IMAGE + " TEXT"
+                    + COLUMN_MEMO_IMAGE + " TEXT, "
+                    + COLUMN_MEMO_TITLE + " TEXT"
                     + ")";
             db.execSQL(CREATE_MEMO_TABLE);
             android.util.Log.d("Table creation", "created " + TABLE_MEMO);
         } catch (Exception e) {
             android.util.Log.d("Table creation", "Memo table creation in catch block: " + e.getMessage());
+        }
+
+        // Create Food Notes Collection Table
+        try {
+            android.util.Log.d("Table creation", "Table food notes collection creation start");
+            String CREATE_FOOD_NOTES_COLLECTION_TABLE = "CREATE TABLE " + TABLE_FOOD_NOTES_COLLECTION + " ("
+                    + COLUMN_COLLECTION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_COLLECTION_DATE + " TEXT, "
+                    + COLUMN_COLLECTION_NOTES_JSON + " TEXT, "
+                    + COLUMN_COLLECTION_TOTAL_CALORIES + " INTEGER, "
+                    + COLUMN_COLLECTION_CREATED_AT + " TEXT"
+                    + ")";
+            db.execSQL(CREATE_FOOD_NOTES_COLLECTION_TABLE);
+            android.util.Log.d("Table creation", "created " + TABLE_FOOD_NOTES_COLLECTION);
+        } catch (Exception e) {
+            android.util.Log.d("Table creation", "Food notes collection table creation in catch block: " + e.getMessage());
         }
 
     }
@@ -848,6 +875,49 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "Successfully created memo table");
             } catch (Exception e) {
                 android.util.Log.e("DB_UPGRADE", "Error creating memo table: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        // Create food notes collection table if upgrading from version < 4
+        if (oldVersion < 4) {
+            try {
+                android.util.Log.d("DB_UPGRADE", "Creating food notes collection table");
+                String CREATE_FOOD_NOTES_COLLECTION_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_FOOD_NOTES_COLLECTION + " ("
+                        + COLUMN_COLLECTION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_COLLECTION_DATE + " TEXT, "
+                        + COLUMN_COLLECTION_NOTES_JSON + " TEXT, "
+                        + COLUMN_COLLECTION_TOTAL_CALORIES + " INTEGER, "
+                        + COLUMN_COLLECTION_CREATED_AT + " TEXT"
+                        + ")";
+                db.execSQL(CREATE_FOOD_NOTES_COLLECTION_TABLE);
+                android.util.Log.d("DB_UPGRADE", "Successfully created food notes collection table");
+            } catch (Exception e) {
+                android.util.Log.e("DB_UPGRADE", "Error creating food notes collection table: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        // Add isSavedToCollection column if upgrading from version < 5
+        if (oldVersion < 5) {
+            try {
+                android.util.Log.d("DB_UPGRADE", "Adding isSavedToCollection column to quick_food_note table");
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_IS_SAVED_TO_COLLECTION + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "Successfully added isSavedToCollection column");
+            } catch (Exception e) {
+                android.util.Log.e("DB_UPGRADE", "Error adding isSavedToCollection column: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        // Add memo_title column to memo table if upgrading from version < 6
+        if (oldVersion < 6) {
+            try {
+                android.util.Log.d("DB_UPGRADE", "Adding memo_title column to memo table");
+                db.execSQL("ALTER TABLE " + TABLE_MEMO + " ADD COLUMN " + COLUMN_MEMO_TITLE + " TEXT");
+                android.util.Log.d("DB_UPGRADE", "Successfully added memo_title column");
+            } catch (Exception e) {
+                android.util.Log.e("DB_UPGRADE", "Error adding memo_title column: " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -2876,6 +2946,81 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE, null);
     }
 
+    /**
+     * Get only food notes that have NOT been saved to a collection yet.
+     * These are notes where isSavedToCollection = 0.
+     *
+     * @return Cursor containing unsaved food notes
+     */
+    public Cursor getUnsavedFoodNotes() {
+        android.util.Log.d("GET_UNSAVED_NOTES", "getUnsavedFoodNotes called");
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE +
+                " WHERE " + COLUMN_IS_SAVED_TO_COLLECTION + " = 0", null);
+    }
+
+    /**
+     * Mark food notes as saved to collection.
+     * Sets isSavedToCollection = 1 for the given note IDs.
+     *
+     * @param noteIds List of note IDs to mark as saved
+     * @return Number of rows updated
+     */
+    public int markNotesAsSavedToCollection(List<Integer> noteIds) {
+        if (noteIds == null || noteIds.isEmpty()) {
+            android.util.Log.d("MARK_SAVED", "No note IDs provided");
+            return 0;
+        }
+
+        android.util.Log.d("MARK_SAVED", "Marking " + noteIds.size() + " notes as saved to collection");
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Build the IN clause for the query
+        StringBuilder inClause = new StringBuilder();
+        for (int i = 0; i < noteIds.size(); i++) {
+            if (i > 0) {
+                inClause.append(",");
+            }
+            inClause.append(noteIds.get(i));
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_IS_SAVED_TO_COLLECTION, 1);
+
+        int rowsUpdated = db.update(
+                TABLE_QUICK_FOOD_NOTE,
+                values,
+                COLUMN_QUICK_FOOD_NOTE_ID + " IN (" + inClause.toString() + ")",
+                null
+        );
+
+        android.util.Log.d("MARK_SAVED", "Rows updated: " + rowsUpdated);
+        db.close();
+        return rowsUpdated;
+    }
+
+    /**
+     * Check if a food note has been saved to collection.
+     *
+     * @param noteId The ID of the food note
+     * @return true if saved to collection, false otherwise
+     */
+    public boolean isNoteSavedToCollection(int noteId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_IS_SAVED_TO_COLLECTION +
+                        " FROM " + TABLE_QUICK_FOOD_NOTE +
+                        " WHERE " + COLUMN_QUICK_FOOD_NOTE_ID + " = ?",
+                new String[]{String.valueOf(noteId)});
+
+        boolean isSaved = false;
+        if (cursor.moveToFirst()) {
+            isSaved = cursor.getInt(0) == 1;
+        }
+        cursor.close();
+        db.close();
+        return isSaved;
+    }
+
     public Cursor getTransferredQuickFoodNotes() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_QUICK_FOOD_NOTE + " WHERE isTransferred = 1", null);
@@ -3138,12 +3283,59 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
      * @return The ID of the inserted memo, or -1 if failed
      */
     public long insertMemo(String memoText, String memoImage) {
-        android.util.Log.d("MEMO", "insertMemo called");
+        return insertMemo(memoText, memoImage, null);
+    }
+
+    /**
+     * Insert a new memo with FIFO logic (max 10 entries) with food note title.
+     * If there are already MAX_MEMO_COUNT memos, the oldest one is deleted.
+     * If a memo with the same title exists, it will be updated instead of inserted.
+     *
+     * @param memoText  The memo text content
+     * @param memoImage Base64 encoded image string (can be null)
+     * @param memoTitle The food note title this memo is associated with
+     * @return The ID of the inserted/updated memo, or -1 if failed
+     */
+    public long insertMemo(String memoText, String memoImage, String memoTitle) {
+        android.util.Log.d("MEMO", "insertMemo called with title: " + memoTitle);
         SQLiteDatabase db = null;
-        long insertedId = -1;
+        long resultId = -1;
 
         try {
             db = this.getWritableDatabase();
+
+            // Check if memo with this title already exists
+            if (memoTitle != null && !memoTitle.isEmpty()) {
+                Cursor existingCursor = db.query(TABLE_MEMO,
+                        new String[]{COLUMN_MEMO_ID},
+                        COLUMN_MEMO_TITLE + " = ?",
+                        new String[]{memoTitle},
+                        null, null, null);
+
+                if (existingCursor != null && existingCursor.moveToFirst()) {
+                    // Update existing memo
+                    int existingId = existingCursor.getInt(existingCursor.getColumnIndex(COLUMN_MEMO_ID));
+                    existingCursor.close();
+
+                    ContentValues values = new ContentValues();
+                    values.put(COLUMN_MEMO_DATE, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+                    values.put(COLUMN_MEMO_TEXT, memoText);
+                    values.put(COLUMN_MEMO_IMAGE, memoImage);
+
+                    int rowsUpdated = db.update(TABLE_MEMO, values,
+                            COLUMN_MEMO_ID + " = ?",
+                            new String[]{String.valueOf(existingId)});
+
+                    if (rowsUpdated > 0) {
+                        resultId = existingId;
+                        android.util.Log.d("MEMO", "Memo updated successfully with ID: " + resultId);
+                    }
+                    return resultId;
+                }
+                if (existingCursor != null) {
+                    existingCursor.close();
+                }
+            }
 
             // Check current count and enforce FIFO if needed
             enforceMemoFIFO(db);
@@ -3153,13 +3345,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             values.put(COLUMN_MEMO_DATE, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
             values.put(COLUMN_MEMO_TEXT, memoText);
             values.put(COLUMN_MEMO_IMAGE, memoImage);
+            values.put(COLUMN_MEMO_TITLE, memoTitle);
 
-            insertedId = db.insert(TABLE_MEMO, null, values);
+            resultId = db.insert(TABLE_MEMO, null, values);
 
-            if (insertedId == -1) {
+            if (resultId == -1) {
                 android.util.Log.e("MEMO", "Insert FAILED - returned -1");
             } else {
-                android.util.Log.d("MEMO", "Memo inserted successfully with ID: " + insertedId);
+                android.util.Log.d("MEMO", "Memo inserted successfully with ID: " + resultId);
             }
         } catch (Exception e) {
             android.util.Log.e("MEMO", "Exception during insert: " + e.getMessage());
@@ -3170,7 +3363,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             }
         }
 
-        return insertedId;
+        return resultId;
     }
 
     /**
@@ -3224,102 +3417,83 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
-     * Get a single memo by ID
+     * Get memo by food note title.
+     * Returns the memo associated with the given title.
      *
-     * @param memoId The ID of the memo to retrieve
-     * @return Cursor containing the memo, or null if not found
+     * @param title The food note title to search for
+     * @return Cursor containing the memo for this title, or empty cursor if not found
      */
-    public Cursor getMemoById(int memoId) {
-        android.util.Log.d("MEMO", "getMemoById called for ID: " + memoId);
+    public Cursor getMemoByTitle(String title) {
+        android.util.Log.d("MEMO", "getMemoByTitle called with title: " + title);
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_ID + " = ?",
-                new String[]{String.valueOf(memoId)});
-    }
 
-    /**
-     * Update an existing memo
-     *
-     * @param memoId    The ID of the memo to update
-     * @param memoText  New memo text
-     * @param memoImage New Base64 encoded image (can be null)
-     * @return Number of rows affected
-     */
-    public int updateMemo(int memoId, String memoText, String memoImage) {
-        android.util.Log.d("MEMO", "updateMemo called for ID: " + memoId);
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_MEMO_TEXT, memoText);
-        values.put(COLUMN_MEMO_IMAGE, memoImage);
-        values.put(COLUMN_MEMO_DATE, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
-
-        int rowsAffected = db.update(
-                TABLE_MEMO,
-                values,
-                COLUMN_MEMO_ID + " = ?",
-                new String[]{String.valueOf(memoId)}
-        );
-
-        android.util.Log.d("MEMO", "Rows updated: " + rowsAffected);
-        db.close();
-        return rowsAffected;
-    }
-
-    /**
-     * Delete a specific memo by ID
-     *
-     * @param memoId The ID of the memo to delete
-     * @return Number of rows deleted
-     */
-    public int deleteMemo(int memoId) {
-        android.util.Log.d("MEMO", "deleteMemo called for ID: " + memoId);
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        int rowsDeleted = db.delete(
-                TABLE_MEMO,
-                COLUMN_MEMO_ID + " = ?",
-                new String[]{String.valueOf(memoId)}
-        );
-
-        android.util.Log.d("MEMO", "Rows deleted: " + rowsDeleted);
-        db.close();
-        return rowsDeleted;
-    }
-
-    /**
-     * Delete all memos (clear the memo table)
-     *
-     * @return Number of rows deleted
-     */
-    public int clearAllMemos() {
-        android.util.Log.d("MEMO", "clearAllMemos called");
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        int rowsDeleted = db.delete(TABLE_MEMO, null, null);
-
-        android.util.Log.d("MEMO", "All memos cleared. Rows deleted: " + rowsDeleted);
-        db.close();
-        return rowsDeleted;
-    }
-
-    /**
-     * Get the count of memos in the database
-     *
-     * @return Number of memos
-     */
-    public int getMemoCount() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEMO, null);
-        int count = 0;
-        if (cursor.moveToFirst()) {
-            count = cursor.getInt(0);
+        // Safety check: ensure memo_title column exists
+        try {
+            Cursor checkCursor = db.rawQuery("SELECT " + COLUMN_MEMO_TITLE + " FROM " + TABLE_MEMO + " LIMIT 1", null);
+            if (checkCursor != null) {
+                checkCursor.close();
+            }
+        } catch (Exception e) {
+            // Column doesn't exist, add it
+            android.util.Log.d("MEMO", "memo_title column doesn't exist, adding it now");
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_MEMO + " ADD COLUMN " + COLUMN_MEMO_TITLE + " TEXT");
+                android.util.Log.d("MEMO", "Successfully added memo_title column");
+            } catch (Exception e2) {
+                android.util.Log.e("MEMO", "Error adding memo_title column: " + e2.getMessage());
+            }
         }
-        cursor.close();
-        db.close();
-        return count;
+
+        if (title == null || title.isEmpty()) {
+            // Return empty cursor if no title provided
+            return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE 1=0", null);
+        }
+        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_TITLE + " = ?",
+                new String[]{title});
     }
 
 
+    /**
+     * Save a collection of food notes for a specific date.
+     * This stores the food notes as a JSON string along with the total calories.
+     *
+     * @param collectionDate The date for this collection (format: "dd MMM yy")
+     * @param notesJson      JSON string containing the array of food notes
+     * @param totalCalories  Total calories for all notes in the collection
+     * @return The ID of the inserted collection, or -1 if failed
+     */
+    public long insertFoodNotesCollection(String collectionDate, String notesJson, int totalCalories) {
+        android.util.Log.d("FOOD_COLLECTION", "insertFoodNotesCollection called for date: " + collectionDate);
+        SQLiteDatabase db = null;
+        long insertedId = -1;
+
+        try {
+            db = this.getWritableDatabase();
+
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_COLLECTION_DATE, collectionDate);
+            values.put(COLUMN_COLLECTION_NOTES_JSON, notesJson);
+            values.put(COLUMN_COLLECTION_TOTAL_CALORIES, totalCalories);
+            values.put(COLUMN_COLLECTION_CREATED_AT, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+
+            insertedId = db.insert(TABLE_FOOD_NOTES_COLLECTION, null, values);
+
+            if (insertedId == -1) {
+                android.util.Log.e("FOOD_COLLECTION", "Insert FAILED - returned -1");
+            } else {
+                android.util.Log.d("FOOD_COLLECTION", "Food notes collection inserted successfully with ID: " + insertedId);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("FOOD_COLLECTION", "Exception during insert: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return insertedId;
+    }
 }
 
 

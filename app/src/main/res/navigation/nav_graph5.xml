@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/First10Fragment"
         android:name="ese.com.caloriecountdownappforandroidbrown.First10Fragment"
-        android:label="@string/first_fragment_label"
+        android:label="Add Raw Calories"
         tools:layout="@layout/fragment_first10">
 
         <action
