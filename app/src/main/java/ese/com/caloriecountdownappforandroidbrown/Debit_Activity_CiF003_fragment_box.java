@@ -107,7 +107,6 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             public void onClick(View v) {
                 //Steps_Activity_CiF1003_fragment_box_Class get_Steps = new Steps_Activity_CiF1003_fragment_box_Class();
                 Update_with_Step_Count();
-
             }
         });
 
@@ -191,21 +190,16 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_debit__activity__cif13, container, false);
-
-
         return v;
     }
 
     private int GetCountdownDebit(Fitness_Item_CIF5 fizz) {
         //Alogrithm Engineering -> Android : GetCountdownDebit() (Track, hence eta date Transition Date = 5pm December 12, 2011 (strictly on Track)
         //Step 1. return weight * min * fizz data value.
-
         int debit = fizz.CalculateCountdown();
         SummaryBoxCIF12 summy = SummaryBoxCIF12.get(getApplicationContext());
         summy.Set_mFitnessItems(fizz);
-
         return debit;
-
     }
 
     private void Update_with_Step_Count() {
@@ -243,8 +237,6 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         //sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         // android.util.Log.d("STEPS", "Below Sensor Manager");
         // mStep_Count = 6847;
-
-
         return mStep_Count;
     }
 

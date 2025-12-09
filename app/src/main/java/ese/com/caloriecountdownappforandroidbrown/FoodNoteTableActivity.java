@@ -738,31 +738,40 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
 
     private void transferAllFoodNotes() {
-        Cursor cursor = databaseHelper.getAllFoodNotes();
-        if (cursor != null) {
-            boolean hasZeroValue = false;
+        // Collect selected note IDs from table rows
+        List<Integer> selectedNoteIds = new ArrayList<>();
 
-            if (cursor.moveToFirst()) {
-                do {
-                    int valueIndex = cursor.getColumnIndex("isTransferred"); // replace with actual column name
-                    if (valueIndex != -1) {
-                        int value = cursor.getInt(valueIndex);
-                        if (value == 0) {
-                            hasZeroValue = true;
-                            break; // no need to check further
-                        }
+        for (int i = 1; i < tableLayout.getChildCount(); i++) { // Skip header row
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+
+            if (checkBox.isChecked()) {
+                Object tag = row.getTag();
+                if (tag != null) {
+                    try {
+                        int noteId = Integer.parseInt(tag.toString());
+                        selectedNoteIds.add(noteId);
+                    } catch (NumberFormatException e) {
+                        android.util.Log.e("TRANSFER", "Invalid note ID in tag: " + tag);
                     }
-                } while (cursor.moveToNext());
+                }
             }
+        }
 
-            cursor.close();
+        // Check if any notes are selected
+        if (selectedNoteIds.isEmpty()) {
+            Toast.makeText(FoodNoteTableActivity.this, "Please select food notes to transfer", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-            if (hasZeroValue) {
-                databaseHelper.transferLastNFoodNotes(10);  // Transfer only last 10 notes
-                launchCreditView();
-            } else {
-                Toast.makeText(FoodNoteTableActivity.this, "No notes to transfer", Toast.LENGTH_SHORT).show();
-            }
+        // Transfer only the selected notes
+        int transferredCount = databaseHelper.transferFoodNotesByIds(selectedNoteIds);
+
+        if (transferredCount > 0) {
+            Toast.makeText(FoodNoteTableActivity.this, "Transferred " + transferredCount + " note(s)", Toast.LENGTH_SHORT).show();
+            launchCreditView();
+        } else {
+            Toast.makeText(FoodNoteTableActivity.this, "No notes were transferred (may already be transferred)", Toast.LENGTH_SHORT).show();
         }
     }
 
