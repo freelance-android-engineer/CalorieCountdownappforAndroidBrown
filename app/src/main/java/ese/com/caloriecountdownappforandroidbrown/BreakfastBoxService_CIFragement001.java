@@ -89,7 +89,7 @@ public class BreakfastBoxService_CIFragement001 extends Service
         Intent i = new Intent(goey, BreakfastBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_BREAKFAST_NOTIFICATION);
 
-        alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         mBuilder.setContentIntent(alarmIntent);
 
         mNotificationManager.notify(0, mBuilder.build());
@@ -103,7 +103,7 @@ public class BreakfastBoxService_CIFragement001 extends Service
         //Intent i = new Intent(goey, BreakfastBoxService_CIFragement001.class);
         //i.setAction(ACTION_SET_BREAKFAST_NOTIFICATION);
 
-        //alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        //alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         //mNotificationManager.notify(0, mBuilder.build());
     }
@@ -138,7 +138,7 @@ public class BreakfastBoxService_CIFragement001 extends Service
         Intent i = new Intent(goey, BreakfastBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_BREAKFAST_NOTIFICATION);
 
-        alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         //mNotificationManager.notify(0, mBuilder.build());
 
@@ -185,7 +185,7 @@ public class BreakfastBoxService_CIFragement001 extends Service
         //Intent i = new Intent(goey, BreakfastBoxService_CIFragement001.class);
         //i.setAction(ACTION_SET_BREAKFAST_NOTIFICATION);
 
-        //alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        //alarmIntent = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         ///mBuilder.setContentIntent(contentIntent);
 
         ///mNotificationManager.notify(0, mBuilder.build());

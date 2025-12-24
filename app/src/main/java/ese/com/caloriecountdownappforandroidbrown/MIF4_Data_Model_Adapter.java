@@ -140,52 +140,30 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
 
     public void StoreStartWeightLoss(HealthProfileCiF3 IN)
     {
-        //ENGLISH ~> IDO (New Menu/Submenuitem from Functional Model?)~> Algorithm Engineering (Building Blocks&)~> Android ~>(Phone)*~>(re)Load ~> www.ese-edet.eu End&Repeat, (apk Dev Console progress Bar on Track!)(Remember Weekly Friday Lamppost for www) (Read same thing same spot for revolve 2 happen.)Repeat Constantly on Track till <*August 16,16 Fast Track> Opening Soon exe  www.ee-edet.eu (re)Load -> www.ese-edet.eu.
-        // *Test Menu/Sub Menuitem for (Green) (CFF and Value QVM). up and down train 2 www fronts beleive I can do 100 by <> not going to change in fut
-        //repeat till final reload, reload ONLY Menuitems and SubMenuitems ONLY ESE Software Pipeline. exe 1,2,3 Fast
-        //Fragment stop and read former work on this, compare do not reinvent the Wheel. You write to exe that's all
-        //exe (hot) to Build Software so Say. REad.
-        //
-        //REX
+        Log.d("SWL_DEBUG", "StoreStartWeightLoss: START");
+        Log.d("SWL_DEBUG", "StoreStartWeightLoss: IN is null? " + (IN == null));
+        Log.d("SWL_DEBUG", "StoreStartWeightLoss: context is null? " + (context == null));
 
-        //Takes in CIF3 Create/Post Values related to it to relevant tables Copy and Breakdown
+        try {
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: Creating SQLDatabase_Food_Items_CIF6");
+            SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: SQLDatabase created successfully");
 
-        //All table include : (now compare with Rex already written note : Well done. Start as you Finish (red connection [loop]
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: Calling CreateAccountTables");
+            jackie.CreateAccountTables(IN);
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: CreateAccountTables completed");
 
-        //Calendar* notes can be found in Spreadsheet (exe)
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: Calling PostValuesToTables");
+            jackie.PostValuesToTables(IN);
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: PostValuesToTables completed");
 
-        //Other Table to Create in SQL Lite:
-        //BreakfastTime Table
-        //LunchTime Table
-        //FinalMealTime Table -> NewDay DayEnd /Balance Cfwd to DayEnd new Calendar Day. Closer to Zero date. accounting Linguo Terms and Jargon Only.
-        //CurrentWeight Table (Close Well no  leakage now Black fix) ~> work android ~> www.ese-edet.eu
-        //TargetWeight Table
-        //StartWeight Table
-        //DayEnd Countdown /last session
-        //Exercise Time Table
-        //dayend countdown balances dashboard chart //resuse blackberry technology with improved or external charts, we are simply posting the dayend values of countdown at 9pm to this table one day at a time stack style.
-        // All Sub Fragment Menuitems in their activity
-        //Male or Female.
-        //Number of Days
-        //Reminder State Table
-        //Start Calorie Balance Table
-        //Start Day Table
-        //add date field to last balance
-        //Update table
-        //now store stuff ok including data in database key of app let's go.
-
-        //Now copy and repeat procedure rex to Food item databse etc. exe
-
-        //Well done and Congratualtions for (re)Loading to www on August 16,16 but remember (re)Loading Never Stops, ESE S.C.I LTD -Company.
-
-        //me : receive insert and repeat trailer follow and see earlier now you : Read : Not Bad good calabo and revolve, same spot, eye of the storm or tonado we all talk to each other throgh same writings laptop screen of iPhone something we'll all have..
-
-        SQLDatabase_Food_Items_CIF6 jackie = new SQLDatabase_Food_Items_CIF6(context);
-        jackie.CreateAccountTables(IN);
-        jackie.PostValuesToTables(IN);
-        InitmForecast(IN);
-
-        jackie.close();
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: Closing database");
+            jackie.close();
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: COMPLETED successfully");
+        } catch (Exception e) {
+            Log.e("SWL_DEBUG", "StoreStartWeightLoss: EXCEPTION: " + e.getMessage(), e);
+            throw e;
+        }
 
     }
 
@@ -2040,6 +2018,17 @@ public class Meal_Type
 
         int numberOfDays = (int) (openingBalance/100);
 
+        // Ensure openingBalance is valid before initializing mForecast
+        if (openingBalance <= 0) {
+            Log.d("InitmForecast", "Invalid opening balance: " + openingBalance + ", skipping forecast initialization");
+            return;
+        }
+
+        // Initialize mForecast only when we have valid data (lazy initialization)
+        if (IN.mForecast == null) {
+            IN.mForecast = new CountdownToZeroDayCiF1004(openingBalance, IN);
+        }
+
         IN.mForecast.setupType(numberOfDays);
         StoremForecast(IN);
 
@@ -2057,7 +2046,9 @@ public class Meal_Type
         //Dayend Table. Let this table have budgeted dayend balance and actual
         //app encourages users to meet and beat this budget even before time.
 
-        Store_CountdownToZeroDayCiF1004(IN.mForecast);
+        if (IN.mForecast != null) {
+            Store_CountdownToZeroDayCiF1004(IN.mForecast);
+        }
 
     }
 

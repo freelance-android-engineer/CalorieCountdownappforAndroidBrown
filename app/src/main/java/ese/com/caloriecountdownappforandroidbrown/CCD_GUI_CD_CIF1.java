@@ -1585,7 +1585,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, NewDayCountdown.class);
         i.setAction(ACTION_STORE_BALANCE);
-        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC, (System.currentTimeMillis() + KalendTime), intervalmillis, pi);
         Log.d("Countdown", "Alarm Manager Set Yeah verify");

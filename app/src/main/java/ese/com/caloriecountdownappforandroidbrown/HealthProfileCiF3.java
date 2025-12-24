@@ -24,7 +24,8 @@ public class HealthProfileCiF3
 
     //Sourcing
     //Sources
-    public  CountdownToZeroDayCiF1004 mForecast = new CountdownToZeroDayCiF1004(0,this);
+    // Lazy initialization to avoid circular dependency crash during construction
+    public CountdownToZeroDayCiF1004 mForecast = null;
     private float Body_Fat_Percentage = 0;
 
 

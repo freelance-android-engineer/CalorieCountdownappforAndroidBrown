@@ -323,35 +323,56 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
     private void BackToParentWithOpeningBalance(HealthProfileCiF3 IN)
     {
-        MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getActivity());
+        android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: START");
+        android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: IN is null? " + (IN == null));
+
+        try {
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Creating MIF4_Data_Model_Adapter");
+            MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getActivity());
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: MIF4_Data_Model_Adapter created");
+
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Calling StoreStartWeightLoss");
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: StartCountdown=" + IN.getStartCountdown());
+            data_model_adapter.StoreStartWeightLoss(IN); //Initmforecast here and
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: StoreStartWeightLoss completed");
 
 
-        data_model_adapter.StoreStartWeightLoss(IN); //Initmforecast here and
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Calling StartNotificationCycle");
+            ObjectWithAllTheTimesCIF10 objectWithAllTimes = StartNotificationCycle(mAccount);
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: StartNotificationCycle completed, objectWithAllTimes is null? " + (objectWithAllTimes == null));
+            //= goey.ResetAlarm(specialThreadCIF15); //Send and intent back to start reset Alarm
+            //Readme : ActivateAlarm does it's thing and returns CIF10 packed data for next thread alarms
+            //these are packed into an intent and shot off for The Bridge CIF1 to receive
+            //unpack the data and reset a new special tread similar to this still for next Alarm, capish?
 
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Calling StoreDayEndBalance with value=" + (IN.getStartCountdown() - 100));
+            data_model_adapter.StoreDayEndBalance(IN.getStartCountdown() - 100);
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: StoreDayEndBalance completed");
 
+            Intent i2 = new Intent();
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: We are about to shoot intent1");
+            i2.putExtra(OPENING_BALANCE, IN.getStartCountdown());
 
-        ObjectWithAllTheTimesCIF10 objectWithAllTimes = StartNotificationCycle(mAccount);
-        //= goey.ResetAlarm(specialThreadCIF15); //Send and intent back to start reset Alarm
-        //Readme : ActivateAlarm does it's thing and returns CIF10 packed data for next thread alarms
-        //these are packed into an intent and shot off for The Bridge CIF1 to receive
-        //unpack the data and reset a new special tread similar to this still for next Alarm, capish?
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Getting times from objectWithAllTimes");
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: getResetBreakfastTime is null? " + (objectWithAllTimes.getResetBreakfastTime() == null));
+            i2.putExtra(ResultBreakfastTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetBreakfastTime()));
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: getResetLunchTime is null? " + (objectWithAllTimes.getResetLunchTime() == null));
+            i2.putExtra(ResultLunchTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetLunchTime()));
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: getResetDinnerTime is null? " + (objectWithAllTimes.getResetDinnerTime() == null));
+            i2.putExtra(ResultDinnerTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetDinnerTime()));
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: getResetDayEnd is null? " + (objectWithAllTimes.getResetDayEnd() == null));
+            i2.putExtra(ResultMidnight, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetDayEnd()));
+            i2.putExtra(VitalStats, IN.getVitalStatsString());
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: We are about to shoot intent2");
 
-        data_model_adapter.StoreDayEndBalance(IN.getStartCountdown() - 100);
-
-        Intent i2 = new Intent();
-        android.util.Log.d("Debugging", "We are about to shoot intent1");
-        i2.putExtra(OPENING_BALANCE, IN.getStartCountdown());
-        i2.putExtra(ResultBreakfastTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetBreakfastTime()));
-        i2.putExtra(ResultLunchTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetLunchTime()));
-        i2.putExtra(ResultDinnerTime, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetDinnerTime()));
-        i2.putExtra(ResultMidnight, new RoundingCIF13().DateToStringStandard(objectWithAllTimes.getResetDayEnd()));
-        i2.putExtra(VitalStats, IN.getVitalStatsString());
-        android.util.Log.d("Debugging", "We are about to shoot intent2");
-
-        getActivity().setResult(getActivity().RESULT_OK, i2);
-        android.util.Log.d("Debugging", "We are about to shoot intent3");
-        getActivity().finish();
-        android.util.Log.d("Debugging","We are about to shoot intent4");
+            getActivity().setResult(getActivity().RESULT_OK, i2);
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: We are about to shoot intent3");
+            getActivity().finish();
+            android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: We are about to shoot intent4 - COMPLETED");
+        } catch (Exception e) {
+            android.util.Log.e("SWL_DEBUG", "BackToParentWithOpeningBalance: EXCEPTION: " + e.getMessage(), e);
+            throw e;
+        }
 
     }
 

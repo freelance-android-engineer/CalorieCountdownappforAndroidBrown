@@ -49,7 +49,7 @@ public class MIF1NewDayEndSetAlarm
             long intervalmillis = (24 * 60 * 60 * 1000); //24 hours
             Intent i = new Intent(mContext, NewDayCountdown.class);
             i.setAction(ACTION_STORE_BALANCE);
-            PendingIntent pi = PendingIntent.getService(mContext, REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent pi = PendingIntent.getService(mContext, REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(mContext.ALARM_SERVICE);
             alarmManager.setRepeating(AlarmManager.RTC, (System.currentTimeMillis()+ KalendTime),intervalmillis, pi);
             Log.d("Countdown", "Alarm Manager Set Yeah verify Lo Lorenzo");

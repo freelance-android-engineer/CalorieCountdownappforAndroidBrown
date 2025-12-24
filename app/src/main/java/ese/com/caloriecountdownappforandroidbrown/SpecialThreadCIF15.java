@@ -1211,7 +1211,7 @@ public class SpecialThreadCIF15 extends Thread {
         long KalendTime = (System.currentTimeMillis());
         Intent i = new Intent(goey, NewDayCountdown.class);
         i.setAction(ACTION_STORE_BALANCE);
-        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) goey.getSystemService(goey.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
         Log.d("Countdown", "Alarm Manager Set Yeah verify");
@@ -1229,7 +1229,7 @@ public class SpecialThreadCIF15 extends Thread {
         Intent i = new Intent(goey, BreakfastBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_BREAKFAST_NOTIFICATION);
 
-        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_BREAKFAST, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         AlarmManager alarmManager = (AlarmManager) goey.getSystemService(goey.ALARM_SERVICE);
         //alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
@@ -1248,7 +1248,7 @@ public class SpecialThreadCIF15 extends Thread {
         Intent i = new Intent(goey, LunchBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_LUNCH_NOTIFICATION);
 
-        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_LUNCH, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_LUNCH, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         AlarmManager alarmManager = (AlarmManager) goey.getSystemService(goey.ALARM_SERVICE);
         //alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
@@ -1266,7 +1266,7 @@ public class SpecialThreadCIF15 extends Thread {
         Intent i = new Intent(goey, DinnerBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_DINNER_NOTIFICATION);
 
-        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_DINNER, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_DINNER, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         AlarmManager alarmManager = (AlarmManager) goey.getSystemService(goey.ALARM_SERVICE);
         //alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
@@ -1285,7 +1285,7 @@ public class SpecialThreadCIF15 extends Thread {
         Intent i = new Intent(goey, FivePMBoxService_CIFragement001.class);
         i.setAction(ACTION_SET_DAYEND_NOTIFICATION);
 
-        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_FIVEPM, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(goey, REQUEST_CODE_NEW_DAY_FIVEPM, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         AlarmManager alarmManager = (AlarmManager) goey.getSystemService(goey.ALARM_SERVICE);
         //alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
@@ -1398,7 +1398,7 @@ public class SpecialThreadCIF15 extends Thread {
 
         Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
 
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         mBuilder.setContentIntent(resultPendingIntent);
         mBuilder.setLights(Color.BLUE, 500, 500);
@@ -1457,7 +1457,7 @@ public class SpecialThreadCIF15 extends Thread {
 
         Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
 
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         mBuilder.setContentIntent(resultPendingIntent);
         mBuilder.setLights(Color.BLUE, 500, 500);
@@ -1486,7 +1486,7 @@ public class SpecialThreadCIF15 extends Thread {
 
         Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
 
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 2, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 2, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         mBuilder.setContentIntent(resultPendingIntent);
         mBuilder.setLights(Color.BLUE, 500, 500);
@@ -1514,7 +1514,7 @@ public class SpecialThreadCIF15 extends Thread {
 
         Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
 
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 2, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(goey, 2, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         mBuilder.setContentIntent(resultPendingIntent);
         mBuilder.setLights(Color.BLUE, 500, 500);

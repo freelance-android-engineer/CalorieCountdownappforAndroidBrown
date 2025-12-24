@@ -124,7 +124,7 @@ public class Log_It_In_CIF15Fragment extends Fragment {
         long intervalmillis = (24*60*60*1000); //24 hours
         Intent i = new Intent(getActivity(), CreditBreakfastBox.class);
         i.setAction(ACTION_CREDIT_BREAKFAST_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_BREAKFAST_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_BREAKFAST_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
         //alarmManager.set(AlarmManager.RTC, (System.currentTimeMillis()), pi);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,Kalends.getTimeInMillis(),twentyFourHours, pi);
@@ -158,7 +158,7 @@ public class Log_It_In_CIF15Fragment extends Fragment {
         long intervalmillis = (24*60*60*1000); //24 hours
         Intent i = new Intent(getActivity(), CreditLunchBox.class);
         i.setAction(ACTION_CREDIT_BREAKFAST_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_BREAKFAST_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_BREAKFAST_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, Kalends.getTimeInMillis(),intervalmillis, pi);
         Log.d("Countdown", "Alarm Manager Set Yeah verify");
@@ -190,7 +190,7 @@ public class Log_It_In_CIF15Fragment extends Fragment {
         long intervalmillis = (24*60*60*1000); //24 hours
         Intent i = new Intent(getActivity(), FinalCreditMealBox.class);
         i.setAction(ACTION_CREDIT_FINALMEAL_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_DINNER_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(getActivity(), REQUEST_CODE_LOG_IT_IN_DINNER_BOX, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, Kalends.getTimeInMillis(),twentyFourHours, pi);
         Log.d("Countdown", "Alarm Manager Set Yeah verify");
