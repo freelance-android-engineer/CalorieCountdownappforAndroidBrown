@@ -36,6 +36,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mStepsManaul;
     private Button mOpenStepApp;
     private Button mDrop100Points;
+    private Button mBMR;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -130,6 +131,15 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View v) {
                 showWorkoutDialog();
+            }
+        });
+
+        // BMR button - drops points based on gender (Male: 2500, Female: 2000)
+        mBMR = (Button) findViewById(R.id.btnBMR);
+        mBMR.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showBMRDialog();
             }
         });
 
@@ -384,6 +394,82 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
         } catch (Exception e) {
             android.util.Log.e("Workout", "Error deducting points: " + e.getMessage(), e);
+            Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showBMRDialog() {
+        // Get gender from SharedPreferences
+        String genderType = CCD_GUI_CD_CIF1.instance.Retrieve_Gender_Type();
+
+        // Determine points to drop based on gender
+        // Male: 2500 points, Female: 2000 points, No gender (default): 2000 points
+        int pointsToDrop;
+        String genderDisplay;
+
+        if (genderType != null && genderType.equals("Male")) {
+            pointsToDrop = 2500;
+            genderDisplay = "Male";
+        } else {
+            // Female or no gender set - default to 2000 points
+            pointsToDrop = 2000;
+            genderDisplay = (genderType != null) ? genderType : "Not set (defaulting to Female)";
+        }
+
+        // Show confirmation dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("BMR Deduction");
+        builder.setMessage("Gender: " + genderDisplay + "\n\nThis will drop " + pointsToDrop + " points from your balance.\n\nDo you want to proceed?");
+
+        final int finalPointsToDrop = pointsToDrop;
+        builder.setPositiveButton("Yes, Drop Points", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                deductBMRPointsFromBalance(finalPointsToDrop);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void deductBMRPointsFromBalance(int pointsToDrop) {
+        try {
+            // Get current balance from data adapter
+            MIF4_Data_Model_Adapter dataAdapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            String currentBalanceStr = dataAdapter.RetrieveBalance();
+
+            android.util.Log.d("BMR", "Current balance retrieved: " + currentBalanceStr);
+
+            // Parse current balance (handle commas if present)
+            int currentBalance = 0;
+            if (currentBalanceStr != null && !currentBalanceStr.isEmpty()) {
+                // Remove commas if present
+                currentBalanceStr = currentBalanceStr.replace(",", "");
+                currentBalance = Integer.parseInt(currentBalanceStr);
+            }
+
+            // Subtract BMR points
+            int newBalance = currentBalance - pointsToDrop;
+
+            android.util.Log.d("BMR", "New balance after deduction: " + newBalance);
+
+            // Store the new balance
+            String newBalanceStr = String.valueOf(newBalance);
+            dataAdapter.StoreBalance(newBalanceStr);
+
+            // Also update DayEnd balance
+            dataAdapter.StoreDayEndBalance(newBalance - 100);
+
+            Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                pointsToDrop + " BMR points dropped! Balance: " + currentBalance + " -> " + newBalance,
+                Toast.LENGTH_SHORT).show();
+
+            android.util.Log.d("BMR", pointsToDrop + " points deducted. Old: " + currentBalance + ", New: " + newBalance);
+
+        } catch (Exception e) {
+            android.util.Log.e("BMR", "Error deducting BMR points: " + e.getMessage(), e);
             Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
                 "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }

@@ -91,6 +91,13 @@
             android:layout_marginTop="16dp"
             android:text="@string/drop_100_points"/>
 
+        <Button
+            android:id="@+id/btnBMR"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/bmr_button"/>
+
 
     </LinearLayout>
     </ScrollView>

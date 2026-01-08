@@ -151,9 +151,11 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         IN.setEmailaddress(editText67.getText().toString());
         if(spinner15.getSelectedItemPosition()== 0){
             IN.setClientGender("Male");
+            CCD_GUI_CD_CIF1.instance.Store_Gender_Type("Male");
         }
         if(spinner15.getSelectedItemPosition()== 1) {
             IN.setClientGender("Female");
+            CCD_GUI_CD_CIF1.instance.Store_Gender_Type("Female");
         }
 
         IN.setClientBodyFrame(spinner1.getSelectedItem().toString());
@@ -722,6 +724,7 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
 
     private void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
     {
+
         //ENGLISH -> IDO -> Algorithm Engineering -> Android -> Noir.
         //Step001
         CCD_GUI_CD_CIF1.instance.InitializeCountdownToXeroDayType1004inCiF001asStatic(IN);

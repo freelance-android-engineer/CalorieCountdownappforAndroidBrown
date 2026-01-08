@@ -1661,12 +1661,25 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         //data_model_adapter.StoreTargetWeightLossPounds(Input1);
 
-        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        SharedPreferences pref = getApplicationContext().getSharedPreferences(  "Calorie_Countdown", 0);
         android.content.SharedPreferences.Editor editor = pref.edit();
 
         editor.putString("Target_Weight", Input1);
         editor.commit();
 
+    }
+
+    public void Store_Gender_Type(String genderType) {
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        android.content.SharedPreferences.Editor editor = pref.edit();
+
+        editor.putString("Gender_Type", genderType);
+        editor.commit();
+    }
+
+    public String Retrieve_Gender_Type() {
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
+        return pref.getString("Gender_Type", null);
     }
 
 
@@ -1696,7 +1709,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private int GenerateStepsChallenge(int in)
     {
-        return 10_000;
+        return 16_000;
     }
 
 }

@@ -2514,6 +2514,9 @@
     <string name="workout_dialog_title">Workout Video</string>
     <string name="btn_done">Done</string>
     <string name="btn_cancel">Cancel</string>
+
+    <!-- BMR Feature -->
+    <string name="bmr_button">BMR</string>
 </resources>
 
 
