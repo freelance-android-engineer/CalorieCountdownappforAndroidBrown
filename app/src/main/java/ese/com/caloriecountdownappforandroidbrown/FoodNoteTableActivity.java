@@ -720,14 +720,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             btnOk.setOnClickListener(v1 -> dialog.dismiss());
         }
 
-        // Credit button - updates the balance in CCD_GUI_CD_CIF1
+        // Credit button - adds calories to existing balance in CCD_GUI_CD_CIF1
         Button btnCredit = dialog.findViewById(R.id.btnCredit);
         if (btnCredit != null) {
             btnCredit.setOnClickListener(v1 -> {
-                // Call Set_Balance via the public ChangeTextColor method
+                // Add calories to existing balance instead of overwriting
                 if (CCD_GUI_CD_CIF1.instance != null) {
-                    CCD_GUI_CD_CIF1.instance.ChangeTextColor(String.valueOf(totalCalories));
-                    Toast.makeText(FoodNoteTableActivity.this, "Balance updated with " + totalCalories + " calories", Toast.LENGTH_SHORT).show();
+                    CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
+                    Toast.makeText(FoodNoteTableActivity.this, "Added " + totalCalories + " calories to balance", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(FoodNoteTableActivity.this, "Unable to update balance - main activity not available", Toast.LENGTH_SHORT).show();
                 }

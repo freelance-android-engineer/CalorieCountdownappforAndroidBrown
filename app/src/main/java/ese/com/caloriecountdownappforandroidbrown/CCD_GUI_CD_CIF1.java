@@ -21,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 //import com.erkutaras.showcaseview.ShowcaseManager;
@@ -407,6 +408,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            // Settings sub-menu items (placeholder - do nothing for now)
+            if (id == R.id.settings_countdown_mode) {
+                // Countdown/Weight Loss mode - to be implemented
+                return true;
+            }
+
+            if (id == R.id.settings_hold_ground_mode) {
+                // Hold Ground/Weight Maintenance mode - to be implemented
+                return true;
+            }
+
+            if (id == R.id.settings_surplus_mode) {
+                // Surplus account mode - to be implemented
+                return true;
+            }
+
             if (id == R.id.quick_start_guide) {
                 appDescriptionDialog(null);
                 return true;
@@ -493,6 +510,26 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             if (id == R.id.action_Client_Guide) // Physical Activity Debit
             {
                 Start_Client_Guide();
+            }
+
+            if (id == R.id.convert_stones_to_kg) {
+                showConversionInputDialog("Stones to Kilograms", "Enter weight in Stones:", "stones_to_kg");
+                return true;
+            }
+
+            if (id == R.id.convert_pounds_to_kg) {
+                showConversionInputDialog("Pounds to Kilograms", "Enter weight in Pounds:", "pounds_to_kg");
+                return true;
+            }
+
+            if (id == R.id.convert_kg_to_stones) {
+                showConversionInputDialog("Kilograms to Stones", "Enter weight in Kilograms:", "kg_to_stones");
+                return true;
+            }
+
+            if (id == R.id.convert_kg_to_pounds) {
+                showConversionInputDialog("Kilograms to Pounds", "Enter weight in Kilograms:", "kg_to_pounds");
+                return true;
             }
 
             return true;
@@ -1298,7 +1335,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         int kit = Math.abs(in);
         in = kit;
         int walkminutes = GenerateStepsChallenge(in);
-        String out = "Your Steps Challenge to successfully countdown your Balance by 300 pionts by Dayend (7pm) is: " + new RoundingCIF13().IntToString(walkminutes) + " Steps.\n\nOnly dispose of the Dialog once you have performed it.";
+        String out = "Your Steps Challenge to successfully countdown your Balance by 300 pionts by Dayend (9pm) is: " + new RoundingCIF13().IntToString(walkminutes) + " Steps.\n\nOnly dispose of the Dialog once you have performed it.";
 
         return out;
     }
@@ -1616,13 +1653,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Set_Balance(input);
     }
 
+    public void AddToBalance(String input) {
+        try {
+            int currentBalance = Get_currentBalanceInt();
+            int caloriesToAdd = Integer.parseInt(input.replaceAll(",", ""));
+            int newBalance = currentBalance + caloriesToAdd;
+            Set_Balance(String.valueOf(newBalance));
+        } catch (NumberFormatException e) {
+            android.util.Log.e("AddToBalance", "Invalid number format: " + input);
+        }
+    }
+
     public void ChangeButtonColor() {
 
     }
 
-    public void ChangeBackgroundImage() {
-
-    }
+    public void ChangeBackgroundImage() {}
 
     public void Recalibrate() {
 
@@ -1710,6 +1756,73 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private int GenerateStepsChallenge(int in)
     {
         return 16_000;
+    }
+
+    private void showConversionInputDialog(String title, String message, String conversionType) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+
+        final EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        builder.setView(input);
+
+        builder.setPositiveButton("Convert", (dialog, which) -> {
+            String inputText = input.getText().toString().trim();
+            if (!inputText.isEmpty()) {
+                try {
+                    double value = Double.parseDouble(inputText);
+                    String result = performConversion(value, conversionType);
+                    showConversionResult(result);
+                } catch (NumberFormatException e) {
+                    showConversionResult("Invalid number entered. Please enter a valid number.");
+                }
+            } else {
+                showConversionResult("Please enter a value to convert.");
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private String performConversion(double value, String conversionType) {
+        double result;
+        String resultText;
+
+        switch (conversionType) {
+            case "stones_to_kg":
+                // 1 Stone = 6.35029 Kilograms
+                result = value * 6.35029;
+                resultText = String.format("%.2f Stones = %.2f Kilograms", value, result);
+                break;
+            case "pounds_to_kg":
+                // 1 Pound = 0.453592 Kilograms
+                result = value * 0.453592;
+                resultText = String.format("%.2f Pounds = %.2f Kilograms", value, result);
+                break;
+            case "kg_to_stones":
+                // 1 Kilogram = 0.157473 Stones
+                result = value * 0.157473;
+                resultText = String.format("%.2f Kilograms = %.2f Stones", value, result);
+                break;
+            case "kg_to_pounds":
+                // 1 Kilogram = 2.20462 Pounds
+                result = value * 2.20462;
+                resultText = String.format("%.2f Kilograms = %.2f Pounds", value, result);
+                break;
+            default:
+                resultText = "Unknown conversion type.";
+        }
+
+        return resultText;
+    }
+
+    private void showConversionResult(String result) {
+        Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+        display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+        display_dialog_cif11.Showing(result);
     }
 
 }

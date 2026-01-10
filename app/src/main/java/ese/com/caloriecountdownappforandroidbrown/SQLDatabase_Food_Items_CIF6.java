@@ -3367,6 +3367,32 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return waterList;
     }
 
+    /**
+     * Get total water intake for today in ml
+     * @return Total ml of water consumed today
+     */
+    public int getTodayTotalWaterMl() {
+        int totalMl = 0;
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+            "SELECT SUM(" + COLUMN_WATER_ML + ") FROM " + TABLE_WATER_TRACKER +
+            " WHERE " + COLUMN_WATER_DATE + " = ?",
+            new String[]{today}
+        );
+
+        if (cursor.moveToFirst()) {
+            totalMl = cursor.getInt(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        android.util.Log.d("WATER TRACKER", "Today's total water: " + totalMl + " ml");
+        return totalMl;
+    }
+
     private java.util.Date getCurrentTime() {
         return new Date();
     }

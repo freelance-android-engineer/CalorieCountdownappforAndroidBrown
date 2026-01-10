@@ -7,7 +7,19 @@
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/action_settings"
-        app:showAsAction="never" />
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/settings_countdown_mode"
+                android:title="Countdown mode" />
+            <item
+                android:id="@+id/settings_hold_ground_mode"
+                android:title="Hold Ground mode" />
+            <item
+                android:id="@+id/settings_surplus_mode"
+                android:title="Surplus account mode" />
+        </menu>
+    </item>
 
     <item
         android:id="@+id/quick_start_guide"
@@ -369,6 +381,25 @@
         android:id="@+id/action_stop_weightlossb"
         android:title="@string/action_stop_weightloss_titleb" />
 
+
+    <item
+        android:id="@+id/action_convert"
+        android:title="Convert">
+        <menu>
+            <item
+                android:id="@+id/convert_stones_to_kg"
+                android:title="Convert from Stones to Kilograms" />
+            <item
+                android:id="@+id/convert_pounds_to_kg"
+                android:title="Convert from Pounds to Kilograms" />
+            <item
+                android:id="@+id/convert_kg_to_stones"
+                android:title="Convert from Kilograms to Stones" />
+            <item
+                android:id="@+id/convert_kg_to_pounds"
+                android:title="Convert from Kilograms to Pounds" />
+        </menu>
+    </item>
 
     <item
         android:id="@+id/action_Client_Guide"
