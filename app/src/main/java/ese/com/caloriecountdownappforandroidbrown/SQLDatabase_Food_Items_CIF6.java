@@ -3033,6 +3033,26 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Deletes all transferred quick food notes from the database.
+     * This permanently removes records where isTransferred = 1.
+     *
+     * @return Number of rows deleted
+     */
+    public int deleteTransferredQuickFoodNotes() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int deletedCount = 0;
+        try {
+            deletedCount = db.delete(TABLE_QUICK_FOOD_NOTE, COLUMN_IS_TRANSFERRED + " = 1", null);
+            android.util.Log.d("DELETE TRANSFERRED", "Deleted " + deletedCount + " transferred food notes");
+        } catch (Exception e) {
+            android.util.Log.e("DELETE TRANSFERRED", "Error deleting transferred notes: " + e.getMessage(), e);
+        } finally {
+            db.close();
+        }
+        return deletedCount;
+    }
+
+    /**
      * Transfers up to N food notes while maintaining a maximum of N transferred notes at all times.
      * <p>
      * Logic:

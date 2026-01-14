@@ -468,6 +468,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         TextView tvDateTime = view.findViewById(R.id.tvDateTime);
         Button btnCancel = view.findViewById(R.id.btnCancel);
         Button btnSave = view.findViewById(R.id.btnSave);
+        Button btnSaveFoodItemToBackend = view.findViewById(R.id.btnAddFoodItem);
 
         etFood.setText(food);
         etQuantity.setText(quantity);

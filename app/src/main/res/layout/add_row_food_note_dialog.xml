@@ -11,9 +11,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Food/Drink"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etFood"
@@ -26,11 +26,11 @@
         android:id="@+id/quantityTextField"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:hint="Quantity"
-        app:layout_constraintTop_toBottomOf="@id/foodTextField"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/foodTextField">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etQuantity"
@@ -43,11 +43,11 @@
         android:id="@+id/caloriesTextField"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:hint="@string/calories_guesstimate"
-        app:layout_constraintTop_toBottomOf="@id/quantityTextField"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/quantityTextField">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCalories"
@@ -60,21 +60,21 @@
         android:id="@+id/tvDateTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Date &amp; Time: "
-        app:layout_constraintTop_toBottomOf="@id/caloriesTextField"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/caloriesTextField" />
 
     <!-- Buttons -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/tvDateTime"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvDateTime">
 
         <!-- Cancel Button -->
         <Button
@@ -85,13 +85,13 @@
             android:text="Cancel" />
 
         <Button
-            android:id="@+id/btnm"
+            android:id="@+id/btnAddFoodItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="5dp"
-            android:text="Dummy" />
+            android:layout_weight="1"
+            android:text="Add new food item" />
 
         <!-- Save Button -->
         <Button

@@ -1392,6 +1392,10 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     }
 
     private void clearAllEditTextFields() {
+        // Delete transferred food notes from SQLite first
+        int deletedCount = databaseHelper.deleteTransferredQuickFoodNotes();
+        android.util.Log.d("Clear Button", "Deleted " + deletedCount + " transferred food notes from database.");
+
         // Array of all EditText IDs in the three columns (Food Item, Calories, Quantity)
         int[] editTextIds = {
                 R.id.edit_text6, R.id.edit_text7, R.id.edit_text8,       // Row 1
@@ -1414,6 +1418,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             }
         }
 
+        Toast.makeText(this, "Cleared " + deletedCount + " food notes", Toast.LENGTH_SHORT).show();
         android.util.Log.d("Clear Button", "All EditText fields have been cleared.");
     }
 
