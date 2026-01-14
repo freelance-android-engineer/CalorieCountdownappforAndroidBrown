@@ -160,6 +160,12 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
             Log.d("SWL_DEBUG", "StoreStartWeightLoss: Closing database");
             jackie.close();
             Log.d("SWL_DEBUG", "StoreStartWeightLoss: COMPLETED successfully");
+
+            // Initialize the forecast days list (creates days based on opening balance)
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: Calling InitmForecast to create days...");
+            InitmForecast(IN);
+            Log.d("SWL_DEBUG", "StoreStartWeightLoss: InitmForecast completed");
+
         } catch (Exception e) {
             Log.e("SWL_DEBUG", "StoreStartWeightLoss: EXCEPTION: " + e.getMessage(), e);
             throw e;
@@ -2008,15 +2014,19 @@ public class Meal_Type
     private void InitmForecast(HealthProfileCiF3 IN)
     {
         int openingBalance = IN.getStartCountdown();
+        Log.d("InitmForecast", "=== InitmForecast called ===");
+        Log.d("InitmForecast", "Opening balance: " + openingBalance);
+
         //Algorithm Engineering : Step One : Divide the Opening Balance by
-        //100 to represent a Countdown of 100 Dr Points a day to give the
+        //50 to represent a Countdown of 50 Dr Points a day to give the
         //total number of days the weight loss app assumes it will take the
         //Client to reach xero CR Balance.. if that fails at last day divide by 5,
         // if that's still not enough User not really counting down effectively even after dividing by
         //1 or 0.5  point 0.5 is the limt keep on using this till infinity till they finall get to 0CR
         //the Stop transidtion to Surplus account.
 
-        int numberOfDays = (int) (openingBalance/100);
+        int numberOfDays = (int) (openingBalance/50);
+        Log.d("InitmForecast", "Number of days to create: " + numberOfDays);
 
         // Ensure openingBalance is valid before initializing mForecast
         if (openingBalance <= 0) {
@@ -2026,15 +2036,21 @@ public class Meal_Type
 
         // Initialize mForecast only when we have valid data (lazy initialization)
         if (IN.mForecast == null) {
+            Log.d("InitmForecast", "Creating new CountdownToZeroDayCiF1004...");
             IN.mForecast = new CountdownToZeroDayCiF1004(openingBalance, IN);
         }
 
+        Log.d("InitmForecast", "Calling setupType with " + numberOfDays + " days...");
         IN.mForecast.setupType(numberOfDays);
+        Log.d("InitmForecast", "After setupType, list size: " + IN.mForecast.getNumberOFDaysToXero03FEB10().size());
+
         StoremForecast(IN);
+        Log.d("InitmForecast", "StoremForecast completed");
 
         //Initialze CCD_GUI_CiF001 Static CountdownToXeroType here, as soon as IN has an
         //Opening Balance.
         InitializeCountdownToXeroDayType1004inCiF001asStatic(IN, IN.mForecast); //Initmforecast here as well, reconcile.
+        Log.d("InitmForecast", "=== InitmForecast completed ===");
 
     }
 

@@ -851,6 +851,28 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             Store_Dayend2();
             Refresh();
         }
+
+        // Handle Journal Activity result for Accrual transfers
+        if (requestcode == REQUEST_CODE_START_JOURNAL_ACTIVITY) {
+            if (resultcode == RESULT_OK && data != null) {
+                int transferAmount = data.getIntExtra("TRANSFER_AMOUNT", 0);
+                int newCurrentBalance = data.getIntExtra("NEW_CURRENT_BALANCE", 0);
+                int newNextBalance = data.getIntExtra("NEW_NEXT_BALANCE", 0);
+
+                // Accrual only moves points between daily budgets
+                // The main countdown balance should NOT change
+                // Just refresh mDaysToZero for consistency
+                MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(this);
+                mDaysToZero = adapter.RetrievemForecast();
+
+                // Log the successful accrual transfer (don't change main balance)
+                Log.d("JournalAccrual", "Accrual transfer completed: " + transferAmount +
+                      " points moved from today to tomorrow's budget.");
+
+                // Refresh display without changing balance
+                Refresh();
+            }
+        }
     }
 
     private void Store_Dayend2()

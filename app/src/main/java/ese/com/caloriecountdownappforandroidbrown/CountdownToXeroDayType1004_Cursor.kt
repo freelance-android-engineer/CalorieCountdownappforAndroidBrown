@@ -14,83 +14,95 @@ import java.util.Date
 class CountdownToXeroDayType1004_Cursor(private val cursor: Cursor) : CursorWrapper(cursor)
 {
     private val mCountdownToZeroDayCiF1004: CountdownToZeroDayCiF1004? = CountdownToZeroDayCiF1004(0, HealthProfileCiF3())
-    private val mDayCiF1005: DayCiF1005? = DayCiF1005(0,0,0,0, java.time.LocalDateTime.now(), "0","0")
 
     fun GetDays(): CountdownToZeroDayCiF1004?
     {
         val T100 = mCountdownToZeroDayCiF1004
-        val Line_50 = mDayCiF1005
-        var trash_collector = moveToFirst()
 
-        for (x in 0 until count)
-        {
+        // Clear the initial day that was created in the constructor
+        T100?.numberOFDaysToXero03FEB10?.clear()
 
-            Log.d("Cursor", "This is Row Count :" + RoundingCIF13().IntToString(count))
+        try {
+            var trash_collector = moveToFirst()
 
+            Log.d("CursorDebug", "=== GetDays started, row count: $count ===")
 
+            // Log column indices to debug
+            val idIndex = getColumnIndex(COLUMN_DAYEND_ID2)
+            val dateIndex = getColumnIndex(COLUMN_DAYEND_BALANCE_DATE2)
+            val budgetIndex = getColumnIndex(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET)
+            val actualIndex = getColumnIndex(COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL)
+            Log.d("CursorDebug", "Column indices: id=$idIndex, date=$dateIndex, budget=$budgetIndex, actual=$actualIndex")
 
-            Line_50?.dayend_id = RoundingCIF13().StringToInt(
-                    getString(
-                        getColumnIndex(
-                            COLUMN_DAYEND_ID2
-                        )
-                    )
-                )
+            for (x in 0 until count)
+            {
+                try {
+                    // Create a NEW DayCiF1005 for EACH row
+                    val Line_50 = DayCiF1005(0, 0, 0, 0, java.time.LocalDateTime.now(), "0", "0")
 
+                    // Get dayend_id (use 0 if column not found)
+                    if (idIndex >= 0) {
+                        val idStr = getString(idIndex)
+                        Line_50.dayend_id = if (idStr != null) RoundingCIF13().StringToInt(idStr) else x
+                    } else {
+                        Line_50.dayend_id = x
+                    }
 
-            Line_50?.dayend_id?.let { RoundingCIF13().IntToString(it) }?.let {
-                Log.d(
-                    "Money Shot : dayend_id",
-                    it
-                )
+                    // Get date string
+                    if (dateIndex >= 0) {
+                        Line_50.dayString = getString(dateIndex) ?: ""
+                    }
+
+                    // Parse the date string back to LocalDateTime
+                    var validDate = false
+                    if (Line_50.dayString.isNotEmpty()) {
+                        try {
+                            Line_50.day = java.time.LocalDateTime.parse(Line_50.dayString)
+                            validDate = true
+                        } catch (e: Exception) {
+                            // Skip rows with invalid dates (old data)
+                            Log.d("CursorDebug", "Row $x: Skipping - could not parse date '${Line_50.dayString}'")
+                            trash_collector = moveToNext()
+                            continue // Skip this row entirely
+                        }
+                    } else {
+                        // Skip rows with empty dates
+                        trash_collector = moveToNext()
+                        continue
+                    }
+
+                    // Get budget
+                    if (budgetIndex >= 0) {
+                        val budgetStr = getString(budgetIndex)
+                        Line_50.budgetedDayEndBalanceForThisDay = if (budgetStr != null) RoundingCIF13().StringToInt(budgetStr) else 0
+                    }
+                    Line_50.currentBalance = Line_50.budgetedDayEndBalanceForThisDay
+
+                    // Get actual
+                    if (actualIndex >= 0) {
+                        val actualStr = getString(actualIndex)
+                        Line_50.actualDayEndBalance = if (actualStr != null) RoundingCIF13().StringToInt(actualStr) else 0
+                    }
+
+                    T100?.numberOFDaysToXero03FEB10?.add(Line_50)
+
+                    // Log first few and last few rows
+                    if (x < 3 || x >= count - 2) {
+                        Log.d("CursorDebug", "Row $x: date=${Line_50.dayString}, budget=${Line_50.budgetedDayEndBalanceForThisDay}")
+                    }
+
+                    trash_collector = moveToNext()
+                } catch (rowEx: Exception) {
+                    Log.e("CursorDebug", "Error processing row $x: ${rowEx.message}")
+                    trash_collector = moveToNext()
+                }
             }
 
+            Log.d("CursorDebug", "=== GetDays completed, list size: ${T100?.numberOFDaysToXero03FEB10?.size} ===")
 
-
-
-            Line_50?.dayString = getString(
-                    getColumnIndex(
-                        COLUMN_DAYEND_BALANCE_DATE2
-                    )
-                )
-
-
-            Line_50?.budgetedDayEndBalanceForThisDay = RoundingCIF13().StringToInt(
-                    getString(
-                        getColumnIndex(
-                            COLUMN_DAYEND_BALANCE_BALANCE_BUDGET
-                        )
-                    )
-                )
-
-
-
-            Log.d(
-                "Money Shot : Expected Budget",
-                Line_50?.budgetedDayEndBalanceForThisDay?.let { RoundingCIF13().IntToString(it) }.toString()
-            )
-
-            Line_50?.actualDayEndBalance = RoundingCIF13().StringToInt(
-                getString(
-                    getColumnIndex(
-                        COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL
-                    )
-                )
-            )
-
-
-
-            Log.d(
-                "Money Shot : Expected Budget",
-                (Line_50?.actualDayEndBalance)?.let { RoundingCIF13().IntToString(it) }.toString()
-            )
-
-
-            T100?.numberOFDaysToXero03FEB10?.add(Line_50)
-
-            trash_collector = moveToNext()
+        } catch (e: Exception) {
+            Log.e("CursorDebug", "Exception in GetDays: ${e.message}", e)
         }
-
 
         return T100
 

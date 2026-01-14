@@ -2739,7 +2739,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     public void Insert_Dayend2Row(String date, String budget, String actualDayEnd) {
         ContentValues cv = new ContentValues();
-        cv.put(COLUMN_DAYEND_BALANCE_DATE2, new Date().getTime());
+        // Fix: Store the actual date string, not current time
+        cv.put(COLUMN_DAYEND_BALANCE_DATE2, date);
         if (budget == null) {
             cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, "N/A");
         } else {
@@ -2750,6 +2751,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
 
         long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE2, null, cv);
+        Log.d("SQLDatabase", "Inserted DayEnd2 row: date=" + date + ", budget=" + budget + ", result=" + res);
         //sucessful insert.
 
         //int affected = getWritableDatabase().delete(TABLE_DAYEND_BALANCE, null, null);
@@ -2768,13 +2770,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     public CountdownToZeroDayCiF1004 Retrieve_All_DayEnd2_Rows() {
+        Log.d("RetrieveDebug", "=== Retrieve_All_DayEnd2_Rows called ===");
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_DAYEND_BALANCE2, null);
+        Log.d("RetrieveDebug", "Raw cursor count: " + cursor.getCount());
         cursor.moveToFirst();
 
         // Transaction_Cursor_CIF24 TransactionCursor = new Transaction_Cursor_CIF24(cursor);
         CountdownToXeroDayType1004_Cursor TransactionCursor = new CountdownToXeroDayType1004_Cursor(cursor);
         CountdownToZeroDayCiF1004 OUTPUT = new CountdownToZeroDayCiF1004(0, new HealthProfileCiF3());
 
+        Log.d("RetrieveDebug", "TransactionCursor count: " + TransactionCursor.getCount());
 
         if (TransactionCursor.getCount() < 1) {
             Log.d(TAG, "NOTHING FOUND IN Transaction DATABASE");
@@ -2782,8 +2787,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             return OUTPUT;
         } else {
             try {
-                Log.d(TAG, "CONTENTS IN Transaction DATABASE");
+                Log.d(TAG, "CONTENTS IN Transaction DATABASE, count: " + TransactionCursor.getCount());
                 OUTPUT = GetTransactions(TransactionCursor);
+                Log.d("RetrieveDebug", "After GetTransactions, OUTPUT list size: " + OUTPUT.getNumberOFDaysToXero03FEB10().size());
 
 
                 //BBox.Set_Breakfast_ID((new RoundingCIF13()).StringToInt((getString(getColumnIndex(COLUMN_TRANSACTIONS_ID)))));

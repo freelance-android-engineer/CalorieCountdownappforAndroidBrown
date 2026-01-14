@@ -1104,7 +1104,6 @@ catch(NullPointerException nulle)
                 @Override
                 public void onClick(DialogInterface inter, int which)
                 {
-
                     onDestroyView();
                 }
             });
@@ -1121,7 +1120,6 @@ catch(NullPointerException nulle)
                     @Override
                     public void onClick(DialogInterface inter, int which) {
                         onDestroyView();
-
                     }
                 });
                 alert.show();

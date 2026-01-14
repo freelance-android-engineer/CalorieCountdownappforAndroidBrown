@@ -19,21 +19,21 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
                                      var clientHealthProfileType: HealthProfileCiF3 =
                                          inputB_HealthProfile
 
-                                     val Type_Size = (openingBalance / 100) as Int
+                                     val Type_Size = (openingBalance / 50) as Int
 
                                      val todaysDate: LocalDateTime =
-                                         LocalDateTime.parse("2025-02-18T15:43:00")
+                                         LocalDateTime.now()
 
                                      private var dayz: DayCiF1005? = DayCiF1005(
-                                         0, (openingBalance - 100), openingBalance,
-                                         0, todaysDate, (openingBalance - 100).toString(), "0"
+                                         0, (openingBalance - 50), openingBalance,
+                                         0, todaysDate, (openingBalance - 50).toString(), "0"
                                      )
                                          get() = field
                                          set(value) {
                                              field = value
                                          }
 
-                                     private var nextOB = (openingBalance - 100)
+                                     private var nextOB = (openingBalance - 50)
 
                                      var _date = LocalDateTime.now()
 
@@ -88,12 +88,12 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
         println(message = "ESE S.C.I. LTD, means we have entered setupType()")
         var id = 0
 
-        for(i in 1..100)
+        for(i in 1..size)
         {
 
 
 
-            dayz = DayCiF1005(id++, nextOB,0,0, _date, (nextOB - 100).toString(), "0")
+            dayz = DayCiF1005(id++, nextOB,0,0, _date, (nextOB - 50).toString(), "0")
 
             numberOFDaysToXero03FEB10.add(dayz)
 
@@ -102,7 +102,7 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
             _date = _date.plusDays(1)
             println("_date after plusDays = $_date")
 
-            nextOB -= 100
+            nextOB -= 50
 
 
         }
@@ -203,13 +203,11 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
                 )
                 {
                     result = it
-                    return@forEach
+                    return@forEach  // Found today, exit loop
                 }
-                return result
-            } else return result
-
-
-
+                // Continue searching - don't return early!
+            }
+            // Continue to next day in the list
         }
 
         //Get DayType1005? who's date matches current/today's date
