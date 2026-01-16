@@ -427,6 +427,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public static final String COLUMN_WATER_ML = "mlWaterDrunk";
     public static final String COLUMN_WATER_CUPS = "equivalentCups";
 
+    // Heart Rate Tracker Table
+    public static final String TABLE_HEART_RATE = "HeartRateTracker";
+    public static final String COLUMN_HEART_RATE_ID = "id";
+    public static final String COLUMN_HEART_RATE_DATE = "date";
+    public static final String COLUMN_HEART_RATE_TIME = "time";
+    public static final String COLUMN_HEART_RATE_BPM = "bpm";
+    public static final String COLUMN_HEART_RATE_NOTE = "note";
+
 
     private Context mContext;
     private Boolean time_is_After_Four_Thirty_PM = false;
@@ -543,6 +551,20 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             db.execSQL(CREATE_WATER_TRACKER_TABLE);
         } catch (SQLException alreadyexist) {
 
+        }
+
+        // Create Heart Rate Tracker Table
+        try {
+            String CREATE_HEART_RATE_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_HEART_RATE + " (" +
+                    COLUMN_HEART_RATE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    COLUMN_HEART_RATE_DATE + " TEXT," +
+                    COLUMN_HEART_RATE_TIME + " TEXT," +
+                    COLUMN_HEART_RATE_BPM + " INTEGER," +
+                    COLUMN_HEART_RATE_NOTE + " TEXT" +
+                    ")";
+            db.execSQL(CREATE_HEART_RATE_TABLE);
+        } catch (SQLException alreadyexist) {
+            // Table already exists
         }
 
         try //at launch take all table creations to OnCreate
@@ -3417,6 +3439,105 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         android.util.Log.d("WATER TRACKER", "Today's total water: " + totalMl + " ml");
         return totalMl;
+    }
+
+    // ==================== HEART RATE TRACKER CRUD OPERATIONS ====================
+
+    /**
+     * Insert a new heart rate measurement.
+     *
+     * @param bpm  The heart rate in beats per minute
+     * @param note Optional note about the measurement (can be null)
+     * @return The ID of the inserted record, or -1 if failed
+     */
+    public long insertHeartRate(int bpm, String note) {
+        android.util.Log.d("INSERT HEART RATE", "Insert Heart Rate function called with BPM: " + bpm);
+
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_HEART_RATE_DATE, date);
+        values.put(COLUMN_HEART_RATE_TIME, time);
+        values.put(COLUMN_HEART_RATE_BPM, bpm);
+        values.put(COLUMN_HEART_RATE_NOTE, note);
+
+        long insertedId = db.insert(TABLE_HEART_RATE, null, values);
+        android.util.Log.d("INSERT HEART RATE", "Heart rate data inserted with ID: " + insertedId);
+        db.close();
+
+        return insertedId;
+    }
+
+    /**
+     * Get all heart rate measurements, ordered by date and time descending.
+     *
+     * @return List of heart rate records as Maps containing date, time, bpm, and note
+     */
+    public List<Map<String, Object>> getAllHeartRateData() {
+        List<Map<String, Object>> heartRateList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+            "SELECT * FROM " + TABLE_HEART_RATE + " ORDER BY " + COLUMN_HEART_RATE_DATE + " DESC, " + COLUMN_HEART_RATE_TIME + " DESC",
+            null
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                Map<String, Object> record = new HashMap<>();
+                record.put("id", cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_HEART_RATE_ID)));
+                record.put("date", cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HEART_RATE_DATE)));
+                record.put("time", cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HEART_RATE_TIME)));
+                record.put("bpm", cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_HEART_RATE_BPM)));
+                record.put("note", cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HEART_RATE_NOTE)));
+                heartRateList.add(record);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        android.util.Log.d("HEART RATE TRACKER", "Retrieved " + heartRateList.size() + " heart rate records");
+        return heartRateList;
+    }
+
+    /**
+     * Get the last recorded heart rate.
+     *
+     * @return The last recorded BPM, or -1 if no records exist
+     */
+    public int getLastHeartRate() {
+        int lastBpm = -1;
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+            "SELECT " + COLUMN_HEART_RATE_BPM + " FROM " + TABLE_HEART_RATE +
+            " ORDER BY " + COLUMN_HEART_RATE_DATE + " DESC, " + COLUMN_HEART_RATE_TIME + " DESC LIMIT 1",
+            null
+        );
+
+        if (cursor.moveToFirst()) {
+            lastBpm = cursor.getInt(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        return lastBpm;
+    }
+
+    /**
+     * Delete a heart rate record by ID.
+     *
+     * @param id The ID of the record to delete
+     * @return true if deletion was successful, false otherwise
+     */
+    public boolean deleteHeartRate(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int rowsDeleted = db.delete(TABLE_HEART_RATE, COLUMN_HEART_RATE_ID + " = ?", new String[]{String.valueOf(id)});
+        db.close();
+        return rowsDeleted > 0;
     }
 
     private java.util.Date getCurrentTime() {

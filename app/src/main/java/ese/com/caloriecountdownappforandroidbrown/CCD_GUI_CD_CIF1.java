@@ -465,6 +465,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.measure_heart_rate) {
+                Start_Heart_Rate_Activity();
+                return true;
+            }
+
             if (id == R.id.action_stop_weightlossb) {
                 Start_Recalibration();
                 return true;
@@ -932,6 +937,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.WaterRecordsActivity.class);
         this.startActivityForResult(i, REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY);
 
+    }
+
+    private void Start_Heart_Rate_Activity() {
+        Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.HeartRateActivity.class);
+        this.startActivity(i);
     }
 
     private void Start_Recalibration() {

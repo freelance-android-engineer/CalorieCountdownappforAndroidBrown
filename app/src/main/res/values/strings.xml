@@ -85,6 +85,20 @@
 
 
     <string name="Health_Data3b">Walking Plan</string>
+
+    <!-- Heart Rate Measurement -->
+    <string name="measure_heart_rate">Measure Heart Rate</string>
+    <string name="heart_rate_title">Heart Rate Monitor</string>
+    <string name="heart_rate_instruction">Place your fingertip on the camera and cover the flash</string>
+    <string name="heart_rate_measuring">Measuring heart rate…</string>
+    <string name="heart_rate_result">Your heart rate: %1$d BPM</string>
+    <string name="heart_rate_start">Start Measurement</string>
+    <string name="heart_rate_stop">Stop</string>
+    <string name="heart_rate_save">Save Result</string>
+    <string name="heart_rate_saved">Heart rate saved successfully</string>
+    <string name="heart_rate_history">View History</string>
+    <string name="heart_rate_bpm">BPM</string>
+
     <string name="action_food_diary_credit_title">Credit and Food and Diet Diary </string>
     <string name="action_fitness_log_debit_title"> Debit and Fitness and Activity Log</string>
     <string name="action_stop_weightloss_title">Stop Weight Loss</string>
@@ -2508,6 +2522,7 @@
     <string name="lbl_filter">Filter</string>
     <string name="food_note_memo_title">Memo eaten and/or about to eat Food item name:</string>
     <string name="btn_save_notes">Save Note(s)</string>
+    <string name="btn_nearest_ai">Nearest AI</string>
 
     <!-- Drop 100 Points Workout Feature -->
     <string name="drop_100_points">Drop 100 Points from Balance</string>

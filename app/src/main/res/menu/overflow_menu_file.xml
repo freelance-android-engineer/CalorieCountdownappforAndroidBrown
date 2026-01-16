@@ -251,6 +251,9 @@
                         <menu>
 
                             <item
+                                android:id="@+id/measure_heart_rate"
+                                android:title="@string/measure_heart_rate"></item>
+                            <item
                                 android:id="@+id/sub_submenuitem32"
                                 android:title="@string/Health_Data37"></item>
                             <item

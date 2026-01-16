@@ -26,7 +26,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,14 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -110,6 +107,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnFoodNoteAi = findViewById(R.id.btnFoodNoteAi);
         Button btnDeleteFoodNote = findViewById(R.id.btnDeleteNote);
         Button btnSaveNotes = findViewById(R.id.btnSaveNotes);
+        Button nearestAi = findViewById(R.id.nearestAi);
         Button btnKitty = findViewById(R.id.btnKitty);
 
         // Initialize date range title
@@ -210,6 +208,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 handleSaveNotesButtonClick();
+            }
+        });
+
+        // Nearest AI button - opens the closest AI app (ChatGPT, Gemini, etc.)
+        nearestAi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openNearestAiApp();
             }
         });
 
@@ -547,6 +553,62 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+        // Add New Food Item button - saves to SQLite and posts to server
+        btnSaveFoodItemToBackend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String food = etFood.getText().toString().trim();
+                String quantity = etQuantity.getText().toString().trim();
+                String calories = etCalories.getText().toString().trim();
+
+                if (food.isEmpty()) {
+                    Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // 1. Save to SQLite database
+                long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
+
+                // 2. Post to server via API
+                Map<String, Object> foodData = new HashMap<>();
+                foodData.put("food_item_name", food);
+                foodData.put("quantity", quantity.isEmpty() ? "1" : quantity);
+                foodData.put("note_date", currentDateTime);
+
+                // Parse calories to double for API
+                double caloriesValue = 0;
+                if (!calories.isEmpty()) {
+                    try {
+                        caloriesValue = Double.parseDouble(calories);
+                    } catch (NumberFormatException e) {
+                        android.util.Log.w("ADD_FOOD_ITEM", "Invalid calories value: " + calories);
+                    }
+                }
+                foodData.put("calories_per_100g", caloriesValue);
+
+                SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(FoodNoteTableActivity.this);
+                apiClient.addFoodItem(foodData, new ApiResultCallback() {
+                    @Override
+                    public void onSuccess(String response) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(FoodNoteTableActivity.this,
+                                "Food item saved locally and synced to server!", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        runOnUiThread(() -> {
+                            Toast.makeText(FoodNoteTableActivity.this,
+                                "Food item saved locally. Server sync failed - will retry later.", Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+
+                dialog.dismiss();
+            }
+        });
 
         dialog.show();
     }
@@ -1011,6 +1073,72 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private int StepChallengeFun(int calories) {
         // TODO: Implement your logic later
         return calories * 20; // Example placeholder conversion
+    }
+
+    /**
+     * Opens the nearest/closest AI app available on the device.
+     * Priority order: ChatGPT app -> Gemini app -> Claude app -> Browser fallback
+     */
+    private void openNearestAiApp() {
+        // List of AI app package names in priority order
+        String[][] aiApps = {
+            {"com.openai.chatgpt", "ChatGPT"},           // ChatGPT
+            {"com.google.android.apps.bard", "Gemini"}, // Google Gemini
+            {"com.anthropic.claude", "Claude"},          // Claude
+            {"com.microsoft.copilot", "Copilot"}         // Microsoft Copilot
+        };
+
+        // Try to open each AI app in order
+        for (String[] app : aiApps) {
+            String packageName = app[0];
+            String appName = app[1];
+
+            Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
+            if (launchIntent != null) {
+                Toast.makeText(this, "Opening " + appName + "...", Toast.LENGTH_SHORT).show();
+                startActivity(launchIntent);
+                return;
+            }
+        }
+
+        // No AI app installed - show dialog to open in browser or install
+        showAiAppNotFoundDialog();
+    }
+
+    /**
+     * Shows a dialog when no AI apps are found, offering browser options
+     */
+    private void showAiAppNotFoundDialog() {
+        String[] options = {"Open ChatGPT in Browser", "Open Gemini in Browser", "Install ChatGPT from Play Store"};
+
+        new AlertDialog.Builder(this)
+            .setTitle("No AI App Found")
+            .setMessage("No AI assistant app is installed. Choose an option:")
+            .setItems(options, (dialog, which) -> {
+                Intent intent;
+                switch (which) {
+                    case 0: // ChatGPT in browser
+                        intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://chat.openai.com"));
+                        startActivity(intent);
+                        break;
+                    case 1: // Gemini in browser
+                        intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://gemini.google.com"));
+                        startActivity(intent);
+                        break;
+                    case 2: // Install ChatGPT from Play Store
+                        try {
+                            intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.openai.chatgpt"));
+                            startActivity(intent);
+                        } catch (android.content.ActivityNotFoundException e) {
+                            // Play Store not installed, open in browser
+                            intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.openai.chatgpt"));
+                            startActivity(intent);
+                        }
+                        break;
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     /**

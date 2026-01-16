@@ -303,6 +303,12 @@
                 android:text="@string/btn_save_notes" />
 
             <Button
+                android:id="@+id/nearestAi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_nearest_ai" />
+
+            <Button
                 android:id="@+id/btnKitty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
