@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Android 13+ requires this for reading images -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -92,6 +94,10 @@
 
         <activity
             android:name=".FoodNoteTableActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".KittyActivity"
             android:exported="false" />
 
 
@@ -198,6 +204,7 @@
             android:label="@string/title_activity_diet__plan__fragment008"
             android:theme="@style/AppTheme.NoActionBar" />
 
+
         <service
             android:name=".BreakfastBoxService_CIFragement001"
             android:enabled="true"
@@ -227,6 +234,17 @@
             android:name=".FivePMBox_Service"
             android:enabled="true"
             android:exported="true" />
+
+        <!-- FileProvider for camera image capture -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

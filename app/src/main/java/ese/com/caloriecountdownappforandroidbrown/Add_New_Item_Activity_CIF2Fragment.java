@@ -1,20 +1,42 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -22,7 +44,26 @@ import java.util.Map;
  */
 public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
 
+    private static final String TAG = "AddNewItemFragment";
+
+    // Request codes
+    private static final int REQUEST_IMAGE_GALLERY = 1001;
+    private static final int REQUEST_IMAGE_CAMERA = 1002;
+    private static final int PERMISSION_REQUEST_CAMERA = 2001;
+    private static final int PERMISSION_REQUEST_STORAGE = 2002;
+
     private Button mAdd;
+
+    // Image UI components
+    private ImageView imagePreview;
+    private TextView tvImagePlaceholder;
+    private Button btnSelectImage;
+    private Button btnTakePhoto;
+
+    // Image data
+    private String currentPhotoPath;
+    private String imageBase64 = null;
+    private Bitmap selectedImageBitmap = null;
 
     public Add_New_Item_Activity_CIF2Fragment() {
     }
@@ -32,17 +73,220 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_add__new__item__activity__cif12, container, false);
 
-        mAdd = (Button) v.findViewById(R.id.button10);
-        mAdd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                long out = Adding_New_Item_pressed();
-                android.util.Log.d("Add New Item", new RoundingCIF13().IntToString((int) out));
-            }
+        // Initialize Add button
+        mAdd = v.findViewById(R.id.button10);
+        mAdd.setOnClickListener(view -> {
+            long out = Adding_New_Item_pressed();
+            android.util.Log.d("Add New Item", new RoundingCIF13().IntToString((int) out));
         });
 
+        // Initialize Image Upload UI components
+        imagePreview = v.findViewById(R.id.imagePreview);
+        tvImagePlaceholder = v.findViewById(R.id.tvImagePlaceholder);
+        btnSelectImage = v.findViewById(R.id.btnSelectImage);
+        btnTakePhoto = v.findViewById(R.id.btnTakePhoto);
+
+        // Set up click listeners for image buttons
+        btnSelectImage.setOnClickListener(view -> openGallery());
+        btnTakePhoto.setOnClickListener(view -> openCamera());
+        imagePreview.setOnClickListener(view -> openGallery());
 
         return v;
+    }
+
+    // ==================== IMAGE HANDLING ====================
+
+    /**
+     * Open gallery to select an image
+     */
+    private void openGallery() {
+        if (checkStoragePermission()) {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            intent.setType("image/*");
+            startActivityForResult(intent, REQUEST_IMAGE_GALLERY);
+        }
+    }
+
+    /**
+     * Open camera to take a photo
+     */
+    private void openCamera() {
+        if (checkCameraPermission()) {
+            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            if (takePictureIntent.resolveActivity(requireActivity().getPackageManager()) != null) {
+                // Create the File where the photo should go
+                File photoFile = null;
+                try {
+                    photoFile = createImageFile();
+                } catch (IOException ex) {
+                    Log.e(TAG, "Error creating image file", ex);
+                    Toast.makeText(getActivity(), "Error creating image file", Toast.LENGTH_SHORT).show();
+                }
+
+                if (photoFile != null) {
+                    Uri photoURI = FileProvider.getUriForFile(requireContext(),
+                            requireContext().getPackageName() + ".fileprovider",
+                            photoFile);
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAMERA);
+                }
+            }
+        }
+    }
+
+    /**
+     * Create a temporary image file for camera capture
+     */
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "FOOD_" + timeStamp + "_";
+        File storageDir = requireContext().getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    /**
+     * Check and request storage permission
+     */
+    private boolean checkStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ uses READ_MEDIA_IMAGES
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(requireActivity(),
+                        new String[]{Manifest.permission.READ_MEDIA_IMAGES},
+                        PERMISSION_REQUEST_STORAGE);
+                return false;
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(requireActivity(),
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        PERMISSION_REQUEST_STORAGE);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check and request camera permission
+     */
+    private boolean checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(),
+                    new String[]{Manifest.permission.CAMERA},
+                    PERMISSION_REQUEST_CAMERA);
+            return false;
+        }
+        return true;
+    }
+
+    // ==================== ACTIVITY RESULT HANDLING ====================
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode != Activity.RESULT_OK) {
+            return;
+        }
+
+        switch (requestCode) {
+            case REQUEST_IMAGE_GALLERY:
+                if (data != null && data.getData() != null) {
+                    handleGalleryImage(data.getData());
+                }
+                break;
+
+            case REQUEST_IMAGE_CAMERA:
+                handleCameraImage();
+                break;
+        }
+    }
+
+    /**
+     * Handle image selected from gallery
+     */
+    private void handleGalleryImage(Uri imageUri) {
+        try {
+            InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
+            selectedImageBitmap = BitmapFactory.decodeStream(inputStream);
+            if (inputStream != null) {
+                inputStream.close();
+            }
+
+            // Display the image
+            imagePreview.setImageBitmap(selectedImageBitmap);
+            tvImagePlaceholder.setVisibility(View.GONE);
+
+            // Convert to Base64 for upload
+            imageBase64 = bitmapToBase64(selectedImageBitmap);
+            Log.d(TAG, "Image selected from gallery, Base64 length: " + (imageBase64 != null ? imageBase64.length() : 0));
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading gallery image", e);
+            Toast.makeText(getActivity(), "Error loading image", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Handle image captured from camera
+     */
+    private void handleCameraImage() {
+        try {
+            if (currentPhotoPath != null) {
+                File imgFile = new File(currentPhotoPath);
+                if (imgFile.exists()) {
+                    selectedImageBitmap = BitmapFactory.decodeFile(currentPhotoPath);
+
+                    // Display the image
+                    imagePreview.setImageBitmap(selectedImageBitmap);
+                    tvImagePlaceholder.setVisibility(View.GONE);
+
+                    // Convert to Base64 for upload
+                    imageBase64 = bitmapToBase64(selectedImageBitmap);
+                    Log.d(TAG, "Image captured from camera, Base64 length: " + (imageBase64 != null ? imageBase64.length() : 0));
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading camera image", e);
+            Toast.makeText(getActivity(), "Error loading image", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Convert bitmap to Base64 string
+     */
+    private String bitmapToBase64(Bitmap bitmap) {
+        if (bitmap == null) return null;
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        // Compress to reduce size (80% quality)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            switch (requestCode) {
+                case PERMISSION_REQUEST_CAMERA:
+                    openCamera();
+                    break;
+                case PERMISSION_REQUEST_STORAGE:
+                    openGallery();
+                    break;
+            }
+        } else {
+            Toast.makeText(getActivity(), "Permission denied", Toast.LENGTH_SHORT).show();
+        }
     }
 
 
@@ -147,12 +391,16 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
             new_item.Set_iron_percent(rounding.StringToFloat(editText62.getText().toString()));
         }
 
+//kar code
         //IDO : Should be using Data Model Adapter Here.                                                                Brown Architect Artist Slick Style presentation ref Apple
-        SQLDatabase_Food_Items_CIF6 database = new SQLDatabase_Food_Items_CIF6(getActivity());
+//        SQLDatabase_Food_Items_CIF6 database = new SQLDatabase_Food_Items_CIF6(getActivity());
 
 //        return database.Insert_Food_Item_Row(new_item);
-        long localRowId = database.Insert_Food_Item_Row(new_item);
-        Log.e("ADD FOOD", "Data sent to local food row " + localRowId);
+//        long localRowId = database.Insert_Food_Item_Row(new_item);
+//        Log.e("ADD FOOD", "Data sent to local food row " + localRowId);
+
+        long localRowId = 1; // Dummy ID taaki code crash na ho
+        Log.e("ADD FOOD", "Local save skipped. Sending data to API only.");
 
         // Step 4: Check internet connection
         if (NetworkUtil.isInternetAvailable(getActivity())) {
@@ -181,6 +429,12 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
             foodData.put("vitamin_c_percent", new_item.Get_vitamin_c_percent());
             foodData.put("calcium_percent", new_item.Get_calcium_percent());
             foodData.put("iron_percent", new_item.Get_iron_percent());
+
+            // Add image data (Base64 encoded)
+            if (imageBase64 != null && !imageBase64.isEmpty()) {
+                foodData.put("image_base64", imageBase64);
+                Log.d(TAG, "Image included in food data");
+            }
 
             // Step 6: Call your API client (assume Kotlin interoperability)
             SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(getActivity());
@@ -270,6 +524,19 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
             editText60.setText("");
             editText61.setText("");
             editText62.setText("");
+
+            // Clear image fields
+            if (imagePreview != null) {
+                imagePreview.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
+            if (tvImagePlaceholder != null) {
+                tvImagePlaceholder.setVisibility(View.VISIBLE);
+            }
+
+            // Clear image data
+            imageBase64 = null;
+            selectedImageBitmap = null;
+            currentPhotoPath = null;
         }
     }
 

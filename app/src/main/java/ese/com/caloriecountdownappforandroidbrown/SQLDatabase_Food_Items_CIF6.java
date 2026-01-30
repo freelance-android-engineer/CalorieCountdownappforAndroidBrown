@@ -811,6 +811,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (SQLException alreadyexist) {
 
         }
+// add new table for credit table data
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS Balance_Last_Updated (" +
+                    "Unique_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "Date_time TEXT NOT NULL," +
+                    "Up_to_Date_Balance_Value INTEGER NOT NULL" +
+                    ")");
+            android.util.Log.d("Table creation", "created Balance_Last_Updated table");
+        } catch (SQLException e) {
+            android.util.Log.d("Table creation", "Balance_Last_Updated table already exists");
+        }
+
 
 
         //Create Food / Drinks Item Table
@@ -1021,6 +1033,50 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 //
 //    }
 //
+//new table create
+public void insertBalanceUpdate(int newBalance) {
+    try {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+
+        String currentDateTime =
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                        .format(new Date());
+
+        values.put("Date_time", currentDateTime);
+        values.put("Up_to_Date_Balance_Value", newBalance);
+
+        long rowId = db.insert("Balance_Last_Updated", null, values);
+        db.close();
+
+        if (rowId != -1) {
+
+
+
+
+
+            android.util.Log.d(
+                    "Balance_Last_Updated",
+                    "✅ New record inserted: ID=" + rowId +
+                            ", Balance=" + newBalance +
+                            ", Date=" + currentDateTime
+            );
+        } else {
+            android.util.Log.e(
+                    "Balance_Last_Updated",
+                    "❌ Failed to insert new record!"
+            );
+        }
+    } catch (Exception e) {
+        android.util.Log.e(
+                "Balance_Last_Updated",
+                "Error inserting balance: " + e.getMessage()
+        );
+    }
+}
+
+
+
 
     public void Query_Specific_Food_Items_Table(final Context context, final String food_item_name, final FoodSearchCallback callback) {
         ArrayList<Food_Item_CIF4> results = new ArrayList<>();
@@ -3772,6 +3828,198 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         return insertedId;
+    }
+
+    // ==================== KITTY FLOW - DAYEND2 OPERATIONS ====================
+
+    /**
+     * Insert the day-end actual balance into dayend_balance2 table.
+     * This is called when the time is past 4pm and the day-end hasn't been processed yet.
+     *
+     * @param actualBalance The actual balance at day-end (4pm)
+     * @return The ID of the inserted row, or -1 if failed
+     */
+    public long insertDayEnd2Actual(int actualBalance) {
+        android.util.Log.d("KITTY_DAYEND2", "insertDayEnd2Actual called with balance: " + actualBalance);
+
+        String today = new SimpleDateFormat("dd MMM yy", Locale.getDefault()).format(new Date());
+        // Calculate the target (budget) for tomorrow: current balance - 250
+        int tomorrowTarget = actualBalance - 250;
+
+        SQLiteDatabase db = null;
+        long insertedId = -1;
+
+        try {
+            db = this.getWritableDatabase();
+
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_DAYEND_BALANCE_DATE2, today);
+            values.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, String.valueOf(tomorrowTarget));
+            values.put(COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL, String.valueOf(actualBalance));
+
+            insertedId = db.insert(TABLE_DAYEND_BALANCE2, null, values);
+
+            if (insertedId == -1) {
+                android.util.Log.e("KITTY_DAYEND2", "Insert FAILED - returned -1");
+            } else {
+                android.util.Log.d("KITTY_DAYEND2", "DayEnd2 inserted successfully: date=" + today +
+                        ", actual=" + actualBalance + ", target=" + tomorrowTarget);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("KITTY_DAYEND2", "Exception during insert: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return insertedId;
+    }
+
+    /**
+     * Get the previous day's actual day-end balance from dayend_balance2 table.
+     * This is used by Kitty to calculate consumed and remaining calories.
+     *
+     * @return The previous day's actual balance, or -1 if no record found
+     */
+    public int getPreviousDayEndBalance() {
+        android.util.Log.d("KITTY_DAYEND2", "getPreviousDayEndBalance called");
+
+        int previousBalance = -1;
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+
+        try {
+            db = this.getReadableDatabase();
+
+            // Get the most recent day-end actual balance (latest record)
+            cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL + " FROM " + TABLE_DAYEND_BALANCE2 +
+                            " ORDER BY " + COLUMN_DAYEND_ID2 + " DESC LIMIT 1",
+                    null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String balanceStr = cursor.getString(0);
+                if (balanceStr != null && !balanceStr.isEmpty() && !balanceStr.equals("N/A")) {
+                    try {
+                        previousBalance = Integer.parseInt(balanceStr.replaceAll(",", ""));
+                        android.util.Log.d("KITTY_DAYEND2", "Previous day-end balance retrieved: " + previousBalance);
+                    } catch (NumberFormatException e) {
+                        android.util.Log.e("KITTY_DAYEND2", "Error parsing balance: " + balanceStr);
+                    }
+                }
+            } else {
+                android.util.Log.d("KITTY_DAYEND2", "No previous day-end balance found");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("KITTY_DAYEND2", "Exception getting previous balance: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return previousBalance;
+    }
+
+    /**
+     * Get today's target balance (previous day's actual - 250 points).
+     *
+     * @return Today's target balance, or -1 if no previous record found
+     */
+    public int getTodayTargetBalance() {
+        int previousBalance = getPreviousDayEndBalance();
+        if (previousBalance > 0) {
+            return previousBalance - 250;
+        }
+        return -1;
+    }
+
+    /**
+     * Check if day-end has already been processed for today.
+     * This prevents multiple day-end records for the same day.
+     *
+     * @return true if day-end has already been processed today, false otherwise
+     */
+    public boolean hasDayEndBeenProcessedToday() {
+        android.util.Log.d("KITTY_DAYEND2", "hasDayEndBeenProcessedToday called");
+
+        boolean processed = false;
+        String today = new SimpleDateFormat("dd MMM yy", Locale.getDefault()).format(new Date());
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+
+        try {
+            db = this.getReadableDatabase();
+
+            cursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM " + TABLE_DAYEND_BALANCE2 +
+                            " WHERE " + COLUMN_DAYEND_BALANCE_DATE2 + " = ?",
+                    new String[]{today}
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int count = cursor.getInt(0);
+                processed = count > 0;
+                android.util.Log.d("KITTY_DAYEND2", "Day-end processed today: " + processed + " (count: " + count + ")");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("KITTY_DAYEND2", "Exception checking day-end processed: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return processed;
+    }
+
+    /**
+     * Get the date of the last day-end record.
+     *
+     * @return The date string of the last day-end, or null if no records exist
+     */
+    public String getLastDayEndDate() {
+        String lastDate = null;
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+
+        try {
+            db = this.getReadableDatabase();
+
+            cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DAYEND_BALANCE_DATE2 + " FROM " + TABLE_DAYEND_BALANCE2 +
+                            " ORDER BY " + COLUMN_DAYEND_ID2 + " DESC LIMIT 1",
+                    null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                lastDate = cursor.getString(0);
+                android.util.Log.d("KITTY_DAYEND2", "Last day-end date: " + lastDate);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("KITTY_DAYEND2", "Exception getting last day-end date: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null) {
+                db.close();
+            }
+        }
+
+        return lastDate;
     }
 }
 

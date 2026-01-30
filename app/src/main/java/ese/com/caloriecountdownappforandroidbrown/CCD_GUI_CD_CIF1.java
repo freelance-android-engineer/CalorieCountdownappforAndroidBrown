@@ -150,8 +150,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         });
 
 
+
+
         mCreditButton = (Button) findViewById(R.id.button2);
         mDebitButton = (Button) findViewById(R.id.button);
+
         mCreditButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -880,18 +883,46 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
     }
 
-    private void Store_Dayend2()
-    {
-        //Algorithm Engineering Noir:
-        //Step One
-        //Android
-        //You need to first check if the current time is 4pm or past 4pm.
-        //If it is the activate this Call and do something, if not, do nothing.
-        //If it is past 4pm and the boolean variable  hasDayEndAlreadyBeenStoredandCFWD4theDay is not true
-        //then store the current balance in SQLite (just once) has to be in DayEnd2 Table.
-        //then check somet the initial the next day DayType and store relevatne variable in there and in
-        //current day DayType in the overall list collecton of Dayz in CiF001.
-        //Remember only deal with DayEnd2 Table in SQLite to get Kitty() working well and properely.
+    /**
+     * Store the day-end balance in the DayEnd2 table.
+     * This should only be called once per day after 4pm.
+     * The balance stored becomes the "previous day's closing balance" for Kitty calculations.
+     */
+    private void Store_Dayend2() {
+        // Check if it's past 4pm (day-end for Credit side)
+        if (!isItDayEnd()) {
+            android.util.Log.d("KITTY_DAYEND", "Not yet 4pm, skipping day-end storage");
+            return;
+        }
+
+        // Check if day-end has already been processed today using database check
+        SQLDatabase_Food_Items_CIF6 dbHelper = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+        if (dbHelper.hasDayEndBeenProcessedToday()) {
+            android.util.Log.d("KITTY_DAYEND", "Day-end already processed for today, skipping");
+            return;
+        }
+
+        // Get current balance and store it as the day-end actual balance
+        int currentBalance = Get_currentBalanceInt();
+        android.util.Log.d("KITTY_DAYEND", "Storing day-end balance: " + currentBalance);
+
+        long result = dbHelper.insertDayEnd2Actual(currentBalance);
+        if (result != -1) {
+            android.util.Log.d("KITTY_DAYEND", "Day-end balance stored successfully!");
+
+            // Launch Kitty Activity to show the user their status
+            launchKittyActivity();
+        } else {
+            android.util.Log.e("KITTY_DAYEND", "Failed to store day-end balance");
+        }
+    }
+
+    /**
+     * Launch the Kitty Activity to display consumed and remaining calories.
+     */
+    public void launchKittyActivity() {
+        Intent intent = new Intent(CCD_GUI_CD_CIF1.this, KittyActivity.class);
+        startActivity(intent);
     }
 
 
@@ -1731,8 +1762,27 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         return INPUT;
     }
 
-    private boolean isItDayEnd() {
-        return false;
+    /**
+     * Check if the current time is past 4pm (16:00) - the Credit side day-end time.
+     * @return true if current time is 4pm or later, false otherwise
+     */
+    public boolean isItDayEnd() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int currentHour = now.get(java.util.Calendar.HOUR_OF_DAY);
+        // Day ends at 4pm (16:00) for Credit side
+        return currentHour >= 16;
+    }
+
+    /**
+     * Check if the current time is past 9:59pm (21:59) - the Debit/Exercise side day-end time.
+     * @return true if current time is 9:59pm or later, false otherwise
+     */
+    public boolean isItDebitDayEnd() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int currentHour = now.get(java.util.Calendar.HOUR_OF_DAY);
+        int currentMinute = now.get(java.util.Calendar.MINUTE);
+        // Day ends at 9:59pm (21:59) for Debit/Exercise side
+        return currentHour > 21 || (currentHour == 21 && currentMinute >= 59);
     }
 
     public void Store_Target_Weight_Pounds(String Input1) {

@@ -12,7 +12,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.TextWatcher;
 import android.util.Base64;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -46,6 +48,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
+import android.text.Editable;
+import android.text.TextWatcher;
+import java.util.HashMap;
+import java.util.Map;
+import android.content.SharedPreferences;
+
 
 public class FoodNoteTableActivity extends AppCompatActivity {
 
@@ -57,6 +65,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "FoodNotePrefs";
     private static final String PREF_LAST_SELECTED_DATE = "last_selected_date";
     private static final String PREF_SELECTED_DATE_TIMESTAMP = "selected_date_timestamp";
+
+    private HashMap<String, String> foodCache = new HashMap<>(); // Dictionary
+    private static final String PREFS_CACHE = "FoodCachePrefs";  // Storage file name
 
     private TextView tvDateRangeTitle;
 
@@ -109,6 +120,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnSaveNotes = findViewById(R.id.btnSaveNotes);
         Button nearestAi = findViewById(R.id.nearestAi);
         Button btnKitty = findViewById(R.id.btnKitty);
+        loadCache();
 
         // Initialize date range title
         tvDateRangeTitle = findViewById(R.id.tvDateRangeTitle);
@@ -137,7 +149,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnAddRowWithImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showAddRowWithImageDialog();
+                showAddRowWithImageDialog(false);
             }
         });
 
@@ -222,13 +234,26 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnKitty.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleKittyButtonClick();
+//                kartik code button change
+                kittyScreenActivity();
+//                handleKittyButtonClick();
             }
         });
 
         // Initialize Memo Panel views
         initializeMemoPanel();
     }
+
+
+    private void kittyScreenActivity() {
+        Intent intent = new Intent(this, KittyActivity.class);
+        startActivity(intent);
+    }
+
+
+
+
+
 
     // ========== MEMO PANEL LOGIC ==========
 
@@ -476,6 +501,49 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnSave = view.findViewById(R.id.btnSave);
         Button btnSaveFoodItemToBackend = view.findViewById(R.id.btnAddFoodItem);
 
+        // Jab user typing karega, yeh check karega ki kya item cache mein hai?
+// 1. Check karna ki kya ye food pehle se 'Diary' mein hai?
+        // --- A. AUTOFILL LOGIC (Add this) ---
+        etFood.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                String input = s.toString().toLowerCase().trim();
+                if (foodCache.containsKey(input)) {
+                    // Cache se 1 item ki calories uthao
+                    int baseCalories = Integer.parseInt(foodCache.get(input));
+
+                    // Quantity check karo (etQuantity se)
+                    String qtyStr = etQuantity.getText().toString().trim();
+                    int qty = qtyStr.isEmpty() ? 1 : Integer.parseInt(qtyStr);
+
+                    // Multiply karke set karo
+                    etCalories.setText(String.valueOf(baseCalories * qty));
+                }
+            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
+
+        etQuantity.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                String foodName = etFood.getText().toString().toLowerCase().trim();
+                String qtyStr = s.toString().trim();
+
+                // Agar food cache mein hai aur quantity khali nahi hai
+                if (foodCache.containsKey(foodName) && !qtyStr.isEmpty()) {
+                    int baseCalories = Integer.parseInt(foodCache.get(foodName));
+                    int qty = Integer.parseInt(qtyStr);
+
+                    // Multiply karke update karo
+                    etCalories.setText(String.valueOf(baseCalories * qty));
+                }
+            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+
         etFood.setText(food);
         etQuantity.setText(quantity);
         etCalories.setText(calories);
@@ -497,10 +565,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 String quantity = etQuantity.getText().toString().trim();
                 String calories = etCalories.getText().toString().trim();
 
+
                 if (food.isEmpty()) {
                     Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
                     return;
                 }
+
+                // 2. Logic: Data Cache (Dictionary) mein save karna
+                addToCache(food, calories);
 
                 // === Update case ===
                 if (noteId != null) {
@@ -784,19 +856,78 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
 
         // Credit button - adds calories to existing balance in CCD_GUI_CD_CIF1
+        // This is the key trigger for the Kitty Flow
         Button btnCredit = dialog.findViewById(R.id.btnCredit);
         if (btnCredit != null) {
             btnCredit.setOnClickListener(v1 -> {
+
+                int newBalance = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt();
+
+                // 3️⃣ Insert into Balance_Last_Updated table
+                databaseHelper.insertBalanceUpdate(newBalance);
+
                 // Add calories to existing balance instead of overwriting
                 if (CCD_GUI_CD_CIF1.instance != null) {
                     CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
+
                     Toast.makeText(FoodNoteTableActivity.this, "Added " + totalCalories + " calories to balance", Toast.LENGTH_SHORT).show();
+
+                    // KITTY FLOW: Check if it's day-end (past 4pm) and process accordingly
+                    processKittyFlow();
+
                 } else {
                     Toast.makeText(FoodNoteTableActivity.this, "Unable to update balance - main activity not available", Toast.LENGTH_SHORT).show();
                 }
                 dialog.dismiss();
             });
         }
+    }
+
+    /**
+     * Process the Kitty Flow after crediting calories.
+     *
+     * If the time is past 4pm and day-end hasn't been processed:
+     * 1. Store the current balance in DayEnd2 table (only once per day)
+     *
+     * Then launch KittyActivity to show:
+     * - Consumed calories (left side)
+     * - Remaining calories in daily budget (right side)
+     */
+    private void processKittyFlow() {
+        // Check if it's past 4pm (day-end for Credit side)
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int currentHour = now.get(java.util.Calendar.HOUR_OF_DAY);
+        boolean isPast4pm = currentHour >= 16;
+
+        android.util.Log.d("KITTY_FLOW", "Current hour: " + currentHour + ", isPast4pm: " + isPast4pm);
+
+        if (isPast4pm) {
+            // Check if day-end has already been processed today
+            if (!databaseHelper.hasDayEndBeenProcessedToday()) {
+                // Store the day-end balance (only once per day)
+                int currentBalance = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt();
+                long result = databaseHelper.insertDayEnd2Actual(currentBalance);
+
+                if (result != -1) {
+                    android.util.Log.d("KITTY_FLOW", "Day-end balance stored: " + currentBalance);
+                } else {
+                    android.util.Log.e("KITTY_FLOW", "Failed to store day-end balance");
+                }
+            } else {
+                android.util.Log.d("KITTY_FLOW", "Day-end already processed for today");
+            }
+        }
+
+        // Launch Kitty Activity to show consumed and remaining calories
+        launchKittyActivity();
+    }
+
+    /**
+     * Launch the Kitty Activity to display the user's daily calorie status.
+     */
+    private void launchKittyActivity() {
+        Intent intent = new Intent(FoodNoteTableActivity.this, KittyActivity.class);
+        startActivity(intent);
     }
 
 
@@ -883,7 +1014,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         android.util.Log.d("FoodNoteAI", "Total selected items: " + selectedFoods.size());
 
         if (selectedFoods.isEmpty()) {
-            showNoSelectionDialog();
+            if(isAi){
+//                Toast.makeText(this, "Please select food note(s) to calculate ", Toast.LENGTH_SHORT).show();
+                showAddRowWithImageDialog(true);
+            }else{
+                showNoSelectionDialog();
+            }
+//            showNoSelectionDialog();
         } else if (isEditRow) {
             if (selectedFoods.size() > 1) {
                 Toast.makeText(this, "Please select only one food note to edit", Toast.LENGTH_SHORT).show();
@@ -944,7 +1081,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                         showCaloriesResult(result);
                                     } else {
                                         android.util.Log.e("FoodNoteAI", "AI returned null or empty result");
-                                        Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
+                                        Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories---. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
                                     }
                                 });
                             }
@@ -1565,7 +1702,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     /**
      * Show dialog to add food note with image
      */
-    private void showAddRowWithImageDialog() {
+    private void showAddRowWithImageDialog(boolean isAiScan) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_row_with_image, null);
         builder.setView(view);
@@ -1581,6 +1718,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         dialogProgressBar = view.findViewById(R.id.progressBar);
         dialogStatusText = view.findViewById(R.id.tvStatus);
         Button btnCancel = view.findViewById(R.id.btnCancel);
+        Button btnScanWithAi = view.findViewById(R.id.btnScanWithAi);
+
 
         // Reset state
         currentImageBase64 = null;
@@ -1604,6 +1743,75 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+        if (isAiScan) {
+            dialogScanButton.setVisibility(View.GONE); // Purana dabba hide
+            btnScanWithAi.setVisibility(View.VISIBLE);
+
+            btnScanWithAi.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (currentImageBase64 == null) {
+                        Toast.makeText(FoodNoteTableActivity.this, "Pehle image select karein!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // 1. UI update: Loading dikhao
+                    dialogProgressBar.setVisibility(View.VISIBLE);
+                    dialogStatusText.setVisibility(View.VISIBLE);
+                    dialogStatusText.setText("AI scanning food... please wait");
+                    btnScanWithAi.setEnabled(false); // Double click se bachne ke liye
+
+                    // 2. Service call karein
+                    // Note: Breakfast_Box_CIF17 ka object chahiye hoga kyunki service use mangti hai
+                    Breakfast_Box_CIF17 tempBox = new Breakfast_Box_CIF17();
+
+                    foodDetectionService.fetchAndStoreFoodItems(currentImageBase64, tempBox, new ResultCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                dialogProgressBar.setVisibility(View.GONE);
+                                dialogStatusText.setText("Scan Complete! Check Logcat.");
+                                btnScanWithAi.setEnabled(true);
+
+                                // Logcat mein data dekhne ke liye loop
+                                if (tempBox.food_item_list_two != null) {
+                                    for (Food_Item_CIF4 item : tempBox.food_item_list_two) {
+                                        Log.d("AI_SCAN_RESULT", "--------------------------");
+                                        Log.d("AI_SCAN_RESULT", "Food: " + item.Get_food_item_name());
+                                        Log.d("AI_SCAN_RESULT", "Calories: " + item.Get_calories_per_100g() + " kcal");
+                                        Log.d("AI_SCAN_RESULT", "Protein: " + item.Get_protein_per_100g() + "g");
+                                        Log.d("AI_SCAN_RESULT", "Carbs: " + item.Get_carbs_per_100g() + "g");
+                                    }
+                                }
+
+                                // Agar scan ke baad dialog band karna chahte ho:
+                                 imageUploadDialog.dismiss();
+                            });
+                        }
+
+                        @Override
+                        public void onFailure() {
+                            runOnUiThread(() -> {
+                                dialogProgressBar.setVisibility(View.GONE);
+                                dialogStatusText.setText("Scan failed.");
+                                btnScanWithAi.setEnabled(true);
+                                Toast.makeText(FoodNoteTableActivity.this, "AI scan failed!", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                }
+            });
+
+
+
+//            yha p code krna ahi mujh btnScanWithAi
+
+
+        }else {
+            btnScanWithAi.setVisibility(View.GONE);
+            dialogScanButton.setVisibility(View.VISIBLE);
+        }
+
         // Scan and Add button
         dialogScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1618,6 +1826,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         imageUploadDialog.show();
     }
+
+
 
     /**
      * Show dialog to choose between camera and gallery
@@ -1826,5 +2036,46 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             Toast.makeText(this, "Permission denied. Cannot access " + source, Toast.LENGTH_SHORT).show();
         }
     }
+
+
+    private void addToCache(String name, String cal) {
+        if (name.isEmpty() || cal.isEmpty()) return;
+        String key = name.toLowerCase().trim();
+        foodCache.put(key, cal);
+        getSharedPreferences(PREFS_CACHE, MODE_PRIVATE).edit().putString(key, cal).apply();
+    }
+
+    private void loadCache() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_CACHE, MODE_PRIVATE);
+        Map<String, ?> allEntries = prefs.getAll();
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            foodCache.put(entry.getKey(), entry.getValue().toString());
+        }
+    }
+
+//    private void calculateAndSetCalories(String foodName, String quantityStr, EditText etCalories) {
+//        String inputName = foodName.toLowerCase().trim();
+//        if (foodCache.containsKey(inputName)) {
+//            try {
+//                // Cache se base calories uthao (e.g., 1 item ki)
+//                double baseCalories = Double.parseDouble(foodCache.get(inputName));
+//
+//                // Quantity check karo, agar khali hai toh 1 maano
+//                double qty = 1;
+//                if (!quantityStr.isEmpty()) {
+//                    qty = Double.parseDouble(quantityStr);
+//                }
+//
+//                // Multiply karo
+//                double total = baseCalories * qty;
+//
+//                // Box mein set kar do (bin decimal ke dikhane ke liye int mein badal sakte hain)
+//                etCalories.setText(String.valueOf((int)total));
+//            } catch (NumberFormatException e) {
+//                // Agar calories number nahi hain toh cache wali value hi daal do
+//                etCalories.setText(foodCache.get(inputName));
+//            }
+//        }
+//    }
 
 }

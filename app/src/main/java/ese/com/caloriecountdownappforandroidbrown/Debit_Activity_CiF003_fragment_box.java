@@ -308,6 +308,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     private void StoreDayEnd2(int fourPMDayEndBalance) {
+//        kartik code ---------------
         //Algorithm Engineering Noir:
         //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
         //remember to implement those double try bug fixes.
