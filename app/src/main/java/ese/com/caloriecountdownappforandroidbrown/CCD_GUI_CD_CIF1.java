@@ -842,22 +842,38 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
 
         if (requestcode == REQUEST_CODE_START_DEBIT_ACTIVITY) {
+            boolean dayEndProcessed = data.getBooleanExtra(Debit_Activity_CiF003_fragment_box.DAY_END_PROCESSED, false);
 
+            if (dayEndProcessed) {
+                // Day End was fully processed in Debit Activity
+                int finalBalance = data.getIntExtra(Debit_Activity_CiF003_fragment_box.FINAL_BALANCE, 0);
+                int bmrApplied = data.getIntExtra(Debit_Activity_CiF003_fragment_box.BMR_APPLIED, 0);
+                int debitValue = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 0);
 
-            int DebitResult = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 1);
-            //String Summation = data.getStringExtra(Food_Diary_Sheet_CIF3.SUMMATION_TEXT);
-            //How it for Countdown Screen, get App ready ready for use, might have to look in Intent
-            mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
-            mSummation.Set_mCurrentBalance(Get_currentBalance());
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            display_dialog_cif11.SummaryBoxShowingDebit(mSummation);
+                Log.d("DAY_END", "Day End processed - Final balance: " + finalBalance +
+                      ", BMR: " + bmrApplied + ", Debit: " + debitValue);
 
-            //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
-            Countdown(DebitResult);
-            Store_Dayend(instance.Get_currentBalanceInt());
-            Store_Dayend2();
-            Refresh();
+                // Update the display with the final balance
+                final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+                countdownbalance.setText(String.valueOf(finalBalance));
+                mBalance_text = String.valueOf(finalBalance);
+
+                Kitty();
+                Refresh();
+            } else {
+                // Regular debit - existing flow
+                int DebitResult = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 1);
+                mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
+                mSummation.Set_mCurrentBalance(Get_currentBalance());
+                Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                display_dialog_cif11.SummaryBoxShowingDebit(mSummation);
+
+                Countdown(DebitResult);
+                Store_Dayend(instance.Get_currentBalanceInt());
+                Store_Dayend2();
+                Refresh();
+            }
         }
 
         // Handle Journal Activity result for Accrual transfers

@@ -28,6 +28,9 @@ import androidx.appcompat.widget.Toolbar;
 public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implements SensorEventListener {
 
     public static final String TOTAL_DEBIT_VALUE = "Total Debit Countdown Value";
+    public static final String DAY_END_PROCESSED = "DAY_END_PROCESSED";
+    public static final String BMR_APPLIED = "BMR_APPLIED";
+    public static final String FINAL_BALANCE = "FINAL_BALANCE";
     public static int REQUEST_CODE_DEBIT_MAN = 1;
 
     private Button mDebit;
@@ -95,11 +98,8 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 String s = spinner.getSelectedItem().toString();
                 mCountdown.ConvertSpinnerItem(s);
 
-                //Algorithm Engineering
-                //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
-                //remember to implement those double try bug fixes.
-                StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
-                BackToParent(GetCountdownDebit(mCountdown));
+                int debitValue = GetCountdownDebit(mCountdown);
+                showFinalDebitConfirmationDialog(debitValue);
             }
         });
 
@@ -474,5 +474,129 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
                 "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // ==================== Day End Flow Methods ====================
+
+    private void showFinalDebitConfirmationDialog(int debitValue) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Day End");
+        builder.setMessage("Is this your final debit for today?\n\nIf yes, we'll process your Day End and show your countdown report.");
+
+        builder.setPositiveButton("Yes, End My Day", (dialog, which) -> {
+            processDayEndFlow(debitValue);
+        });
+
+        builder.setNegativeButton("No, Regular Debit", (dialog, which) -> {
+            StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+            BackToParent(debitValue);
+        });
+
+        builder.show();
+    }
+
+    private void processDayEndFlow(int finalDebitValue) {
+        int currentBalance = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt();
+        int balanceAfterDebit = currentBalance - finalDebitValue;
+
+        android.util.Log.d("DAY_END", "Current balance: " + currentBalance + ", Debit: " + finalDebitValue + ", After debit: " + balanceAfterDebit);
+
+        showBMRDialogForDayEnd(balanceAfterDebit, finalDebitValue);
+    }
+
+    private void showBMRDialogForDayEnd(int balanceAfterDebit, int finalDebitValue) {
+        String genderType = CCD_GUI_CD_CIF1.instance.Retrieve_Gender_Type();
+        int bmrPoints = (genderType != null && genderType.equals("Male")) ? 2500 : 2000;
+        String genderDisplay = (genderType != null) ? genderType : "Not set (defaulting to Female)";
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Apply BMR for Today");
+        builder.setMessage("Gender: " + genderDisplay +
+            "\n\nApply " + bmrPoints + " BMR points for today?\n\n" +
+            "Balance after debit: " + balanceAfterDebit);
+
+        builder.setPositiveButton("Yes, Apply BMR", (dialog, which) -> {
+            int finalBalance = balanceAfterDebit - bmrPoints;
+            showCountdownReport(finalBalance, bmrPoints, finalDebitValue);
+        });
+
+        builder.setNegativeButton("Skip BMR", (dialog, which) -> {
+            showCountdownReport(balanceAfterDebit, 0, finalDebitValue);
+        });
+
+        builder.setCancelable(false);
+        builder.show();
+    }
+
+    private void showCountdownReport(int finalBalance, int bmrApplied, int debitValue) {
+        SQLDatabase_Food_Items_CIF6 dbHelper = new SQLDatabase_Food_Items_CIF6(this);
+        int previousDayEndBalance = dbHelper.getPreviousDayEndBalance();
+
+        android.util.Log.d("DAY_END", "Final balance: " + finalBalance + ", Previous day end: " + previousDayEndBalance);
+
+        StringBuilder report = new StringBuilder();
+        report.append("═══════════════════════\n");
+        report.append("    DAY END SUMMARY\n");
+        report.append("═══════════════════════\n\n");
+        report.append("Fitness Debit: -").append(debitValue).append("\n");
+        if (bmrApplied > 0) {
+            report.append("BMR Applied: -").append(bmrApplied).append("\n");
+        }
+        report.append("\nFinal Balance: ").append(finalBalance).append("\n");
+
+        if (previousDayEndBalance > 0) {
+            report.append("Previous Day End: ").append(previousDayEndBalance).append("\n");
+
+            int difference = previousDayEndBalance - finalBalance;
+
+            if (difference > 0) {
+                // Balance DECREASED - Countdown success!
+                report.append("\n═══════════════════════\n");
+                report.append("You counted DOWN by 🔻").append(difference).append(" Points today!\n\n");
+                report.append("Great Job!!!!\n");
+                report.append("═══════════════════════");
+            } else if (difference < 0) {
+                // Balance INCREASED - Count up, show encouraging message
+                int countUpAmount = Math.abs(difference);
+                report.append("\n═══════════════════════\n");
+                report.append("You counted UP by 🔺").append(countUpAmount).append(" Points today, ");
+                report.append("Don't be discouraged though, it's a marathon not a sprint and tomorrow is a brand new day ");
+                report.append("and a fresh chance to get back on track, You Can Do It!!!!\n");
+                report.append("═══════════════════════");
+            }
+        } else {
+            report.append("\nThis is your first day - keep going!");
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Countdown Report");
+        builder.setMessage(report.toString());
+        builder.setPositiveButton("Done", (dialog, which) -> {
+            storeDayEndAndReturn(finalBalance, debitValue, bmrApplied);
+        });
+        builder.setCancelable(false);
+        builder.show();
+    }
+
+    private void storeDayEndAndReturn(int finalBalance, int debitValue, int bmrApplied) {
+        SQLDatabase_Food_Items_CIF6 dbHelper = new SQLDatabase_Food_Items_CIF6(this);
+
+        if (!dbHelper.hasDayEndBeenProcessedToday()) {
+            long result = dbHelper.insertDayEnd2Actual(finalBalance);
+            android.util.Log.d("DAY_END", "Day end stored: " + (result != -1 ? "success" : "failed"));
+        } else {
+            android.util.Log.d("DAY_END", "Day end already processed for today");
+        }
+
+        MIF4_Data_Model_Adapter dataAdapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+        dataAdapter.StoreBalance(String.valueOf(finalBalance));
+
+        Intent i2 = new Intent();
+        i2.putExtra(TOTAL_DEBIT_VALUE, debitValue);
+        i2.putExtra(BMR_APPLIED, bmrApplied);
+        i2.putExtra(DAY_END_PROCESSED, true);
+        i2.putExtra(FINAL_BALANCE, finalBalance);
+        setResult(RESULT_OK, i2);
+        finish();
     }
 }

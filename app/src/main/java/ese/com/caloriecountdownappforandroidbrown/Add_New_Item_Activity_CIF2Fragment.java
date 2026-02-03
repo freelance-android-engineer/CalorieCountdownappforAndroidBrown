@@ -49,7 +49,9 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
     // Request codes
     private static final int REQUEST_IMAGE_GALLERY = 1001;
     private static final int REQUEST_IMAGE_CAMERA = 1002;
+
     private static final int PERMISSION_REQUEST_CAMERA = 2001;
+
     private static final int PERMISSION_REQUEST_STORAGE = 2002;
 
     private Button mAdd;

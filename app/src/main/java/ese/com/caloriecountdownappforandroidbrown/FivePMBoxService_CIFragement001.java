@@ -68,7 +68,7 @@ public class FivePMBoxService_CIFragement001 extends Service
         mBuilder = new NotificationCompat.Builder(goey,"FivePM1")
                 .setSmallIcon(R.drawable.ic_launcher2) // notification icon
                 .setContentTitle("Day End" + todaysTag()) // title for notification
-                .setContentText("Your Balance has been Carried Forward")// message for notification
+                .setContentText("Please Credit all your Food Notes since yesterday 4pm to today 4pm to the Main Balance. Thank you")// message for notification
                 .setTicker("Day End Notification")
                 .setAutoCancel(false); // clear notification after click
 

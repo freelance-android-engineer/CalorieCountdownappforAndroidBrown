@@ -2532,6 +2532,14 @@
 
     <!-- BMR Feature -->
     <string name="bmr_button">BMR</string>
+
+    <!-- Day End Flow -->
+    <string name="day_end_title">Day End</string>
+    <string name="final_debit_question">Is this your final debit for today?</string>
+    <string name="yes_end_day">Yes, End My Day</string>
+    <string name="no_regular_debit">No, Regular Debit</string>
+    <string name="apply_bmr_title">Apply BMR for Today</string>
+    <string name="countdown_report_title">Countdown Report</string>
 </resources>
 
 

@@ -75,7 +75,7 @@ public class DinnerBoxService_CIFragement001 extends Service
         mBuilder = new NotificationCompat.Builder(goey,"dinner") //?
                 .setSmallIcon(R.drawable.ic_launcher2) // notification icon
                 .setContentTitle("Day End" + todaysTag()) // title for notification
-                .setContentText("Day End reached, Balance CFWD")// message for notification //
+                .setContentText("Please Credit all your Food Notes since yesterday 4pm to today 4pm to the Main Balance. Thank you")// message for notification //
                 .setTicker("New Day Notification")
                 .setAutoCancel(false); // clear notification after click
 

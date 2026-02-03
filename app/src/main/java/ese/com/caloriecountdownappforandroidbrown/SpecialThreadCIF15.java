@@ -592,7 +592,7 @@ public class SpecialThreadCIF15 extends Thread {
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(goey)
                     .setSmallIcon(R.drawable.ic_launcher2)
                     .setContentTitle("Day End " + todaysTag())
-                    .setContentText("Preforming Day End and CFWD.")
+                    .setContentText("Please Credit all your Food Notes since yesterday 4pm to today 4pm to the Main Balance. Thank you")
                     .setTicker("Day End Notification");
             Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(goey);
@@ -636,7 +636,7 @@ public class SpecialThreadCIF15 extends Thread {
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(goey)
                     .setSmallIcon(R.drawable.ic_launcher2)
                     .setContentTitle("Day End " + todaysTag())
-                    .setContentText("Peforming Day End Action.")
+                    .setContentText("Please Credit all your Food Notes since yesterday 4pm to today 4pm to the Main Balance. Thank you")
                     .setTicker("Day End");
             Intent resultIntent = new Intent(goey, CCD_GUI_CD_CIF1.class);
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(goey);
