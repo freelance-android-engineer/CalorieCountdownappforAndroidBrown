@@ -6,6 +6,20 @@ export class FoodItemController {
   async create(req: Request, res: Response): Promise<void> {
     try {
       const parsedData = foodItemSchema.parse(req.body);
+
+      // Check for duplicate name
+      const existingItem = await prisma.foodItem.findFirst({
+        where: { food_item_name: { equals: parsedData.food_item_name, mode: 'insensitive' } },
+      });
+
+      if (existingItem) {
+        res.status(409).json({
+          success: false,
+          message: 'A food item with this name already exists',
+        });
+        return;
+      }
+
       const foodItem = await prisma.foodItem.create({
         data: parsedData,
       });
