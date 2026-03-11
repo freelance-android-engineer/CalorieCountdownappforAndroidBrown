@@ -8,3 +8,5 @@
 /build
 /captures
 .externalNativeBuild
+config.bat
+node_modules

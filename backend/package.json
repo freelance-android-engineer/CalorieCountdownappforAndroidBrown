@@ -13,16 +13,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.44.0",
     "@prisma/client": "^6.16.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "multer": "^2.1.1",
     "winston": "^3.17.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
+    "@types/multer": "^2.1.0",
     "@types/node": "^24.5.2",
     "nodemon": "^3.1.10",
     "prisma": "^6.16.2",
