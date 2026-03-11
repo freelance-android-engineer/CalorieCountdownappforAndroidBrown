@@ -8,43 +8,43 @@ datasource db {
 }
 
 model FoodItem {
-  id                 Int     @id @default(autoincrement())
-  food_type          String? @db.VarChar(100)
-  food_item_name     String? @db.VarChar(100)
-  grams_per_serving  Float?
-  calories_per_100g  Float?
-  fat_per_100g       Float?
-  saturated_fat      Float?
-  trans_fat          Float?
-  protein_per_100g   Float?
-  carbs_per_100g     Float?
-  sugar_per_100g     Float?
-  salt_per_100g      Float?
-  wellbeing_index    Float?
-  fiber              Float?
-  price_sterling     Float?
-  category           String? @db.VarChar(100)
-  polyunsaturated    Float?
-  monounsaturated    Float?
-  cholesterol_mg     Float?
-  sodium_mg          Float?
-  potassium_mg       Float?
-  vitamin_a_percent  Float?
-  vitamin_c_percent  Float?
-  calcium_percent    Float?
-  iron_percent       Float?
+  id                Int     @id @default(autoincrement())
+  food_type         String? @db.VarChar(100)
+  food_item_name    String? @unique @db.VarChar(100)
+  grams_per_serving Float?
+  calories_per_100g Float?
+  fat_per_100g      Float?
+  saturated_fat     Float?
+  trans_fat         Float?
+  protein_per_100g  Float?
+  carbs_per_100g    Float?
+  sugar_per_100g    Float?
+  salt_per_100g     Float?
+  wellbeing_index   Float?
+  fiber             Float?
+  price_sterling    Float?
+  category          String? @db.VarChar(100)
+  polyunsaturated   Float?
+  monounsaturated   Float?
+  cholesterol_mg    Float?
+  sodium_mg         Float?
+  potassium_mg      Float?
+  vitamin_a_percent Float?
+  vitamin_c_percent Float?
+  calcium_percent   Float?
+  iron_percent      Float?
 
-  @@map("Food_Items") 
+  @@map("Food_Items")
 }
 
 model ExerciseItem {
-  id           Int   @id @default(autoincrement())
-  exercise_name         String?  @db.Text
-  energy_burnt_per_min  Float?
-  client_weight         Float?
-  client_height_cm      Int?
-  cardio_or_strength    Boolean?
-  Unit_Weight_lbs       Float     @default(100)
+  id                   Int      @id @default(autoincrement())
+  exercise_name        String?
+  energy_burnt_per_min Float?
+  client_weight        Float?
+  client_height_cm     Int?
+  cardio_or_strength   Boolean?
+  Unit_Weight_lbs      Float    @default(100)
 
   @@map("Exercise_Items")
 }

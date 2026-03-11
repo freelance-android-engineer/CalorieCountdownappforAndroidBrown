@@ -20,6 +20,17 @@ class FoodItemController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const parsedData = foodItem_validation_1.foodItemSchema.parse(req.body);
+                // Check for duplicate name
+                const existingItem = yield prisma_1.default.foodItem.findFirst({
+                    where: { food_item_name: { equals: parsedData.food_item_name, mode: 'insensitive' } },
+                });
+                if (existingItem) {
+                    res.status(409).json({
+                        success: false,
+                        message: 'A food item with this name already exists',
+                    });
+                    return;
+                }
                 const foodItem = yield prisma_1.default.foodItem.create({
                     data: parsedData,
                 });
