@@ -474,7 +474,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         TextView tvDateTime = view.findViewById(R.id.tvDateTime);
         Button btnCancel = view.findViewById(R.id.btnCancel);
         Button btnSave = view.findViewById(R.id.btnSave);
-        Button btnSaveFoodItemToBackend = view.findViewById(R.id.btnAddFoodItem);
+        Button btnAI = view.findViewById(R.id.btnAI);
 
         etFood.setText(food);
         etQuantity.setText(quantity);
@@ -512,6 +512,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             quantity
                     );
                     updateRowInTable(Integer.parseInt(noteId), food, quantity, calories, currentDateTime);
+                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
                     dialog.dismiss();
                     return;
                 }
@@ -537,6 +538,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                 public void onClick(DialogInterface dialogInterface, int which) {
                                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
                                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
+                                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
 
                                     dialog.dismiss();
                                     dialogInterface.dismiss();
@@ -547,70 +549,108 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 } else {
                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
+                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
 
                     dialog.dismiss();
                 }
             }
         });
 
-        // Add New Food Item button - saves to SQLite and posts to server
-        btnSaveFoodItemToBackend.setOnClickListener(new View.OnClickListener() {
+        // AI button - uses Gemini to estimate calories from food name and quantity
+        btnAI.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String food = etFood.getText().toString().trim();
                 String quantity = etQuantity.getText().toString().trim();
-                String calories = etCalories.getText().toString().trim();
 
                 if (food.isEmpty()) {
-                    Toast.makeText(FoodNoteTableActivity.this, "Food field cannot be empty", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(FoodNoteTableActivity.this, "Please enter a food/drink name first", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                // 1. Save to SQLite database
-                long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
-                addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
-
-                // 2. Post to server via API
-                Map<String, Object> foodData = new HashMap<>();
-                foodData.put("food_item_name", food);
-                foodData.put("quantity", quantity.isEmpty() ? "1" : quantity);
-                foodData.put("note_date", currentDateTime);
-
-                // Parse calories to double for API
-                double caloriesValue = 0;
-                if (!calories.isEmpty()) {
-                    try {
-                        caloriesValue = Double.parseDouble(calories);
-                    } catch (NumberFormatException e) {
-                        android.util.Log.w("ADD_FOOD_ITEM", "Invalid calories value: " + calories);
-                    }
+                // Build prompt for calorie estimation
+                StringBuilder promptBuilder = new StringBuilder();
+                promptBuilder.append("How many calories are in ");
+                if (!quantity.isEmpty()) {
+                    promptBuilder.append(quantity).append(" of ");
                 }
-                foodData.put("calories_per_100g", caloriesValue);
+                promptBuilder.append(food).append("?\n");
+                promptBuilder.append("Respond with ONLY a single number representing the total calories. No text, no units, just the number.");
 
-                SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(FoodNoteTableActivity.this);
-                apiClient.addFoodItem(foodData, new ApiResultCallback() {
-                    @Override
-                    public void onSuccess(String response) {
-                        runOnUiThread(() -> {
-                            Toast.makeText(FoodNoteTableActivity.this,
-                                "Food item saved locally and synced to server!", Toast.LENGTH_SHORT).show();
-                        });
-                    }
+                // Show loading
+                android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(FoodNoteTableActivity.this);
+                progressDialog.setMessage("AI is estimating calories...");
+                progressDialog.setCancelable(false);
+                progressDialog.show();
 
+                GeminiApiService.calculateCalories(FoodNoteTableActivity.this, promptBuilder.toString(), new GeminiApiService.CalorieCallback() {
                     @Override
-                    public void onFailure() {
+                    public void onResult(String result) {
                         runOnUiThread(() -> {
-                            Toast.makeText(FoodNoteTableActivity.this,
-                                "Food item saved locally. Server sync failed - will retry later.", Toast.LENGTH_LONG).show();
+                            progressDialog.dismiss();
+                            if (result != null && !result.trim().isEmpty()) {
+                                // Extract numeric value from response
+                                String cleaned = result.trim().replaceAll("[^0-9.]", "");
+                                if (!cleaned.isEmpty()) {
+                                    try {
+                                        // Round to whole number
+                                        int calorieValue = (int) Math.round(Double.parseDouble(cleaned));
+                                        etCalories.setText(String.valueOf(calorieValue));
+                                        Toast.makeText(FoodNoteTableActivity.this, "AI estimated: " + calorieValue + " calories", Toast.LENGTH_SHORT).show();
+                                    } catch (NumberFormatException e) {
+                                        etCalories.setText(result.trim());
+                                        Toast.makeText(FoodNoteTableActivity.this, "AI response: " + result.trim(), Toast.LENGTH_SHORT).show();
+                                    }
+                                } else {
+                                    Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                android.util.Log.e("FoodNoteAI", "AI returned null or empty for food: " + etFood.getText().toString());
+                                Toast.makeText(FoodNoteTableActivity.this, "AI estimation failed. Please try again.", Toast.LENGTH_LONG).show();
+                            }
                         });
                     }
                 });
-
-                dialog.dismiss();
             }
         });
 
         dialog.show();
+    }
+
+    private void syncFoodNoteToBackend(String food, String quantity, String calories, String dateTime) {
+        Map<String, Object> foodData = new HashMap<>();
+        foodData.put("food_item_name", food);
+        foodData.put("quantity", quantity.isEmpty() ? "1" : quantity);
+        foodData.put("note_date", dateTime);
+
+        double caloriesValue = 0;
+        if (!calories.isEmpty()) {
+            try {
+                caloriesValue = Double.parseDouble(calories);
+            } catch (NumberFormatException e) {
+                android.util.Log.w("SYNC_FOOD", "Invalid calories value: " + calories);
+            }
+        }
+        foodData.put("calories_per_100g", caloriesValue);
+
+        SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(this);
+        apiClient.addFoodItem(foodData, new ApiResultCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    Toast.makeText(FoodNoteTableActivity.this,
+                        "Synced to server!", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onFailure() {
+                runOnUiThread(() -> {
+                    Toast.makeText(FoodNoteTableActivity.this,
+                        "Server sync failed - will retry later.", Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void addRowToTable(int noteId, String food, String quantity, String calories, String dateTime) {

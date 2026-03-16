@@ -382,7 +382,16 @@
 
     <item
         android:id="@+id/action_stop_weightlossb"
-        android:title="@string/action_stop_weightloss_titleb" />
+        android:title="@string/action_stop_weightloss_titleb">
+        <menu>
+            <item
+                android:id="@+id/action_recalibrate"
+                android:title="@string/action_stop_weightloss_titleb" />
+            <item
+                android:id="@+id/action_estimated_date_to_zero"
+                android:title="@string/estimated_date_to_zero_title" />
+        </menu>
+    </item>
 
 
     <item

@@ -84,14 +84,15 @@
             android:layout_weight="1"
             android:text="Cancel" />
 
+        <!-- AI Button -->
         <Button
-            android:id="@+id/btnAddFoodItem"
+            android:id="@+id/btnAI"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="5dp"
             android:layout_weight="1"
-            android:text="Add new food item" />
+            android:text="AI" />
 
         <!-- Save Button -->
         <Button

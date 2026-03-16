@@ -470,8 +470,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
-            if (id == R.id.action_stop_weightlossb) {
+            if (id == R.id.action_recalibrate) {
                 Start_Recalibration();
+                return true;
+            }
+
+            if (id == R.id.action_estimated_date_to_zero) {
+                Show_Estimated_Date_To_Zero();
                 return true;
             }
 
@@ -599,8 +604,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             return true;
         }
 
-        if (id == R.id.action_stop_weightlossb) {
+        if (id == R.id.action_recalibrate) {
             Start_Recalibration();
+            return true;
+        }
+
+        if (id == R.id.action_stop_weightlossb) {
+            return true;
+        }
+
+        if (id == R.id.action_estimated_date_to_zero) {
+            Show_Estimated_Date_To_Zero();
             return true;
         }
 
@@ -948,6 +962,56 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Intent i = new Intent(CCD_GUI_CD_CIF1.this, ese.com.caloriecountdownappforandroidbrown.Recalibrate.class);
         this.startActivityForResult(i, REQUEST_CODE_RECALIBRATION);
 
+    }
+
+    private void Show_Estimated_Date_To_Zero() {
+        int currentBalance = Get_currentBalanceInt();
+
+        if (currentBalance <= 0) {
+            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+            display_dialog_cif11.Set_mAppContext(this);
+            display_dialog_cif11.Showing("Your Countdown Balance is already at zero or below. Congratulations!");
+            return;
+        }
+
+        int daysToZero = (int) Math.ceil((double) currentBalance / 250);
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, daysToZero);
+
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int month = calendar.get(Calendar.MONTH);
+        int year = calendar.get(Calendar.YEAR);
+
+        String[] monthNames = {"January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"};
+
+        String daySuffix;
+        if (day >= 11 && day <= 13) {
+            daySuffix = "th";
+        } else {
+            switch (day % 10) {
+                case 1: daySuffix = "st"; break;
+                case 2: daySuffix = "nd"; break;
+                case 3: daySuffix = "rd"; break;
+                default: daySuffix = "th"; break;
+            }
+        }
+
+        String estimatedDate = day + daySuffix + " " + monthNames[month] + ", " + year;
+
+        String message = "Based on your current Countdown Balance of "
+                + new RoundingCIF13().IntToString(currentBalance)
+                + " points, counting down at a minimum standard rate of 250 points per day, "
+                + "your estimated date to reach zero is:\n\n"
+                + estimatedDate
+                + "\n\n(" + daysToZero + " days from today)"
+                + "\n\nNaturally you don't have to stick to this timeline, "
+                + "we expect a better performance but this acts as a minimum Standard Guide.";
+
+        Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+        display_dialog_cif11.Set_mAppContext(this);
+        display_dialog_cif11.Showing(message);
     }
 
 

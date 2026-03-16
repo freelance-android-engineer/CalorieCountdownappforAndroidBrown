@@ -3,21 +3,22 @@ package ese.com.caloriecountdownappforandroidbrown
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 class FoodDetectionService(
@@ -26,6 +27,7 @@ class FoodDetectionService(
 ) {
     companion object {
         private const val TAG = "FoodDetectionService"
+        private const val BACKEND_URL = "https://api.carbonemissionstrading.eu/api/v1/gemini/generate"
     }
 
     fun fetchAndStoreFoodItems(
@@ -36,88 +38,77 @@ class FoodDetectionService(
         Log.d(TAG, "========== Starting fetchAndStoreFoodItems ==========")
         Log.d(TAG, "Image base64 length: ${imageBase64.length}")
 
-        val apiKey = context.getString(R.string.gemini_api_key)
-        Log.d(TAG, "API Key retrieved: ${if (apiKey.isNotEmpty()) "Yes (length: ${apiKey.length})" else "No - EMPTY!"}")
+        val prompt = """
+            Detect and separate each food item in the image.
+            If there is no food in the image, return an empty JSON array [].
+            For each food item, provide estimated nutritional values in this exact JSON format:
 
-        val model = "gemini-2.5-flash" // or "gemini-2.5-pro" for higher quality
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-        Log.d(TAG, "API URL: $url")
+            [{
+              "food_item": "FoodName",
+              "calories_per_100g": 0,
+              "fat_per_100g": 0,
+              "saturated_fat": 0,
+              "trans_fat": 0,
+              "protein_per_100g": 0,
+              "carbs_per_100g": 0,
+              "sugar_per_100g": 0,
+              "salt_per_100g": 0,
+              "fiber": 0,
+              "polyunsaturated": 0,
+              "monounsaturated": 0,
+              "cholesterol_mg": 0,
+              "sodium_mg": 0,
+              "potassium_mg": 0,
+              "vitamin_a_percent": 0,
+              "vitamin_c_percent": 0,
+              "calcium_percent": 0,
+              "iron_percent": 0
+            }]
+        """.trimIndent()
 
-        Log.d(TAG, "Building request body...")
-        val requestBody = JSONObject().apply {
-            put("contents", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("inlineData", JSONObject().apply {
-                                put("mimeType", "image/jpeg")
-                                put("data", imageBase64)
-                            })
-                        })
-                        put(JSONObject().apply {
-                            put(
-                                "text", """
-                            Detect and separate each food item in the image.
-                            If there is no food in the image, return an empty JSON array [].
-                            For each food item, provide estimated nutritional values in this exact JSON format:
+        val contentsArray = JSONArray().put(
+            JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().put(
+                    JSONObject().put("text", prompt)
+                ))
+            }
+        )
 
-                            [{
-                              "food_item": "FoodName",
-                              "calories_per_100g": 0,
-                              "fat_per_100g": 0,
-                              "saturated_fat": 0,
-                              "trans_fat": 0,
-                              "protein_per_100g": 0,
-                              "carbs_per_100g": 0,
-                              "sugar_per_100g": 0,
-                              "salt_per_100g": 0,
-                              "fiber": 0,
-                              "polyunsaturated": 0,
-                              "monounsaturated": 0,
-                              "cholesterol_mg": 0,
-                              "sodium_mg": 0,
-                              "potassium_mg": 0,
-                              "vitamin_a_percent": 0,
-                              "vitamin_c_percent": 0,
-                              "calcium_percent": 0,
-                              "iron_percent": 0
-                            }]
-                        """.trimIndent()
-                            )
-                        })
-                    })
-                })
-            })
-        }
-        Log.d(TAG, "Request body created. Size: ${requestBody.toString().length} bytes")
-        Log.d(TAG, "Creating OkHttpClient with 30s timeouts...")
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)  // Connection timeout
-            .readTimeout(30, TimeUnit.SECONDS)     // Read timeout
-            .writeTimeout(30, TimeUnit.SECONDS)    // Write timeout
-            .build()
+        Log.d(TAG, "Building multipart request body...")
+        val imageBytes = Base64.decode(imageBase64, Base64.DEFAULT)
 
-// Build the request
-        Log.d(TAG, "Building HTTP POST request...")
-        val request = Request.Builder()
-            .url(url)
-            .post(
-                RequestBody.create(
-                    "application/json".toMediaTypeOrNull(),
-                    requestBody.toString()
-                )
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("temperature", "0.4")
+            .addFormDataPart("maxOutputTokens", "2048")
+            .addFormDataPart("contents", contentsArray.toString())
+            .addFormDataPart(
+                "image", "food_image.jpg",
+                imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
             )
             .build()
 
-// Make the API call with the custom client
-        Log.d(TAG, "Sending API request to Gemini...")
+        Log.d(TAG, "Creating OkHttpClient with 30s timeouts...")
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        Log.d(TAG, "Building HTTP POST request...")
+        val request = Request.Builder()
+            .url(BACKEND_URL)
+            .post(requestBody)
+            .build()
+
+        Log.d(TAG, "Sending API request to backend...")
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e(TAG, "========== API CALL FAILED ==========")
                 Log.e(TAG, "Error type: ${e.javaClass.simpleName}")
                 Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Full stack trace:")
                 e.printStackTrace()
 
                 Handler(Looper.getMainLooper()).post {
@@ -158,15 +149,36 @@ class FoodDetectionService(
                     val responseJson = JSONObject(responseBody)
                     Log.d(TAG, "Response JSON keys: ${responseJson.keys().asSequence().toList()}")
 
-                    val contentText = responseJson
-                        .getJSONArray("candidates")
-                        .getJSONObject(0)
-                        .getJSONObject("content")
-                        .getJSONArray("parts")
-                        .getJSONObject(0)
-                        .getString("text")
+                    var contentText: String? = null
+
+                    // Backend wraps response in data object
+                    val dataObj = responseJson.optJSONObject("data")
+                    if (dataObj != null) {
+                        val text = dataObj.optString("text", "")
+                        if (text.isNotEmpty()) contentText = text
+                    }
+
+                    // Fallback: parse from candidates (data.raw or root)
+                    if (contentText.isNullOrEmpty()) {
+                        val rawObj = dataObj?.optJSONObject("raw") ?: responseJson
+                        contentText = rawObj
+                            .getJSONArray("candidates")
+                            .getJSONObject(0)
+                            .getJSONObject("content")
+                            .getJSONArray("parts")
+                            .getJSONObject(0)
+                            .getString("text")
+                    }
 
                     Log.d(TAG, "Extracted content text: $contentText")
+
+                    if (contentText.isNullOrEmpty()) {
+                        Handler(Looper.getMainLooper()).post {
+                            Toast.makeText(context, "No response from API", Toast.LENGTH_SHORT).show()
+                            callback.onFailure()
+                        }
+                        return
+                    }
 
                     val cleanedText = contentText
                         .replace("```json", "")
@@ -281,51 +293,47 @@ class FoodDetectionService(
         Log.d(TAG, "========== Starting fetchFoodNoteData ==========")
         Log.d(TAG, "Image base64 length: ${imageBase64.length}")
 
-        val apiKey = context.getString(R.string.gemini_api_key)
-        Log.d(TAG, "API Key retrieved: ${if (apiKey.isNotEmpty()) "Yes (length: ${apiKey.length})" else "No - EMPTY!"}")
+        val prompt = """
+            Analyze this food image and provide ONLY the following information in JSON format.
+            If multiple food items are present, provide data for the main/largest item only.
+            If no food is detected, return an empty object {}.
 
-        val model = "gemini-2.5-flash"
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-        Log.d(TAG, "API URL: $url")
+            Required format:
+            {
+              "food_name": "name of the food item",
+              "calories": approximate total calories (number only, no units),
+              "quantity": approximate quantity or serving size (e.g., "1 plate", "200g", "1 cup", "1 piece")
+            }
 
-        Log.d(TAG, "Building request body for food note data...")
-        val requestBody = JSONObject().apply {
-            put("contents", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("inlineData", JSONObject().apply {
-                                put("mimeType", "image/jpeg")
-                                put("data", imageBase64)
-                            })
-                        })
-                        put(JSONObject().apply {
-                            put(
-                                "text", """
-                            Analyze this food image and provide ONLY the following information in JSON format.
-                            If multiple food items are present, provide data for the main/largest item only.
-                            If no food is detected, return an empty object {}.
+            Important:
+            - calories should be total calories for the visible portion, not per 100g
+            - Be concise with food_name
+            - Use common serving descriptions for quantity
+        """.trimIndent()
 
-                            Required format:
-                            {
-                              "food_name": "name of the food item",
-                              "calories": approximate total calories (number only, no units),
-                              "quantity": approximate quantity or serving size (e.g., "1 plate", "200g", "1 cup", "1 piece")
-                            }
+        val contentsArray = JSONArray().put(
+            JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().put(
+                    JSONObject().put("text", prompt)
+                ))
+            }
+        )
 
-                            Important:
-                            - calories should be total calories for the visible portion, not per 100g
-                            - Be concise with food_name
-                            - Use common serving descriptions for quantity
-                        """.trimIndent()
-                            )
-                        })
-                    })
-                })
-            })
-        }
-        Log.d(TAG, "Request body created. Size: ${requestBody.toString().length} bytes")
+        Log.d(TAG, "Building multipart request body for food note data...")
+        val imageBytes = Base64.decode(imageBase64, Base64.DEFAULT)
+
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("temperature", "0.4")
+            .addFormDataPart("maxOutputTokens", "2048")
+            .addFormDataPart("contents", contentsArray.toString())
+            .addFormDataPart(
+                "image", "food_image.jpg",
+                imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+            .build()
 
         Log.d(TAG, "Creating OkHttpClient with 30s timeouts...")
         val client = OkHttpClient.Builder()
@@ -336,16 +344,11 @@ class FoodDetectionService(
 
         Log.d(TAG, "Building HTTP POST request...")
         val request = Request.Builder()
-            .url(url)
-            .post(
-                RequestBody.create(
-                    "application/json".toMediaTypeOrNull(),
-                    requestBody.toString()
-                )
-            )
+            .url(BACKEND_URL)
+            .post(requestBody)
             .build()
 
-        Log.d(TAG, "Sending API request to Gemini for food note data...")
+        Log.d(TAG, "Sending API request to backend for food note data...")
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e(TAG, "========== API CALL FAILED (Food Note) ==========")
@@ -381,15 +384,35 @@ class FoodDetectionService(
                     Log.d(TAG, "Parsing response JSON...")
                     val responseJson = JSONObject(responseBody)
 
-                    val contentText = responseJson
-                        .getJSONArray("candidates")
-                        .getJSONObject(0)
-                        .getJSONObject("content")
-                        .getJSONArray("parts")
-                        .getJSONObject(0)
-                        .getString("text")
+                    var contentText: String? = null
+
+                    // Backend wraps response in data object
+                    val dataObj = responseJson.optJSONObject("data")
+                    if (dataObj != null) {
+                        val text = dataObj.optString("text", "")
+                        if (text.isNotEmpty()) contentText = text
+                    }
+
+                    // Fallback: parse from candidates (data.raw or root)
+                    if (contentText.isNullOrEmpty()) {
+                        val rawObj = dataObj?.optJSONObject("raw") ?: responseJson
+                        contentText = rawObj
+                            .getJSONArray("candidates")
+                            .getJSONObject(0)
+                            .getJSONObject("content")
+                            .getJSONArray("parts")
+                            .getJSONObject(0)
+                            .getString("text")
+                    }
 
                     Log.d(TAG, "Extracted content text: $contentText")
+
+                    if (contentText.isNullOrEmpty()) {
+                        Handler(Looper.getMainLooper()).post {
+                            callback.onFailure("No response from API")
+                        }
+                        return
+                    }
 
                     val cleanedText = contentText
                         .replace("```json", "")

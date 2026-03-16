@@ -7,22 +7,22 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.*
 import java.util.regex.*
-import java.io.IOException;
+import java.io.IOException
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 
 
 object GeminiApiService {
+
+    private const val BACKEND_URL = "https://api.carbonemissionstrading.eu/api/v1/gemini/generate"
+
     fun fetchNutritionData(
         context: Context,
         foodName: String,
@@ -33,69 +33,84 @@ object GeminiApiService {
             try {
                 Log.d("NutritionInfo", "Starting API request")
 
-                val apiKey = context.getString(R.string.gemini_api_key)
-
                 val prompt = """
 Provide only the nutritional values per 100 grams or milliliters for $foodName in the following format, with no additional text, context, or disclaimers:
 
-Calories: 
-Protein: 
-Fat: 
-Saturated Fat: 
-Trans Fat: 
-Carbohydrates: 
-Fiber: 
-Sugar: 
+Calories:
+Protein:
+Fat:
+Saturated Fat:
+Trans Fat:
+Carbohydrates:
+Fiber:
+Sugar:
 Salt:
 """.trimIndent()
 
-
-                val requestBody = JSONObject().apply {
-                    put(
-                        "contents", JSONArray().put(
-                            JSONObject().put("role", "user").put(
-                                "parts", JSONArray().put(
-                                    JSONObject().put("text", prompt)
-                                )
-                            )
+                val contentsArray = JSONArray().put(
+                    JSONObject().put("role", "user").put(
+                        "parts", JSONArray().put(
+                            JSONObject().put("text", prompt)
                         )
                     )
-                }
+                )
 
-                val model = "gemini-2.5-flash" // or use "gemini-2.5-pro" for higher quality
-                val url =
-                    URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.doOutput = true
+                val requestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("model", "gemini-flash-latest")
+                    .addFormDataPart("temperature", "0.4")
+                    .addFormDataPart("maxOutputTokens", "2048")
+                    .addFormDataPart("contents", contentsArray.toString())
+                    .build()
 
-                conn.outputStream.use { os ->
-                    os.write(requestBody.toString().toByteArray())
-                }
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url(BACKEND_URL)
+                    .post(requestBody)
+                    .build()
 
-                // Check response code before reading
-                val responseCode = conn.responseCode
+                val response = client.newCall(request).execute()
+                val responseCode = response.code
                 Log.d("NutritionInfo", "Response Code: $responseCode")
 
-                val response = if (responseCode in 200..299) {
-                    conn.inputStream.bufferedReader().use { it.readText() }
-                } else {
-                    val errorResponse = conn.errorStream?.bufferedReader()?.use { it.readText() }
-                        ?: "No error details"
+                if (!response.isSuccessful) {
+                    val errorResponse = response.body?.string() ?: "No error details"
                     Log.e("NutritionError", "API Error ($responseCode): $errorResponse")
                     throw IOException("API request failed with code $responseCode: $errorResponse")
                 }
 
-                Log.d("NutritionInfo", "Response: $response")
+                val responseStr = response.body?.string() ?: ""
+                Log.d("NutritionInfo", "Response: $responseStr")
 
-                val responseJson = JSONObject(response)
-                val contentText = responseJson.getJSONArray("candidates")
-                    .getJSONObject(0)
-                    .getJSONObject("content")
-                    .getJSONArray("parts")
-                    .getJSONObject(0)
-                    .getString("text")
+                val responseJson = JSONObject(responseStr)
+                var contentText: String? = null
+
+                // Backend wraps response in data object
+                val dataObj = responseJson.optJSONObject("data")
+                if (dataObj != null) {
+                    val text = dataObj.optString("text", "")
+                    if (text.isNotEmpty()) contentText = text
+                }
+
+                // Fallback: parse from candidates (data.raw or root)
+                if (contentText.isNullOrEmpty()) {
+                    val rawObj = dataObj?.optJSONObject("raw") ?: responseJson
+                    val parts = rawObj.getJSONArray("candidates")
+                        .getJSONObject(0)
+                        .getJSONObject("content")
+                        .getJSONArray("parts")
+
+                    for (i in parts.length() - 1 downTo 0) {
+                        val part = parts.getJSONObject(i)
+                        if (!part.optBoolean("thought", false)) {
+                            contentText = part.optString("text")
+                            break
+                        }
+                    }
+                    if (contentText == null) {
+                        contentText = parts.getJSONObject(parts.length() - 1).getString("text")
+                    }
+                }
 
 
                 val item: Food_Item_CIF4 = FoodItemParser.fromGeminiText(contentText, foodName)
@@ -124,11 +139,9 @@ Salt:
 
     @JvmStatic
     fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
-        val apiKey = context.getString(R.string.gemini_api_key)
 
-        Log.d("GeminiApiService", "🔥 calculateCalories() called with prompt: $prompt")
+        Log.d("GeminiApiService", "calculateCalories() called with prompt: $prompt")
 
-        val jsonBody = JSONObject()
         val contentsArray = JSONArray()
         val partsArray = JSONArray()
         val textObject = JSONObject()
@@ -138,42 +151,39 @@ Salt:
         val contentObject = JSONObject()
         contentObject.put("parts", partsArray)
         contentsArray.put(contentObject)
-        jsonBody.put("contents", contentsArray)
 
-        Log.d("GeminiApiService", "📦 Request body JSON: $jsonBody")
+        Log.d("GeminiApiService", "Contents JSON: $contentsArray")
 
-        val body = RequestBody.create(
-            "application/json".toMediaTypeOrNull(),
-            jsonBody.toString()
-        )
-
-
-        val model = "gemini-2.5-flash" // or "gemini-2.5-pro" for higher quality
-        val url =
-            "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("temperature", "0.4")
+            .addFormDataPart("maxOutputTokens", "2048")
+            .addFormDataPart("contents", contentsArray.toString())
+            .build()
 
         val request = Request.Builder()
-            .url(url)
+            .url(BACKEND_URL)
             .post(body)
             .build()
 
-        Log.d("GeminiApiService", "🌍 Sending request to Gemini API")
+        Log.d("GeminiApiService", "Sending request to backend API")
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e("GeminiApiService", "❌ Request failed: ${e.message}", e)
+                Log.e("GeminiApiService", "Request failed: ${e.message}", e)
                 (context as? Activity)?.runOnUiThread {
                     callback.onResult(null)
                 }
             }
 
             override fun onResponse(call: Call, response: Response) {
-                Log.d("GeminiApiService", "✅ Response received, status=${response.code}")
+                Log.d("GeminiApiService", "Response received, status=${response.code}")
 
                 response.use {
                     if (!response.isSuccessful) {
-                        Log.e("GeminiApiService", "⚠️ Unsuccessful response: ${response.code}")
+                        val errorBody = response.body?.string() ?: "No error body"
+                        Log.e("GeminiApiService", "Unsuccessful response: ${response.code}, body: $errorBody")
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(null)
                         }
@@ -181,24 +191,48 @@ Salt:
                     }
 
                     val responseData = response.body?.string()
-                    Log.d("GeminiApiService", "📥 Raw response: $responseData")
+                    Log.d("GeminiApiService", "Raw response: $responseData")
 
                     try {
                         val jsonResponse = JSONObject(responseData)
-                        val candidates = jsonResponse.optJSONArray("candidates")
-                        val contentText = candidates?.getJSONObject(0)
-                            ?.getJSONObject("content")
-                            ?.getJSONArray("parts")
-                            ?.getJSONObject(0)
-                            ?.optString("text")
+                        var contentText: String? = null
 
-                        Log.d("GeminiApiService", "🍽 Parsed text: $contentText")
+                        // Backend wraps response in data object
+                        val dataObj = jsonResponse.optJSONObject("data")
+                        if (dataObj != null) {
+                            val text = dataObj.optString("text", "")
+                            if (text.isNotEmpty()) contentText = text
+                        }
+
+                        // Fallback: try parsing from candidates (data.raw or root)
+                        if (contentText.isNullOrEmpty()) {
+                            val rawObj = dataObj?.optJSONObject("raw") ?: jsonResponse
+                            val candidates = rawObj.optJSONArray("candidates")
+                            val parts = candidates?.getJSONObject(0)
+                                ?.getJSONObject("content")
+                                ?.getJSONArray("parts")
+
+                            if (parts != null && parts.length() > 0) {
+                                for (i in parts.length() - 1 downTo 0) {
+                                    val part = parts.getJSONObject(i)
+                                    if (!part.optBoolean("thought", false)) {
+                                        contentText = part.optString("text")
+                                        break
+                                    }
+                                }
+                                if (contentText == null) {
+                                    contentText = parts.getJSONObject(parts.length() - 1).optString("text")
+                                }
+                            }
+                        }
+
+                        Log.d("GeminiApiService", "Parsed text: $contentText")
 
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(contentText)
                         }
                     } catch (ex: Exception) {
-                        Log.e("GeminiApiService", "❌ Exception parsing response", ex)
+                        Log.e("GeminiApiService", "Exception parsing response", ex)
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(null)
                         }
