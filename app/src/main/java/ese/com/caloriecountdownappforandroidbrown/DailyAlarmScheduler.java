@@ -25,13 +25,11 @@ public class DailyAlarmScheduler {
     private static final int REQUEST_CODE_CREDIT_DAY_END = 4000;
     private static final int REQUEST_CODE_DEBIT_DAY_END = 2159;
 
-    // Credit Day End: 4:00 PM (TESTING: temporarily set to 10:49)
-    private static final int CREDIT_HOUR = 11;
+    private static final int CREDIT_HOUR = 4;
     private static final int CREDIT_MINUTE = 0;
 
-    // Debit Day End: 9:59 PM (TESTING: temporarily set to 10:51)
-    private static final int DEBIT_HOUR = 11;
-    private static final int DEBIT_MINUTE = 2;
+    private static final int DEBIT_HOUR = 9;
+    private static final int DEBIT_MINUTE = 59;
 
     /**
      * Schedule both daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
