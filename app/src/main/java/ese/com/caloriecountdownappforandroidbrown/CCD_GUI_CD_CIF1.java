@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -131,6 +132,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         //instance.Start_Cycle(); //Only after "Start_Weight_Loss_Used_For_First_Time!
         appContext = getApplicationContext();
 
+        // Request notification permission for Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+
+        // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 9:59 PM (Debit Day End)
+        DailyAlarmScheduler.scheduleBothAlarms(this);
+
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -186,10 +198,21 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1001) {
+            // Re-schedule alarms after notification permission is handled
+            DailyAlarmScheduler.scheduleBothAlarms(this);
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         // Refresh balance from storage when returning to this activity
         refreshBalanceFromStorage();
+        // Re-schedule alarms on every resume for reliability (e.g. after returning from settings)
+        DailyAlarmScheduler.scheduleBothAlarms(this);
     }
 
     private void refreshBalanceFromStorage() {
@@ -511,6 +534,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.submenu3aa) {
+                showAccrualDialog();
+                return true;
+            }
+
             if (id == R.id.action_fitness_log_debit) // Physical Activity Debit
             {
                 StartDebitActivityCIF13();
@@ -646,6 +674,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         if (id == R.id.submenu2a) {
             Start_Journal_Activity_CiF115();
+            return true;
+        }
+
+        if (id == R.id.submenu3aa) {
+            showAccrualDialog();
             return true;
         }
 
@@ -854,6 +887,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         if (requestcode == REQUEST_CODE_START_DEBIT_ACTIVITY) {
 
+            // Capture the balance BEFORE the debit is applied (for Countdown Report)
+            int previousBalance = Get_currentBalanceInt();
 
             int DebitResult = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 1);
             //String Summation = data.getStringExtra(Food_Diary_Sheet_CIF3.SUMMATION_TEXT);
@@ -869,6 +904,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             Store_Dayend(instance.Get_currentBalanceInt());
             Store_Dayend2();
             Refresh();
+
+            // Mark debit update as performed and show Countdown Report
+            markDebitUpdatePerformed();
+            showCountdownReport(previousBalance, Get_currentBalanceInt());
         }
 
         // Handle Journal Activity result for Accrual transfers
@@ -1062,6 +1101,18 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public void Countup(int credit) {
         android.util.Log.d("Countdown", "Consider Countdown Updated Token");
+
+        // Check if it's after 4:00 PM (Credit Day End)
+        Calendar now = Calendar.getInstance();
+        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+
+        if (currentHour >= 16) {
+            // After 4pm - route credit to next day's firstBrekkieBox
+            routeCreditToNextDay(credit);
+            android.util.Log.d("Countdown", "After 4pm - credit routed to next day's firstBrekkieBox: " + credit);
+            return;
+        }
+
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         String CountdownFigure = countdownbalance.getText().toString();
         CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) + credit);
@@ -1069,6 +1120,60 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         StoreCountdownBalance(CountdownFigure);
         Kitty();
 
+    }
+
+    /**
+     * Routes food credit to the next day's firstBrekkieBox when entered after 4pm.
+     * The calories will be added to tomorrow's DayCiF1005 in the mDaysToZero collection.
+     */
+    private void routeCreditToNextDay(int credit) {
+        if (mDaysToZero == null) {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            mDaysToZero = adapter.RetrievemForecast();
+        }
+
+        if (mDaysToZero != null) {
+            // Find tomorrow's DayCiF1005
+            DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
+            if (today != null) {
+                java.time.LocalDateTime todayDate = today.getDay();
+                java.time.LocalDateTime tomorrowDate = todayDate.plusDays(1);
+
+                // Search for tomorrow in the collection
+                for (Object obj : mDaysToZero.getNumberOFDaysToXero03FEB10()) {
+                    DayCiF1005 day = (DayCiF1005) obj;
+                    if (day != null &&
+                        day.getDay().getYear() == tomorrowDate.getYear() &&
+                        day.getDay().getMonthValue() == tomorrowDate.getMonthValue() &&
+                        day.getDay().getDayOfMonth() == tomorrowDate.getDayOfMonth()) {
+
+                        // Add credit to next day's firstBrekkieBox
+                        Food_Item_CIF4 carryOverItem = new Food_Item_CIF4();
+                        carryOverItem.Set_food_item_name("Carry Over (after 4pm)");
+                        carryOverItem.Set_calorie_value(credit);
+                        carryOverItem.Set_calories_per_100g((float) credit);
+                        day.getFirstBrekkieBox().addFoodItem(carryOverItem);
+
+                        Log.d("Countdown", "Credit of " + credit + " routed to tomorrow's firstBrekkieBox");
+
+                        // Notify user
+                        Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+                        dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                        dialog.Showing("It's past 4:00 PM (Credit Day End).\n\n" +
+                                "Your food entry of " + credit + " calories has been added to tomorrow's first meal box.\n\n" +
+                                "Focus on completing your Step Challenge for today!");
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Fallback: if no tomorrow found, just notify
+        Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+        dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+        dialog.Showing("It's past 4:00 PM (Credit Day End).\n\n" +
+                "Your food entry of " + credit + " calories will be carried over to tomorrow.\n\n" +
+                "Focus on completing your Step Challenge for today!");
     }
 
     private void OpenAccount(int OpeningBalance) {
@@ -1430,8 +1535,14 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     {
         int kit = Math.abs(in);
         in = kit;
-        int walkminutes = GenerateStepsChallenge(in);
-        String out = "Your Steps Challenge to successfully countdown your Balance by 300 pionts by Dayend (9pm) is: " + new RoundingCIF13().IntToString(walkminutes) + " Steps.\n\nOnly dispose of the Dialog once you have performed it.";
+        int stepChallenge = GenerateStepsChallenge(in);
+        String out = "Your Steps Challenge to successfully countdown your Balance by " + new RoundingCIF13().IntToString(kit + 250) + " points by Dayend (9:59 PM) is: " + new RoundingCIF13().IntToString(stepChallenge) + " Steps.";
+
+        if (stepChallenge >= 30_000) {
+            out += "\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.";
+        }
+
+        out += "\n\nOnly dispose of the Dialog once you have performed it.";
 
         return out;
     }
@@ -1849,9 +1960,28 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     }
 
-    private int GenerateStepsChallenge(int in)
-    {
-        return 16_000;
+    /**
+     * Generates a Step Challenge based on the calories that need to be burned.
+     * Adds 250 bonus points to the target, then converts calories to steps.
+     * Conversion: 1 step = 0.089 calories, so steps = calories / 0.089
+     * Capped at 30,000 steps maximum.
+     *
+     * @param caloriesOverBudget the calories over budget that need to be burned
+     * @return the number of steps for the challenge (max 30,000)
+     */
+    private int GenerateStepsChallenge(int caloriesOverBudget) {
+        // Add 250 bonus points to the target
+        int targetCalories = caloriesOverBudget + 250;
+
+        // Convert calories to steps: steps = calories / 0.089
+        int steps = (int) (targetCalories / 0.089);
+
+        // Cap at 30,000 steps
+        if (steps > 30_000) {
+            steps = 30_000;
+        }
+
+        return steps;
     }
 
     private void showConversionInputDialog(String title, String message, String conversionType) {
@@ -1919,6 +2049,239 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
         display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
         display_dialog_cif11.Showing(result);
+    }
+
+    /**
+     * Shows the Accrual dialog that allows the user to borrow calories from
+     * the previous day and shift them to the next day's DayCiF1005.
+     * This lightens the current day's load and reduces the Step Challenge.
+     */
+    private void showAccrualDialog() {
+        if (mDaysToZero == null) {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            mDaysToZero = adapter.RetrievemForecast();
+        }
+
+        if (mDaysToZero == null) {
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing("Accrual is not available. Please start your weight loss journey first.");
+            return;
+        }
+
+        DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
+        if (today == null) {
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing("Could not find today's day record for Accrual.");
+            return;
+        }
+
+        // Calculate what the current step challenge would be
+        int currentBalance = Get_currentBalanceInt();
+        int dayend = today.getBudgetedDayEndBalanceForThisDay();
+        int deficit = currentBalance - dayend;
+        int currentSteps = (deficit > 0) ? GenerateStepsChallenge(deficit) : 0;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Accrual - Borrow Calories");
+
+        View dialogView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
+        // Use a simple EditText for input
+        final EditText input = new EditText(this);
+        input.setHint("Enter calories to accrue to tomorrow");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        builder.setView(input);
+
+        String message = "Current Step Challenge: " + new RoundingCIF13().IntToString(currentSteps) + " steps";
+        if (currentSteps >= 30_000) {
+            message += " (CAPPED at 30,000!)";
+        }
+        message += "\n\nEnter the number of calories you want to borrow from today and move to tomorrow. " +
+                "This will reduce your Step Challenge for today but you must plan tomorrow's meals carefully.";
+        builder.setMessage(message);
+
+        builder.setPositiveButton("Accrue", (dialog, which) -> {
+            String inputText = input.getText().toString().trim();
+            if (inputText.isEmpty()) return;
+
+            try {
+                int accrualAmount = Integer.parseInt(inputText);
+                if (accrualAmount <= 0) return;
+
+                performAccrual(today, accrualAmount);
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Invalid accrual amount: " + inputText);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    /**
+     * Performs the accrual: moves calories from today to tomorrow's DayCiF1005.
+     * Reduces today's load and the Step Challenge, but adds to tomorrow's burden.
+     */
+    private void performAccrual(DayCiF1005 today, int accrualAmount) {
+        java.time.LocalDateTime todayDate = today.getDay();
+        java.time.LocalDateTime tomorrowDate = todayDate.plusDays(1);
+
+        DayCiF1005 tomorrow = null;
+        for (Object obj : mDaysToZero.getNumberOFDaysToXero03FEB10()) {
+            DayCiF1005 day = (DayCiF1005) obj;
+            if (day != null &&
+                day.getDay().getYear() == tomorrowDate.getYear() &&
+                day.getDay().getMonthValue() == tomorrowDate.getMonthValue() &&
+                day.getDay().getDayOfMonth() == tomorrowDate.getDayOfMonth()) {
+                tomorrow = day;
+                break;
+            }
+        }
+
+        if (tomorrow == null) {
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing("Could not find tomorrow's day record. Accrual failed.");
+            return;
+        }
+
+        // Move calories from today's budget to tomorrow
+        int todayBudget = today.getBudgetedDayEndBalanceForThisDay();
+        today.setBudgetedDayEndBalanceForThisDay(todayBudget + accrualAmount);
+
+        int tomorrowBudget = tomorrow.getBudgetedDayEndBalanceForThisDay();
+        tomorrow.setBudgetedDayEndBalanceForThisDay(tomorrowBudget - accrualAmount);
+
+        // Add accrual as a food item to tomorrow's firstBrekkieBox for tracking
+        Food_Item_CIF4 accrualItem = new Food_Item_CIF4();
+        accrualItem.Set_food_item_name("Accrual from previous day");
+        accrualItem.Set_calorie_value(accrualAmount);
+        accrualItem.Set_calories_per_100g((float) accrualAmount);
+        tomorrow.getFirstBrekkieBox().addFoodItem(accrualItem);
+
+        // Recalculate step challenge
+        int currentBalance = Get_currentBalanceInt();
+        int newDayend = today.getBudgetedDayEndBalanceForThisDay();
+        int newDeficit = currentBalance - newDayend;
+        int newSteps = (newDeficit > 0) ? GenerateStepsChallenge(newDeficit) : 0;
+
+        Log.d("Accrual", "Accrued " + accrualAmount + " calories to tomorrow. New step challenge: " + newSteps);
+
+        // Show result
+        String resultMessage = "Accrual Successful!\n\n" +
+                "Calories accrued to tomorrow: " + accrualAmount + "\n" +
+                "New Step Challenge: " + new RoundingCIF13().IntToString(newSteps) + " steps\n\n" +
+                "Remember: Tomorrow you must carefully plan your meals to burn the accrued " +
+                accrualAmount + " calories plus your regular target. Consider fasting or sticking to a planned diet.";
+
+        Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+        dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+        dialog.Showing(resultMessage);
+
+        Refresh();
+    }
+
+    /**
+     * Marks the current day's debitUpdatePerformed as true in the mDaysToZero collection.
+     */
+    private void markDebitUpdatePerformed() {
+        if (mDaysToZero == null) {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            mDaysToZero = adapter.RetrievemForecast();
+        }
+
+        if (mDaysToZero != null) {
+            DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
+            if (today != null) {
+                today.setDebitUpdatePerformed(true);
+                Log.d("DebitUpdate", "Debit update performed for today: " + today.getDay());
+            }
+        }
+    }
+
+    /**
+     * Shows the Countdown Report after a debit update.
+     * Compares previous balance with new balance to determine if user counted down or up.
+     *
+     * @param previousBalance the balance before the debit was applied
+     * @param newBalance      the balance after the debit was applied
+     */
+    private void showCountdownReport(int previousBalance, int newBalance) {
+        // Get client name from preferences
+        String clientName = "Client";
+        SharedPreferences pref = getSharedPreferences("Calorie_Countdown", 0);
+        String name = pref.getString("client_name", null);
+        if (name != null && !name.isEmpty()) {
+            clientName = name;
+        }
+
+        // Get today's date formatted
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        String dateStr = now.getDayOfMonth() + " " +
+                now.getMonth().toString().substring(0, 1) +
+                now.getMonth().toString().substring(1).toLowerCase() +
+                " " + now.getYear();
+
+        int difference = previousBalance - newBalance;
+
+        StringBuilder report = new StringBuilder();
+        report.append("Countdown Report\n\n");
+        report.append("Date: ").append(dateStr).append("\n\n");
+        report.append("Previous Day Balance: ").append(new RoundingCIF13().IntToString(previousBalance)).append(" Cr\n");
+        report.append("New Day End Balance: ").append(new RoundingCIF13().IntToString(newBalance)).append(" Cr\n\n");
+
+        if (difference > 0) {
+            // Successful countdown
+            report.append("Countdown = ").append(new RoundingCIF13().IntToString(difference)).append(" Points \uD83D\uDD3B\n\n");
+            report.append("Well done, ").append(clientName).append("! Great job today! Keep up the momentum!");
+        } else if (difference == 0) {
+            report.append("No change today - you held your ground.\n\n");
+            report.append("Tomorrow is a new opportunity to countdown, ").append(clientName).append("!");
+        } else {
+            // Countup - bad day
+            int countup = Math.abs(difference);
+            report.append("Countdown (Countup) = \n");
+            report.append(new RoundingCIF13().IntToString(countup)).append(" Points \uD83D\uDD3A\n\n");
+            report.append("Dear ").append(clientName).append(",\n");
+            report.append("Don't be discouraged, tomorrow is a brand new day and a brand new chance to get back on track, ");
+            report.append("it's a marathon, keep going! You can do it!!!\uD83D\uDE4C\uD83D\uDE4C");
+        }
+
+        Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+        dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+        dialog.Showing(report.toString());
+    }
+
+    /**
+     * Checks if the previous day's debit update was performed.
+     * Returns true if it was performed (or no previous day exists), false if pending.
+     */
+    public boolean isPreviousDayDebitComplete() {
+        if (mDaysToZero == null) {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            mDaysToZero = adapter.RetrievemForecast();
+        }
+
+        if (mDaysToZero == null) return true; // No data, allow proceeding
+
+        DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
+        if (today == null) return true;
+
+        java.time.LocalDateTime todayDate = today.getDay();
+        java.time.LocalDateTime yesterdayDate = todayDate.minusDays(1);
+
+        for (Object obj : mDaysToZero.getNumberOFDaysToXero03FEB10()) {
+            DayCiF1005 day = (DayCiF1005) obj;
+            if (day != null &&
+                day.getDay().getYear() == yesterdayDate.getYear() &&
+                day.getDay().getMonthValue() == yesterdayDate.getMonthValue() &&
+                day.getDay().getDayOfMonth() == yesterdayDate.getDayOfMonth()) {
+                return day.getDebitUpdatePerformed();
+            }
+        }
+
+        return true; // No previous day found, allow proceeding
     }
 
 }

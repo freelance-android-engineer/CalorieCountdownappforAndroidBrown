@@ -130,14 +130,18 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnAddNewRow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showFoodInputDialog(null, "", "", "");
+                if (checkPreviousDayDebitUpdate()) {
+                    showFoodInputDialog(null, "", "", "");
+                }
             }
         });
 
         btnAddRowWithImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showAddRowWithImageDialog();
+                if (checkPreviousDayDebitUpdate()) {
+                    showAddRowWithImageDialog();
+                }
             }
         });
 
@@ -1098,9 +1102,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         } else if (result == 0) {
             message = "You have 0 Calories left in your Kitty.";
         } else {
-            int stepChallenge = StepChallengeFun(Math.abs(result)); // placeholder function
+            int stepChallenge = StepChallengeFun(Math.abs(result));
             message = "You have 0 Calories left in your Kitty and have the additional challenge of doing "
-                    + stepChallenge + " steps by 7 PM or midnight.";
+                    + stepChallenge + " steps by 9:59 PM.";
+            if (stepChallenge >= 30_000) {
+                message += "\n\nStep Challenge capped at 30,000! Consider using Accrual to lighten the load.";
+            }
         }
 
         new AlertDialog.Builder(this)
@@ -1110,9 +1117,17 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Generates Step Challenge: adds 250 bonus points, converts calories to steps (1 step = 0.089 cal).
+     * Capped at 30,000 steps.
+     */
     private int StepChallengeFun(int calories) {
-        // TODO: Implement your logic later
-        return calories * 20; // Example placeholder conversion
+        int targetCalories = calories + 250;
+        int steps = (int) (targetCalories / 0.089);
+        if (steps > 30_000) {
+            steps = 30_000;
+        }
+        return steps;
     }
 
     /**
@@ -1865,6 +1880,52 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
             Toast.makeText(this, "Permission denied. Cannot access " + source, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Checks if the previous day's debit update has been performed.
+     * If not, shows a dialog prompting the user to complete it before adding new food notes.
+     *
+     * @return true if the user can proceed (debit done or no previous day), false if blocked
+     */
+    private boolean checkPreviousDayDebitUpdate() {
+        CCD_GUI_CD_CIF1 mainActivity = CCD_GUI_CD_CIF1.instance;
+        if (mainActivity == null) return true;
+
+        if (!mainActivity.isPreviousDayDebitComplete()) {
+            // Get client name
+            String clientName = "Client";
+            SharedPreferences pref = getSharedPreferences("Calorie_Countdown", 0);
+            String name = pref.getString("client_name", null);
+            if (name != null && !name.isEmpty()) {
+                clientName = name;
+            }
+
+            String message = "Dear " + clientName + ",\n\n" +
+                    "You did not update your Debit (that is Steps, Exercise and Physical Activity) " +
+                    "performed yesterday.\n\n" +
+                    "Please complete yesterday's Debit Update before adding new food notes.\n\n" +
+                    "Use the Debit button on the main screen to enter your activity.";
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Countdown Report")
+                    .setMessage(message)
+                    .setPositiveButton("Go to Debit Update", (dialog, which) -> {
+                        // Take user back to main activity to do debit update
+                        finish();
+                    })
+                    .setNegativeButton("Skip for now", (dialog, which) -> {
+                        // Allow user to proceed anyway but warn them
+                        Toast.makeText(this, "Remember to complete yesterday's debit update!", Toast.LENGTH_LONG).show();
+                        // Don't block - let them add food note after dismissing
+                    })
+                    .setCancelable(false)
+                    .show();
+
+            return false;
+        }
+
+        return true;
     }
 
 }
