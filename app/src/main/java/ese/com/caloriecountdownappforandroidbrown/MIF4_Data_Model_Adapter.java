@@ -1274,8 +1274,8 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
 
         java.util.Calendar greg_END = Calendar.getInstance();
         greg_END.setTime(new Date());
-        greg_END.set(Calendar.HOUR_OF_DAY, 16);
-        greg_END.set(Calendar.MINUTE, 0);
+        greg_END.set(Calendar.HOUR_OF_DAY, 15);
+        greg_END.set(Calendar.MINUTE, 30);
 
         long day_point_Start = greg_Start.getTimeInMillis();
         long day_point_END = greg_END.getTimeInMillis();
@@ -1295,8 +1295,8 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
     {
         java.util.Calendar greg_Start = Calendar.getInstance();
         greg_Start.setTime(new Date());
-        greg_Start.set(Calendar.HOUR_OF_DAY, 16);
-        greg_Start.set(Calendar.MINUTE, 0);
+        greg_Start.set(Calendar.HOUR_OF_DAY, 15);
+        greg_Start.set(Calendar.MINUTE, 30);
 
         java.util.Calendar greg_END = Calendar.getInstance();
         greg_END.setTime(new Date());

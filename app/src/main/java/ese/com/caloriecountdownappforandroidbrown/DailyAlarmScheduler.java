@@ -12,7 +12,7 @@ import java.util.Calendar;
 
 /**
  * Schedules the two daily alarms for the Calorie Countdown lifecycle:
- * - 4:00 PM (Credit Day End) - user should generate Step Challenge
+ * - 3:30 PM (Credit Day End) - user should generate Step Challenge
  * - 9:59 PM (Debit Day End) - user should update steps/exercise activity
  *
  * Uses AlarmManager.setExactAndAllowWhileIdle() for reliable delivery.
@@ -25,8 +25,8 @@ public class DailyAlarmScheduler {
     private static final int REQUEST_CODE_CREDIT_DAY_END = 4000;
     private static final int REQUEST_CODE_DEBIT_DAY_END = 2159;
 
-    private static final int CREDIT_HOUR = 4;
-    private static final int CREDIT_MINUTE = 0;
+    private static final int CREDIT_HOUR = 15;
+    private static final int CREDIT_MINUTE = 30;
 
     private static final int DEBIT_HOUR = 9;
     private static final int DEBIT_MINUTE = 59;
@@ -37,11 +37,11 @@ public class DailyAlarmScheduler {
     public static void scheduleBothAlarms(Context context) {
         scheduleCreditDayEndAlarm(context);
         scheduleDebitDayEndAlarm(context);
-        Log.d(TAG, "Both daily alarms scheduled (4:00 PM and 9:59 PM)");
+        Log.d(TAG, "Both daily alarms scheduled (3:30 PM and 9:59 PM)");
     }
 
     /**
-     * Schedule the 4:00 PM Credit Day End alarm.
+     * Schedule the 3:30 PM Credit Day End alarm.
      */
     public static void scheduleCreditDayEndAlarm(Context context) {
         Calendar calendar = getNextAlarmTime(CREDIT_HOUR, CREDIT_MINUTE);

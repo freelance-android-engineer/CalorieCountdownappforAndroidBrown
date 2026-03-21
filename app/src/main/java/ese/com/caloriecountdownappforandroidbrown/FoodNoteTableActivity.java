@@ -479,6 +479,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnCancel = view.findViewById(R.id.btnCancel);
         Button btnSave = view.findViewById(R.id.btnSave);
         Button btnAI = view.findViewById(R.id.btnAI);
+        Button btnAddToCloud = view.findViewById(R.id.btnAddToCloud);
 
         etFood.setText(food);
         etQuantity.setText(quantity);
@@ -557,6 +558,82 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
                     dialog.dismiss();
                 }
+            }
+        });
+
+        // Add to Cloud button - adds the note as a new food/drink item to the backend
+        btnAddToCloud.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String foodName = etFood.getText().toString().trim();
+                String quantityStr = etQuantity.getText().toString().trim();
+                String caloriesStr = etCalories.getText().toString().trim();
+
+                if (foodName.isEmpty()) {
+                    Toast.makeText(FoodNoteTableActivity.this, "Please enter a food/drink name first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (caloriesStr.isEmpty()) {
+                    Toast.makeText(FoodNoteTableActivity.this, "Please enter or estimate calories before adding to cloud", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // First use AI to get full nutrition data, then check for duplicates and add
+                android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(FoodNoteTableActivity.this);
+                progressDialog.setMessage("Fetching nutrition data for \"" + foodName + "\"...");
+                progressDialog.setCancelable(false);
+                progressDialog.show();
+
+                GeminiApiService.INSTANCE.fetchNutritionData(FoodNoteTableActivity.this, foodName,
+                    foodItem -> {
+                        progressDialog.dismiss();
+
+                        // Override calories with the user's value from the note
+                        try {
+                            float userCalories = Float.parseFloat(caloriesStr);
+                            foodItem.Set_calories_per_100g(userCalories);
+                            foodItem.Set_calorie_value((int) userCalories);
+                        } catch (NumberFormatException e) {
+                            // keep AI-estimated value
+                        }
+
+                        // Check local DB for duplicate
+                        Food_Item_CIF4 existing = databaseHelper.getFoodItemByExactName(foodName);
+                        if (existing != null) {
+                            // Duplicate found - ask user
+                            new AlertDialog.Builder(FoodNoteTableActivity.this)
+                                .setTitle("Duplicate Found")
+                                .setMessage("\"" + foodName + "\" already exists in the database.\n\n"
+                                    + "Existing: " + (int) existing.Get_calories_per_100g() + " cal/100g\n"
+                                    + "New: " + (int) foodItem.Get_calories_per_100g() + " cal/100g\n\n"
+                                    + "What would you like to do?")
+                                .setPositiveButton("Overwrite", (dialogInterface, which) -> {
+                                    databaseHelper.deleteFoodItemByName(foodName);
+                                    databaseHelper.Insert_Food_Item_Row(foodItem);
+                                    addFoodItemToBackendCloud(foodItem, quantityStr);
+                                    Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" overwritten and synced to cloud", Toast.LENGTH_SHORT).show();
+                                    dialogInterface.dismiss();
+                                })
+                                .setNegativeButton("Keep Existing", (dialogInterface, which) -> {
+                                    Toast.makeText(FoodNoteTableActivity.this, "Kept existing entry for \"" + foodName + "\"", Toast.LENGTH_SHORT).show();
+                                    dialogInterface.dismiss();
+                                })
+                                .show();
+                        } else {
+                            // No duplicate - insert directly
+                            databaseHelper.Insert_Food_Item_Row(foodItem);
+                            addFoodItemToBackendCloud(foodItem, quantityStr);
+                            Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" added to cloud database", Toast.LENGTH_SHORT).show();
+                        }
+                        return kotlin.Unit.INSTANCE;
+                    },
+                    error -> {
+                        progressDialog.dismiss();
+                        android.util.Log.e("AddToCloud", "Failed to fetch nutrition data: " + error);
+                        Toast.makeText(FoodNoteTableActivity.this, "Failed to fetch nutrition data. Please try again.", Toast.LENGTH_LONG).show();
+                        return kotlin.Unit.INSTANCE;
+                    }
+                );
             }
         });
 
@@ -652,6 +729,39 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(FoodNoteTableActivity.this,
                         "Server sync failed - will retry later.", Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void addFoodItemToBackendCloud(Food_Item_CIF4 foodItem, String quantity) {
+        Map<String, Object> foodData = new HashMap<>();
+        foodData.put("food_item_name", foodItem.Get_food_item_name());
+        foodData.put("calories_per_100g", (double) foodItem.Get_calories_per_100g());
+        foodData.put("fat_per_100g", (double) foodItem.Get_fat_per_100g());
+        foodData.put("saturated_fat", (double) foodItem.Get_saturated_fat());
+        foodData.put("trans_fat", (double) foodItem.Get_trans_fat());
+        foodData.put("protein_per_100g", (double) foodItem.Get_protein_per_100g());
+        foodData.put("carbs_per_100g", (double) foodItem.Get_carbs_per_100g());
+        foodData.put("sugar_per_100g", (double) foodItem.Get_sugar_per_100g());
+        foodData.put("salt_per_100g", (double) foodItem.Get_salt_per_100g());
+        foodData.put("fiber", (double) foodItem.Get_fiber());
+        foodData.put("quantity", quantity.isEmpty() ? "100g" : quantity);
+
+        SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(this);
+        apiClient.addFoodItem(foodData, new ApiResultCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    android.util.Log.d("AddToCloud", "Food item synced to cloud: " + foodItem.Get_food_item_name());
+                });
+            }
+
+            @Override
+            public void onFailure() {
+                runOnUiThread(() -> {
+                    Toast.makeText(FoodNoteTableActivity.this,
+                        "Cloud sync failed for \"" + foodItem.Get_food_item_name() + "\" - saved locally.", Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -1397,9 +1507,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     /**
      * Check on activity open and show mandatory date picker if needed.
      * Dialog shows when:
-     * 1. After 4 PM and user hasn't selected a date for the current period
+     * 1. After 3:30 PM and user hasn't selected a date for the current period
      * 2. First-time user (no date ever selected)
-     * Before 4 PM, user can continue with the previously selected date.
+     * Before 3:30 PM, user can continue with the previously selected date.
      */
     private void checkAndShowMandatoryDatePicker() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -1424,9 +1534,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         boolean needsNewSelection = canSelectDateToday();
         android.util.Log.d("DATE_PICKER", "Needs new selection: " + needsNewSelection);
 
-        // Only show automatic dialog if it's after 4 PM (16:00)
-        if (currentHour >= 16) {
-            android.util.Log.d("DATE_PICKER", "After 4 PM");
+        // Only show automatic dialog if it's after 3:30 PM (15:30)
+        int currentMinute = now.get(Calendar.MINUTE);
+        if (currentHour > 15 || (currentHour == 15 && currentMinute >= 30)) {
+            android.util.Log.d("DATE_PICKER", "After 3:30 PM");
             if (needsNewSelection) {
                 // User needs to select a date - show mandatory dialog
                 android.util.Log.d("DATE_PICKER", "User can select a new date - showing dialog");
@@ -1437,8 +1548,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 updateDateRangeTitle(lastSelectedDate);
             }
         } else {
-            // Before 4 PM, just show last selected date
-            android.util.Log.d("DATE_PICKER", "Before 4 PM - showing last selected date");
+            // Before 3:30 PM, just show last selected date
+            android.util.Log.d("DATE_PICKER", "Before 3:30 PM - showing last selected date");
             updateDateRangeTitle(lastSelectedDate);
         }
     }
@@ -1505,12 +1616,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     /**
      * Check if the user can select a date today.
-     * The user can select a date once per day. After 4 PM the next day, they can select again.
+     * The user can select a date once per day. After 3:30 PM the next day, they can select again.
      *
      * Logic:
      * 1. Get current time
-     * 2. Calculate the "reset boundary" - today at 4 PM (16:00)
-     * 3. If current time < 4 PM, use yesterday at 4 PM as the boundary
+     * 2. Calculate the "reset boundary" - today at 3:30 PM (15:30)
+     * 3. If current time < 3:30 PM, use yesterday at 3:30 PM as the boundary
      * 4. Check if last selection was before this boundary
      *
      * @return true if the user can select a date, false otherwise
@@ -1532,16 +1643,16 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
         android.util.Log.d("DATE_PICKER", "Current time: " + sdf.format(now.getTime()));
 
-        // Calculate the 4 PM (16:00) boundary
+        // Calculate the 3:30 PM (15:30) boundary
         Calendar resetBoundary = Calendar.getInstance();
-        resetBoundary.set(Calendar.HOUR_OF_DAY, 16);
-        resetBoundary.set(Calendar.MINUTE, 0);
+        resetBoundary.set(Calendar.HOUR_OF_DAY, 15);
+        resetBoundary.set(Calendar.MINUTE, 30);
         resetBoundary.set(Calendar.SECOND, 0);
         resetBoundary.set(Calendar.MILLISECOND, 0);
 
-        // If current time is before 4 PM today, use yesterday's 4 PM as boundary
+        // If current time is before 3:30 PM today, use yesterday's 3:30 PM as boundary
         if (now.before(resetBoundary)) {
-            android.util.Log.d("DATE_PICKER", "Before 4 PM - adjusting boundary to yesterday");
+            android.util.Log.d("DATE_PICKER", "Before 3:30 PM - adjusting boundary to yesterday");
             resetBoundary.add(Calendar.DAY_OF_MONTH, -1);
         }
 
@@ -1572,8 +1683,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     /**
      * Update the date range title based on the selected date
      *
-     * Format: "Food Notes between 4pm [previous_day] and 4pm [selected_day]"
-     * Example: User selects "10 OCT 25" → "Food Notes between 4pm 9 OCT and 4pm 10 OCT 25"
+     * Format: "Food Notes between 3:30pm [previous_day] and 3:30pm [selected_day]"
+     * Example: User selects "10 OCT 25" → "Food Notes between 3:30pm 9 OCT and 3:30pm 10 OCT 25"
      *
      * Also loads the memo associated with the new title.
      *
@@ -1598,7 +1709,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 String selectedDayStr = outputFormat.format(selectedDate) + " " + new SimpleDateFormat("yy", Locale.getDefault()).format(selectedDate);
 
                 // Build the title
-                String title = "Food Notes between 4pm " + previousDayStr + " and 4pm " + selectedDayStr;
+                String title = "Food Notes between 3:30pm " + previousDayStr + " and 3:30pm " + selectedDayStr;
                 tvDateRangeTitle.setText(title);
 
                 android.util.Log.d("DATE_PICKER", "Updated title: " + title);

@@ -1947,6 +1947,59 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         ;
     }
 
+    /**
+     * Check if a food item with the given name already exists in the food_items table.
+     * Uses case-insensitive exact match.
+     * @return the existing Food_Item_CIF4 if found, null otherwise
+     */
+    public Food_Item_CIF4 getFoodItemByExactName(String foodName) {
+        if (foodName == null || foodName.trim().isEmpty()) return null;
+
+        Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT * FROM " + TABLE_FOODITEMS + " WHERE LOWER(" + COLUMN_FOODITEMS_FOOD_ITEM_NAME + ") = LOWER(?)",
+                new String[]{foodName.trim()});
+
+        Food_Item_CIF4 item = null;
+        if (cursor.moveToFirst()) {
+            item = new Food_Item_CIF4();
+            int nameIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_FOOD_ITEM_NAME);
+            int calIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_CALORIE_PER_100G);
+            int fatIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_FAT_PER_100G);
+            int proteinIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_PROTEIN_PER_100G);
+            int carbsIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_CARBS_PER_100G);
+            int sugarIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_SUGAR_PER_100G);
+            int saltIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_SALT_PER_100G);
+            int fiberIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_FIBER);
+            int satFatIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_SATURATED_FAT);
+            int transFatIdx = cursor.getColumnIndex(COLUMN_FOODITEMS_TRANS_FAT);
+
+            if (nameIdx >= 0) item.Set_food_item_name(cursor.getString(nameIdx));
+            if (calIdx >= 0) item.Set_calories_per_100g(cursor.getFloat(calIdx));
+            if (fatIdx >= 0) item.Set_fat_per_100g(cursor.getFloat(fatIdx));
+            if (proteinIdx >= 0) item.Set_protein_per_100g(cursor.getFloat(proteinIdx));
+            if (carbsIdx >= 0) item.Set_carbs_per_100g(cursor.getFloat(carbsIdx));
+            if (sugarIdx >= 0) item.Set_sugar_per_100g(cursor.getFloat(sugarIdx));
+            if (saltIdx >= 0) item.Set_salt_per_100g(cursor.getFloat(saltIdx));
+            if (fiberIdx >= 0) item.Set_fiber(cursor.getFloat(fiberIdx));
+            if (satFatIdx >= 0) item.Set_saturated_fat(cursor.getFloat(satFatIdx));
+            if (transFatIdx >= 0) item.Set_trans_fat(cursor.getFloat(transFatIdx));
+        }
+        cursor.close();
+        return item;
+    }
+
+    /**
+     * Delete a food item by exact name match (case-insensitive).
+     * @return number of rows deleted
+     */
+    public int deleteFoodItemByName(String foodName) {
+        if (foodName == null || foodName.trim().isEmpty()) return 0;
+        return getWritableDatabase().delete(
+                TABLE_FOODITEMS,
+                "LOWER(" + COLUMN_FOODITEMS_FOOD_ITEM_NAME + ") = LOWER(?)",
+                new String[]{foodName.trim()});
+    }
+
     public void CreateAccountTables(HealthProfileCiF3 OUT) {
         //ENGLISH ~> IDO (New Menu/Submenuitem from Functional Model?)~> Algorithm Engineering (Building Blocks&)~> Android ~>(Phone)*~>(re)Load ~> www.ese-edet.eu End&Repeat, (apk Dev Console progress Bar on Track!)(Remember Weekly Friday Lamppost for www) (Read same thing same spot for revolve 2 happen.)Repeat Constantly on Track till <*August 16,16 Fast Track> Opening Soon exe  www.ee-edet.eu (re)Load -> www.ese-edet.eu.
         // *Test Menu/Sub Menuitem for (Green) (CFF and Value QVM). up and down train 2 www fronts beleive I can do 100 by <> not going to change in fut

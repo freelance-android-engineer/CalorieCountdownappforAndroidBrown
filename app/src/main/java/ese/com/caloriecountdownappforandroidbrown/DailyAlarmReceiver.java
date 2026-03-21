@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat;
 
 /**
  * BroadcastReceiver that handles the two daily alarms:
- * - 4:00 PM (Credit Day End) - Prompts user to generate Step Challenge
+ * - 3:30 PM (Credit Day End) - Prompts user to generate Step Challenge
  * - 9:59 PM (Debit Day End) - Prompts user to update debit activity (steps/exercise)
  */
 public class DailyAlarmReceiver extends BroadcastReceiver {
@@ -52,14 +52,14 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
     }
 
     /**
-     * 4:00 PM Notification - Credit Day End
+     * 3:30 PM Notification - Credit Day End
      * Tells user the day is up and they should generate their Step Challenge
      */
     private void showCreditDayEndNotification(Context context) {
-        Log.d(TAG, "Showing Credit Day End notification (4:00 PM)");
+        Log.d(TAG, "Showing Credit Day End notification (3:30 PM)");
 
         createNotificationChannel(context, CHANNEL_ID_CREDIT,
-                "Credit Day End", "Daily 4 PM reminder to generate Step Challenge");
+                "Credit Day End", "Daily 3:30 PM reminder to generate Step Challenge");
 
         // Open main activity when tapped
         Intent openIntent = new Intent(context, CCD_GUI_CD_CIF1.class);
@@ -69,7 +69,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_CREDIT)
                 .setSmallIcon(R.drawable.ic_launcher2)
-                .setContentTitle("Credit Day End - 4:00 PM")
+                .setContentTitle("Credit Day End - 3:30 PM")
                 .setContentText("Your day is up! Generate your Step Challenge now.")
                 .setStyle(new NotificationCompat.BigTextStyle()
                         .bigText("Your Credit Day has ended. Check your remaining calories and generate your Steps or Physical Activity Challenge to countdown your balance by 9:59 PM tonight."))

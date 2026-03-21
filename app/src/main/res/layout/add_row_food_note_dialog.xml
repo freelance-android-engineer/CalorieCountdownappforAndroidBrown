@@ -79,20 +79,36 @@
         <!-- Cancel Button -->
         <Button
             android:id="@+id/btnCancel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Cancel" />
+            android:text="Cancel"
+            android:textSize="12sp" />
 
         <!-- AI Button -->
         <Button
             android:id="@+id/btnAI"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
             android:layout_weight="1"
-            android:text="AI" />
+            android:text="AI"
+            android:textSize="12sp" />
+
+        <!-- Add to Cloud Button -->
+        <Button
+            android:id="@+id/btnAddToCloud"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.5"
+            android:text="Add to Cloud"
+            android:textSize="11sp" />
 
         <!-- Save Button -->
         <Button
@@ -100,7 +116,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Save" />
+            android:text="Save"
+            android:textSize="12sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
