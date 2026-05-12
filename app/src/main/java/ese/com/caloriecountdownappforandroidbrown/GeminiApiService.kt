@@ -149,6 +149,7 @@ Salt:
         partsArray.put(textObject)
 
         val contentObject = JSONObject()
+        contentObject.put("role", "user")
         contentObject.put("parts", partsArray)
         contentsArray.put(contentObject)
 

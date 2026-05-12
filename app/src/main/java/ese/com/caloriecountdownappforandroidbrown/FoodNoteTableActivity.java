@@ -670,19 +670,22 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             progressDialog.dismiss();
                             if (result != null && !result.trim().isEmpty()) {
-                                // Extract numeric value from response
-                                String cleaned = result.trim().replaceAll("[^0-9.]", "");
-                                if (!cleaned.isEmpty()) {
+                                // Extract the first number from AI response safely
+                                java.util.regex.Matcher matcher = java.util.regex.Pattern
+                                        .compile("\\d+(\\.\\d+)?")
+                                        .matcher(result.trim());
+                                if (matcher.find()) {
                                     try {
-                                        // Round to whole number
-                                        int calorieValue = (int) Math.round(Double.parseDouble(cleaned));
+                                        int calorieValue = (int) Math.round(Double.parseDouble(matcher.group()));
                                         etCalories.setText(String.valueOf(calorieValue));
                                         Toast.makeText(FoodNoteTableActivity.this, "AI estimated: " + calorieValue + " calories", Toast.LENGTH_SHORT).show();
                                     } catch (NumberFormatException e) {
-                                        etCalories.setText(result.trim());
-                                        Toast.makeText(FoodNoteTableActivity.this, "AI response: " + result.trim(), Toast.LENGTH_SHORT).show();
+                                        android.util.Log.e("FoodNoteAI", "Number parse failed for: " + result.trim());
+                                        etCalories.setText("");
+                                        Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
                                     }
                                 } else {
+                                    android.util.Log.w("FoodNoteAI", "No number found in AI response: " + result.trim());
                                     Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
@@ -937,16 +940,32 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             btnOk.setOnClickListener(v1 -> dialog.dismiss());
         }
 
-        // Credit button - adds calories to existing balance in CCD_GUI_CD_CIF1
+        // Credit button - adds calories to existing Countdown Balance in CCD_GUI_CD_CIF1
         Button btnCredit = dialog.findViewById(R.id.btnCredit);
         if (btnCredit != null) {
             btnCredit.setOnClickListener(v1 -> {
-                // Add calories to existing balance instead of overwriting
+                android.util.Log.d("FoodNoteCredit", "[btnCredit] Attempting to add " + totalCalories + " calories to balance");
+
+                if (totalCalories <= 0) {
+                    // Root cause fix: guard against zero/negative credit which would be misleading
+                    Toast.makeText(FoodNoteTableActivity.this, "No calories to add (total is " + totalCalories + ")", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                    return;
+                }
+
                 if (CCD_GUI_CD_CIF1.instance != null) {
+                    // Root cause fix: AddToBalance now has full NFE/null safety and logs internally.
+                    // Toast is shown here (not inside AddToBalance) to keep UI feedback clear.
                     CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
-                    Toast.makeText(FoodNoteTableActivity.this, "Added " + totalCalories + " calories to balance", Toast.LENGTH_SHORT).show();
+                    android.util.Log.d("FoodNoteCredit", "[btnCredit] AddToBalance called for " + totalCalories + " calories");
+                    Toast.makeText(FoodNoteTableActivity.this,
+                            "Added " + totalCalories + " calories to Countdown Balance", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(FoodNoteTableActivity.this, "Unable to update balance - main activity not available", Toast.LENGTH_SHORT).show();
+                    // Root cause fix: CCD_GUI_CD_CIF1.instance null means main activity is not in memory.
+                    // Log so developer can diagnose process/activity lifecycle issues.
+                    android.util.Log.e("FoodNoteCredit", "[btnCredit] CCD_GUI_CD_CIF1.instance is null — main activity not available");
+                    Toast.makeText(FoodNoteTableActivity.this,
+                            "Cannot update balance: please return to the main screen first, then try again.", Toast.LENGTH_LONG).show();
                 }
                 dialog.dismiss();
             });
@@ -1019,7 +1038,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
             CheckBox checkBox = (CheckBox) row.getChildAt(0);
             TextView foodText = (TextView) row.getChildAt(2);     // food column
-            TextView caloriesText = (TextView) row.getChildAt(3); // quantity column
+            TextView caloriesText = (TextView) row.getChildAt(3); // calories column
             TextView quantityText = (TextView) row.getChildAt(4); // quantity column
 
 
@@ -1154,10 +1173,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void showCaloriesResult(String response) {
         String message;
 
-        if (response != null && response.toLowerCase().contains("calorie")) {
+        if (response != null && !response.trim().isEmpty()) {
             message = response.trim();
         } else {
-            message = "Something went wrong. Please try again.";
+            message = "AI did not return a result. Please try again.";
         }
 
         new AlertDialog.Builder(this)
@@ -1242,32 +1261,68 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     /**
      * Opens the nearest/closest AI app available on the device.
-     * Priority order: ChatGPT app -> Gemini app -> Claude app -> Browser fallback
+     * Priority order: ChatGPT -> Gemini -> Claude -> Copilot -> Google Assistant -> Browser fallback
      */
     private void openNearestAiApp() {
         // List of AI app package names in priority order
         String[][] aiApps = {
-            {"com.openai.chatgpt", "ChatGPT"},           // ChatGPT
-            {"com.google.android.apps.bard", "Gemini"}, // Google Gemini
-            {"com.anthropic.claude", "Claude"},          // Claude
-            {"com.microsoft.copilot", "Copilot"}         // Microsoft Copilot
+            {"com.openai.chatgpt", "ChatGPT"},
+            {"com.google.android.apps.bard", "Gemini"},
+            {"com.anthropic.claude", "Claude"},
+            {"com.microsoft.copilot", "Copilot"}
         };
 
         // Try to open each AI app in order
         for (String[] app : aiApps) {
             String packageName = app[0];
             String appName = app[1];
-
-            Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
-            if (launchIntent != null) {
-                Toast.makeText(this, "Opening " + appName + "...", Toast.LENGTH_SHORT).show();
-                startActivity(launchIntent);
-                return;
+            try {
+                Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
+                if (launchIntent != null) {
+                    android.util.Log.d("NearestAI", "Opening " + appName);
+                    Toast.makeText(this, "Opening " + appName + "...", Toast.LENGTH_SHORT).show();
+                    startActivity(launchIntent);
+                    return;
+                }
+            } catch (Exception e) {
+                android.util.Log.w("NearestAI", "Could not query " + packageName + ": " + e.getMessage());
             }
         }
 
-        // No AI app installed - show dialog to open in browser or install
+        // No AI app found — try Google Assistant as fallback
+        android.util.Log.d("NearestAI", "No AI app found, trying Google Assistant");
+        if (tryOpenGoogleAssistant()) return;
+
+        // Google Assistant also not available — show browser/install dialog
         showAiAppNotFoundDialog();
+    }
+
+    /**
+     * Attempts to launch Google Assistant.
+     * Returns true if successfully launched, false otherwise.
+     */
+    private boolean tryOpenGoogleAssistant() {
+        // Primary: ACTION_ASSIST (standard assistant intent)
+        Intent assistIntent = new Intent(Intent.ACTION_ASSIST);
+        if (assistIntent.resolveActivity(getPackageManager()) != null) {
+            android.util.Log.d("NearestAI", "Launching Google Assistant via ACTION_ASSIST");
+            Toast.makeText(this, "Opening Google Assistant...", Toast.LENGTH_SHORT).show();
+            startActivity(assistIntent);
+            return true;
+        }
+
+        // Fallback: ACTION_VOICE_COMMAND
+        Intent voiceIntent = new Intent(Intent.ACTION_VOICE_COMMAND);
+        voiceIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (voiceIntent.resolveActivity(getPackageManager()) != null) {
+            android.util.Log.d("NearestAI", "Launching Google Assistant via ACTION_VOICE_COMMAND");
+            Toast.makeText(this, "Opening Google Assistant...", Toast.LENGTH_SHORT).show();
+            startActivity(voiceIntent);
+            return true;
+        }
+
+        android.util.Log.w("NearestAI", "Google Assistant not available on this device");
+        return false;
     }
 
     /**

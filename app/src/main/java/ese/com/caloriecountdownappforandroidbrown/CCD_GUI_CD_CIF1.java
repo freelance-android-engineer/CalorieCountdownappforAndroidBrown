@@ -219,16 +219,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         try {
             MIF4_Data_Model_Adapter model_adapter = new MIF4_Data_Model_Adapter(this);
             String storedBalance = model_adapter.RetrieveBalance();
-            if (storedBalance != null && !storedBalance.isEmpty()) {
-                mBalance_text = storedBalance;
-                final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-                if (countdownbalance != null) {
-                    countdownbalance.setText(mBalance_text);
-                    android.util.Log.d("Balance Refresh", "Balance refreshed to: " + mBalance_text);
-                }
+            android.util.Log.d("BalanceRefresh", "[refreshBalanceFromStorage] Raw DB balance: " + storedBalance);
+            // Root cause fix: treat null/empty balance as "0" to prevent downstream NFE
+            if (storedBalance == null || storedBalance.trim().isEmpty()) {
+                storedBalance = "0";
+                android.util.Log.w("BalanceRefresh", "[refreshBalanceFromStorage] DB balance null/empty, defaulting to 0");
+            }
+            mBalance_text = storedBalance;
+            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+            if (countdownbalance != null) {
+                countdownbalance.setText(mBalance_text);
+                android.util.Log.d("BalanceRefresh", "[refreshBalanceFromStorage] UI updated to: " + mBalance_text);
+            } else {
+                android.util.Log.e("BalanceRefresh", "[refreshBalanceFromStorage] countdownbalance TextView is null");
             }
         } catch (Exception e) {
-            android.util.Log.e("Balance Refresh", "Error refreshing balance: " + e.getMessage());
+            android.util.Log.e("BalanceRefresh", "[refreshBalanceFromStorage] Exception: " + e.getMessage(), e);
         }
     }
 
@@ -741,13 +747,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     protected void onActivityResult(int requestcode, int resultcode, Intent data) {
         super.onActivityResult(requestcode, resultcode, data);
 
-        try {
-            if (data == null) {
-                Log.d(TAG, "Sorry Mate, Intent is null Baby!");
+        android.util.Log.d("ActivityResult", "[onActivityResult] requestcode=" + requestcode + ", resultcode=" + resultcode + ", data=" + (data != null ? "present" : "null"));
+
+        // Root cause fix: null data check moved OUTSIDE try-catch so it cannot be silently swallowed.
+        // The original empty catch (Exception c) {} was swallowing the return statement's effect
+        // when any unexpected exception occurred, allowing null data to reach code below.
+        if (data == null) {
+            Log.w(TAG, "[onActivityResult] Intent data is null for requestcode=" + requestcode);
+            // Allow weight loss activity to still process (it has its own null handling)
+            if (requestcode != REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY) {
                 return;
             }
-        } catch (Exception c) {
-
         }
 
         if (requestcode == REQUEST_CODE_START_WEIGHT_LOSS_ACTIVITY) {
@@ -831,83 +841,108 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
 
         if (requestcode == REQUEST_CODE_GET_FOOD_ITEM) {
-
+            // Root cause fix: broader exception catching (was only NullPointerException,
+            // missing NumberFormatException thrown by StringToInt on empty balance TextView)
             try {
+                android.util.Log.d("CreditFlow", "[CREDIT] Starting credit flow");
 
-                android.util.Log.d("Credit_Value, Pos 1", "We are in Start of Request Food Diary");
-
-
-                int CreditResult = data.getIntExtra(Food_Diary_Sheet_CIF3.TOTAL_CREDIT_VALUE, 1);
-
-                android.util.Log.d("Credit_Value, Pos 2", "We are in Start of Request Food Diary");
-
+                // Root cause fix: default to 0 (not 1) so empty result doesn't silently add 1 point
+                int CreditResult = data.getIntExtra(Food_Diary_Sheet_CIF3.TOTAL_CREDIT_VALUE, 0);
                 String Summation = data.getStringExtra(Food_Diary_Sheet_CIF3.SUMMATION_TEXT);
-                //How it for Countdown Screen, get App ready ready for use, might have to look in Intent
-
-                android.util.Log.d("Credit_Value, Pos 3", "We are in Start of Request Food Diary");
+                android.util.Log.d("CreditFlow", "[CREDIT] creditValue=" + CreditResult + ", summation=" + Summation);
 
                 mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
                 mSummation.Set_mCurrentBalance(Get_currentBalance());
                 Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
                 display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
 
-                android.util.Log.d("Credit_Value, Pos 4", "We are in Start of Request Food Diary");
-
                 long res_of_balance_store = Record_Food_Journal(mSummation.Get_mFoodItems());
+                android.util.Log.d("CreditFlow", "[CREDIT] Record_Food_Journal result=" + res_of_balance_store);
 
-                String display_string = "This are the results of storing Balance to SQLite : " + new RoundingCIF13().LongToString(res_of_balance_store);
-
+                String display_string = "Balance stored to DB: " + new RoundingCIF13().LongToString(res_of_balance_store);
                 display_dialog_cif11.Showing(display_string);
 
-                android.util.Log.d("Credit_Value, Pos 5", "We are in Start of Request Food Diary");
-
-                Log.d("1st RecordJ Fi name", mSummation.Get_mFoodItems().get(0).Get_food_item_name());
-
-                android.util.Log.d("Credit_Value, Pos 6", "We are in Start of Request Food Diary");
+                // Root cause fix: mSummation.Get_mFoodItems() may be null/empty — guard before get(0)
+                // Original code: mSummation.Get_mFoodItems().get(0) throws IndexOutOfBoundsException if empty
+                ArrayList<Food_Item_CIF4> foodItems = mSummation.Get_mFoodItems();
+                if (foodItems != null && !foodItems.isEmpty()) {
+                    android.util.Log.d("CreditFlow", "[CREDIT] First food item: " + foodItems.get(0).Get_food_item_name());
+                } else {
+                    android.util.Log.w("CreditFlow", "[CREDIT] Food items list is null or empty");
+                }
 
                 display_dialog_cif11.SummaryBoxShowing(mSummation);
-                android.util.Log.d("Credit_Value, Pos 7", "We are in Start of Request Food Diary");
                 mSummation.reset();
-                android.util.Log.d("Credit_Value, Pos 8", "We are in Start of Request Food Diary");
-                //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
-                Countup(CreditResult);
-                android.util.Log.d("Credit_Value, Pos 9", "We are in Start of Request Food Diary");
-                Refresh();
-                android.util.Log.d("Credit_Value, Pos 10", "We are in Start of Request Food Diary");
 
+                android.util.Log.d("CreditFlow", "[CREDIT] Calling Countup with creditValue=" + CreditResult);
+                Countup(CreditResult);
+                android.util.Log.d("CreditFlow", "[CREDIT] Countup completed, refreshing UI");
+                Refresh();
 
                 if (isItDayEnd()) {
                     New_Day_2();
                 }
+                android.util.Log.d("CreditFlow", "[CREDIT] Credit flow completed successfully");
             } catch (NullPointerException e) {
-                Log.d("Countdown", "Null Pointer Sent Back" + e.toString());
+                // Root cause: SummaryBox or food items null — log full trace for diagnostics
+                android.util.Log.e("CreditFlow", "[CREDIT] NPE: " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Credit update failed (null data). Please try again.", android.widget.Toast.LENGTH_LONG).show();
+            } catch (NumberFormatException e) {
+                // Root cause: balance TextView was empty/null → StringToInt("") throws NFE
+                android.util.Log.e("CreditFlow", "[CREDIT] NFE (likely empty balance): " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Credit update failed (balance format error). Please check your countdown balance.", android.widget.Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                android.util.Log.e("CreditFlow", "[CREDIT] Unexpected exception: " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Credit update failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
             }
         }
 
 
         if (requestcode == REQUEST_CODE_START_DEBIT_ACTIVITY) {
+            // Root cause fix: entire debit block wrapped in try-catch since no exception handling existed.
+            // Any exception here (e.g. NFE from StringToInt on empty balance, NPE from null mSummation)
+            // would previously crash the app with no user feedback.
+            try {
+                android.util.Log.d("DebitFlow", "[DEBIT] Starting debit flow");
 
-            // Capture the balance BEFORE the debit is applied (for Countdown Report)
-            int previousBalance = Get_currentBalanceInt();
+                // Capture balance BEFORE debit for Countdown Report comparison
+                int previousBalance = Get_currentBalanceInt();
+                android.util.Log.d("DebitFlow", "[DEBIT] previousBalance=" + previousBalance);
 
-            int DebitResult = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 1);
-            //String Summation = data.getStringExtra(Food_Diary_Sheet_CIF3.SUMMATION_TEXT);
-            //How it for Countdown Screen, get App ready ready for use, might have to look in Intent
-            mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
-            mSummation.Set_mCurrentBalance(Get_currentBalance());
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            display_dialog_cif11.SummaryBoxShowingDebit(mSummation);
+                // Root cause fix: default to 0 (not 1) so empty result doesn't silently deduct 1 point
+                int DebitResult = data.getIntExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, 0);
+                android.util.Log.d("DebitFlow", "[DEBIT] debitValue=" + DebitResult);
 
-            //Update button in Food_Diary_Sheet_CIF3 Activity creates a return event, them this method called
-            Countdown(DebitResult);
-            Store_Dayend(instance.Get_currentBalanceInt());
-            Store_Dayend2();
-            Refresh();
+                mSummation = SummaryBoxCIF12.get(CCD_GUI_CD_CIF1.this);
+                mSummation.Set_mCurrentBalance(Get_currentBalance());
+                Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                display_dialog_cif11.SummaryBoxShowingDebit(mSummation);
 
-            // Mark debit update as performed and show Countdown Report
-            markDebitUpdatePerformed();
-            showCountdownReport(previousBalance, Get_currentBalanceInt());
+                android.util.Log.d("DebitFlow", "[DEBIT] Calling Countdown with debitValue=" + DebitResult);
+                Countdown(DebitResult);
+                android.util.Log.d("DebitFlow", "[DEBIT] Countdown completed");
+
+                Store_Dayend(instance.Get_currentBalanceInt());
+                Store_Dayend2();
+                Refresh();
+
+                markDebitUpdatePerformed();
+                int newBalance = Get_currentBalanceInt();
+                android.util.Log.d("DebitFlow", "[DEBIT] Debit complete. prev=" + previousBalance + ", new=" + newBalance);
+                showCountdownReport(previousBalance, newBalance);
+                android.util.Log.d("DebitFlow", "[DEBIT] Debit flow completed successfully");
+            } catch (NumberFormatException e) {
+                // Root cause: balance TextView empty/null → StringToInt("") → NFE
+                android.util.Log.e("DebitFlow", "[DEBIT] NFE (likely empty balance): " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Debit update failed (balance format error). Please check your countdown balance.", android.widget.Toast.LENGTH_LONG).show();
+            } catch (NullPointerException e) {
+                android.util.Log.e("DebitFlow", "[DEBIT] NPE: " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Debit update failed (null data). Please try again.", android.widget.Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                android.util.Log.e("DebitFlow", "[DEBIT] Unexpected exception: " + e.getMessage(), e);
+                android.widget.Toast.makeText(this, "Debit update failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            }
         }
 
         // Handle Journal Activity result for Accrual transfers
@@ -1100,26 +1135,48 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     public void Countup(int credit) {
-        android.util.Log.d("Countdown", "Consider Countdown Updated Token");
+        android.util.Log.d("CreditCalc", "[Countup] called with credit=" + credit);
+        try {
+            // Check if it's after 4:00 PM (Credit Day End)
+            Calendar now = Calendar.getInstance();
+            int currentHour = now.get(Calendar.HOUR_OF_DAY);
 
-        // Check if it's after 4:00 PM (Credit Day End)
-        Calendar now = Calendar.getInstance();
-        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+            if (currentHour >= 16) {
+                android.util.Log.d("CreditCalc", "[Countup] After 4pm — routing credit to next day, credit=" + credit);
+                routeCreditToNextDay(credit);
+                return;
+            }
 
-        if (currentHour >= 16) {
-            // After 4pm - route credit to next day's firstBrekkieBox
-            routeCreditToNextDay(credit);
-            android.util.Log.d("Countdown", "After 4pm - credit routed to next day's firstBrekkieBox: " + credit);
-            return;
+            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+            if (countdownbalance == null) {
+                android.util.Log.e("CreditCalc", "[Countup] countdownbalance TextView is null — cannot update UI");
+                return;
+            }
+
+            // Root cause fix: empty TextView causes Integer.parseInt("") → NFE in StringToInt
+            String CountdownFigure = countdownbalance.getText().toString().trim();
+            android.util.Log.d("CreditCalc", "[Countup] Balance before credit: '" + CountdownFigure + "'");
+            if (CountdownFigure.isEmpty()) {
+                CountdownFigure = "0";
+                android.util.Log.w("CreditCalc", "[Countup] Balance was empty, treating as 0");
+            }
+
+            int currentBalance = new RoundingCIF13().StringToInt(CountdownFigure);
+            int newBalance = currentBalance + credit;
+            android.util.Log.d("CreditCalc", "[Countup] currentBalance=" + currentBalance + ", credit=" + credit + ", newBalance=" + newBalance);
+
+            CountdownFigure = new RoundingCIF13().IntToString(newBalance);
+            countdownbalance.setText(CountdownFigure);
+            // Also update mBalance_text so it stays in sync
+            mBalance_text = CountdownFigure;
+            long storeResult = StoreCountdownBalance(CountdownFigure);
+            android.util.Log.d("CreditCalc", "[Countup] Balance stored, storeResult=" + storeResult + ", newBalanceText=" + CountdownFigure);
+            Kitty();
+        } catch (NumberFormatException e) {
+            android.util.Log.e("CreditCalc", "[Countup] NFE: " + e.getMessage(), e);
+        } catch (Exception e) {
+            android.util.Log.e("CreditCalc", "[Countup] Exception: " + e.getMessage(), e);
         }
-
-        final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        String CountdownFigure = countdownbalance.getText().toString();
-        CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) + credit);
-        countdownbalance.setText(CountdownFigure);
-        StoreCountdownBalance(CountdownFigure);
-        Kitty();
-
     }
 
     /**
@@ -1241,9 +1298,29 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     public long StoreCountdownBalance(String Balance) {
-        MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-        data_model_adapter.StoreDayEndBalance(Integer.parseInt(Balance) - 100);
-        return data_model_adapter.StoreBalance(Balance);
+        android.util.Log.d("BalanceStore", "[StoreCountdownBalance] Storing balance: '" + Balance + "'");
+        try {
+            // Root cause fix: Integer.parseInt(Balance) throws NFE if Balance is null, empty, or
+            // contains commas. Strip commas and guard against null/empty before parsing.
+            String cleanBalance = (Balance != null) ? Balance.replace(",", "").trim() : "0";
+            if (cleanBalance.isEmpty()) {
+                cleanBalance = "0";
+                android.util.Log.w("BalanceStore", "[StoreCountdownBalance] Balance was empty/null, defaulting to 0");
+            }
+            int balanceInt = Integer.parseInt(cleanBalance);
+            MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+            long dayEndResult = data_model_adapter.StoreDayEndBalance(balanceInt - 100);
+            long storeResult = data_model_adapter.StoreBalance(cleanBalance);
+            android.util.Log.d("BalanceStore", "[StoreCountdownBalance] stored balance=" + cleanBalance
+                    + ", dayEnd=" + (balanceInt - 100) + ", storeResult=" + storeResult + ", dayEndResult=" + dayEndResult);
+            return storeResult;
+        } catch (NumberFormatException e) {
+            android.util.Log.e("BalanceStore", "[StoreCountdownBalance] NFE parsing balance='" + Balance + "': " + e.getMessage(), e);
+            return -1;
+        } catch (Exception e) {
+            android.util.Log.e("BalanceStore", "[StoreCountdownBalance] Exception: " + e.getMessage(), e);
+            return -1;
+        }
     }
 
 
@@ -1401,6 +1478,16 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public static Context getAppContext() {
         return appContext;
+    }
+
+    /**
+     * Public method to refresh the countdown balance TextView from the database.
+     * Called by other activities (e.g. Debit_Activity_CiF003_fragment_box) after they
+     * directly write to the DB (e.g. Drop 100 Points, BMR deduction) so the UI updates
+     * immediately without waiting for onResume.
+     */
+    public void refreshBalanceDisplay() {
+        refreshBalanceFromStorage();
     }
 
 
@@ -1571,7 +1658,23 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public int Get_currentBalanceInt() {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        return new RoundingCIF13().StringToInt(countdownbalance.getText().toString());
+        if (countdownbalance == null) {
+            android.util.Log.e("BalanceRead", "[Get_currentBalanceInt] countdownbalance TextView is null, returning 0");
+            return 0;
+        }
+        String balanceStr = countdownbalance.getText().toString().trim();
+        // Root cause fix: empty TextView causes Integer.parseInt("") → NFE in StringToInt.
+        // Guard here so all callers (Countdown, Countup, AddToBalance, etc.) never receive NFE.
+        if (balanceStr.isEmpty()) {
+            android.util.Log.w("BalanceRead", "[Get_currentBalanceInt] balance TextView is empty, returning 0");
+            return 0;
+        }
+        try {
+            return new RoundingCIF13().StringToInt(balanceStr);
+        } catch (NumberFormatException e) {
+            android.util.Log.e("BalanceRead", "[Get_currentBalanceInt] NFE parsing '" + balanceStr + "': " + e.getMessage());
+            return 0;
+        }
     }
 
     public String Get_currentBalance() {
@@ -1580,16 +1683,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     private void Set_currentBalance() {
-
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         MIF4_Data_Model_Adapter model_adapter = new MIF4_Data_Model_Adapter(this);
 
         mBalance_text = model_adapter.RetrieveBalance();
+        android.util.Log.d("BalanceLoad", "[Set_currentBalance] Raw DB balance: " + mBalance_text);
 
-        android.util.Log.d("Set Balance = ", mBalance_text);
+        // Root cause fix: null/empty balance from DB causes downstream NFE in Countdown/Countup
+        // when code tries to parse the empty TextView string via StringToInt("").
+        if (mBalance_text == null || mBalance_text.trim().isEmpty()) {
+            mBalance_text = "0";
+            android.util.Log.w("BalanceLoad", "[Set_currentBalance] DB balance null/empty, defaulting to 0");
+        }
+
         model_adapter.StoreTargetWeightLossPounds("249");
-
         countdownbalance.setText(mBalance_text);
+        android.util.Log.d("BalanceLoad", "[Set_currentBalance] UI balance set to: " + mBalance_text);
     }
 //==========
     private void Set_Balance(String input) {
@@ -1722,14 +1831,36 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }*/
 
     public void Countdown(int debit) {
+        android.util.Log.d("DebitCalc", "[Countdown] called with debit=" + debit);
+        try {
+            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+            if (countdownbalance == null) {
+                android.util.Log.e("DebitCalc", "[Countdown] countdownbalance TextView is null — cannot update UI");
+                return;
+            }
 
-        //android.util.Log.d("Countdown","Consider Countdown Updated Token") ;
-        final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        String CountdownFigure = countdownbalance.getText().toString();
-        CountdownFigure = new RoundingCIF13().IntToString(new RoundingCIF13().StringToInt(CountdownFigure) - debit);
-        countdownbalance.setText((mBalance_text = CountdownFigure));
-        StoreCountdownBalance((mBalance_text = CountdownFigure));
-        Kitty();
+            // Root cause fix: empty TextView causes Integer.parseInt("") → NFE in StringToInt
+            String CountdownFigure = countdownbalance.getText().toString().trim();
+            android.util.Log.d("DebitCalc", "[Countdown] Balance before debit: '" + CountdownFigure + "'");
+            if (CountdownFigure.isEmpty()) {
+                CountdownFigure = "0";
+                android.util.Log.w("DebitCalc", "[Countdown] Balance was empty, treating as 0");
+            }
+
+            int currentBalance = new RoundingCIF13().StringToInt(CountdownFigure);
+            int newBalance = currentBalance - debit;
+            android.util.Log.d("DebitCalc", "[Countdown] currentBalance=" + currentBalance + ", debit=" + debit + ", newBalance=" + newBalance);
+
+            CountdownFigure = new RoundingCIF13().IntToString(newBalance);
+            countdownbalance.setText((mBalance_text = CountdownFigure));
+            long storeResult = StoreCountdownBalance((mBalance_text = CountdownFigure));
+            android.util.Log.d("DebitCalc", "[Countdown] Balance updated to " + CountdownFigure + ", storeResult=" + storeResult);
+            Kitty();
+        } catch (NumberFormatException e) {
+            android.util.Log.e("DebitCalc", "[Countdown] NFE: " + e.getMessage(), e);
+        } catch (Exception e) {
+            android.util.Log.e("DebitCalc", "[Countdown] Exception: " + e.getMessage(), e);
+        }
     }
 
 
@@ -1861,13 +1992,31 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     public void AddToBalance(String input) {
+        android.util.Log.d("AddToBalance", "[AddToBalance] Adding to balance, input='" + input + "'");
         try {
+            // Root cause fix: Get_currentBalanceInt() now returns 0 safely on empty/null TextView
+            // so NFE here is only from user-supplied 'input' being invalid — which we also guard.
             int currentBalance = Get_currentBalanceInt();
-            int caloriesToAdd = Integer.parseInt(input.replaceAll(",", ""));
+
+            // Guard against null/empty input before parsing
+            String cleanInput = (input != null) ? input.replace(",", "").trim() : "0";
+            if (cleanInput.isEmpty()) {
+                android.util.Log.w("AddToBalance", "[AddToBalance] input is empty, skipping");
+                return;
+            }
+            int caloriesToAdd = Integer.parseInt(cleanInput);
             int newBalance = currentBalance + caloriesToAdd;
+            android.util.Log.d("AddToBalance", "[AddToBalance] currentBalance=" + currentBalance
+                    + ", caloriesToAdd=" + caloriesToAdd + ", newBalance=" + newBalance);
+
             Set_Balance(String.valueOf(newBalance));
+            android.util.Log.d("AddToBalance", "[AddToBalance] Balance successfully updated to " + newBalance);
         } catch (NumberFormatException e) {
-            android.util.Log.e("AddToBalance", "Invalid number format: " + input);
+            android.util.Log.e("AddToBalance", "[AddToBalance] NFE: input='" + input + "', " + e.getMessage(), e);
+            android.widget.Toast.makeText(this, "Error updating balance: invalid number format", android.widget.Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            android.util.Log.e("AddToBalance", "[AddToBalance] Exception: " + e.getMessage(), e);
+            android.widget.Toast.makeText(this, "Error updating balance: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
         }
     }
 

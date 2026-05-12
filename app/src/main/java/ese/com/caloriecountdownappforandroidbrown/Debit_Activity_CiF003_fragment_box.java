@@ -359,41 +359,45 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     private void deduct100PointsFromBalance() {
+        android.util.Log.d("Workout", "[deduct100Points] Starting 100-point deduction");
         try {
-            // Get current balance from data adapter
             MIF4_Data_Model_Adapter dataAdapter = new MIF4_Data_Model_Adapter(getApplicationContext());
             String currentBalanceStr = dataAdapter.RetrieveBalance();
+            android.util.Log.d("Workout", "[deduct100Points] Raw DB balance: " + currentBalanceStr);
 
-            android.util.Log.d("Workout", "Current balance retrieved: " + currentBalanceStr);
-
-            // Parse current balance (handle commas if present)
+            // Root cause fix: guard null/empty balance before parseInt to prevent NFE
             int currentBalance = 0;
             if (currentBalanceStr != null && !currentBalanceStr.isEmpty()) {
-                // Remove commas if present
-                currentBalanceStr = currentBalanceStr.replace(",", "");
-                currentBalance = Integer.parseInt(currentBalanceStr);
+                currentBalance = Integer.parseInt(currentBalanceStr.replace(",", "").trim());
             }
 
-            // Subtract 100 points
             int newBalance = currentBalance - 100;
+            android.util.Log.d("Workout", "[deduct100Points] old=" + currentBalance + ", new=" + newBalance);
 
-            android.util.Log.d("Workout", "New balance after deduction: " + newBalance);
-
-            // Store the new balance
             String newBalanceStr = String.valueOf(newBalance);
             dataAdapter.StoreBalance(newBalanceStr);
-
-            // Also update DayEnd balance
             dataAdapter.StoreDayEndBalance(newBalance - 100);
 
             Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
-                "100 points dropped! Balance: " + currentBalance + " -> " + newBalance,
+                "100 points dropped! Balance: " + currentBalance + " → " + newBalance,
                 Toast.LENGTH_SHORT).show();
 
-            android.util.Log.d("Workout", "100 points deducted. Old: " + currentBalance + ", New: " + newBalance);
+            // Root cause fix: update main activity UI immediately so balance reflects the change
+            // without requiring the user to navigate back and trigger onResume.
+            if (CCD_GUI_CD_CIF1.instance != null) {
+                CCD_GUI_CD_CIF1.instance.runOnUiThread(() -> {
+                    android.util.Log.d("Workout", "[deduct100Points] Refreshing main activity UI");
+                    CCD_GUI_CD_CIF1.instance.refreshBalanceDisplay();
+                });
+            }
 
+            android.util.Log.d("Workout", "[deduct100Points] Completed. old=" + currentBalance + ", new=" + newBalance);
+        } catch (NumberFormatException e) {
+            android.util.Log.e("Workout", "[deduct100Points] NFE: " + e.getMessage(), e);
+            Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                "Error updating balance: invalid number format", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            android.util.Log.e("Workout", "Error deducting points: " + e.getMessage(), e);
+            android.util.Log.e("Workout", "[deduct100Points] Exception: " + e.getMessage(), e);
             Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
                 "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
