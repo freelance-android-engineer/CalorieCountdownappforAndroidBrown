@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="4PM Food Notes Review"
+        android:textSize="19sp"
+        android:textStyle="bold"
+        android:textColor="@color/colorPrimary"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Column headers for the list -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#F0F0F0"
+        android:padding="6dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="Food"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cal"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pts"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="30dp"
+            android:layout_height="wrap_content"
+            android:text="AI"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Scrollable notes list -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:id="@+id/llNotesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/colorPrimary"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Totals section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Total Calories:"
+            android:textStyle="bold"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tvTotalCalories4PM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="@color/colorPrimary" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Total Points:"
+            android:textStyle="bold"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tvTotalPoints4PM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#E65100" />
+    </LinearLayout>
+
+    <!-- AI legend note -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="* Orange values were estimated by AI"
+        android:textSize="11sp"
+        android:textColor="#E65100"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Confirmation question -->
+    <TextView
+        android:id="@+id/tvConfirmQuestion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Are you happy with this final calculation?"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnConfirm4PM"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Confirm"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/bg_green"
+            android:textSize="13sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnEditAgain4PM"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Edit Again"
+            android:textSize="13sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnCancel4PM"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@android:color/holo_red_light"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+</LinearLayout>

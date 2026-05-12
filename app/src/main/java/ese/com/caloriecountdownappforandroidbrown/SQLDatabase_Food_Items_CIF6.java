@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 6; // Incremented to add memo_title column to memo table
+    private static final int VERSION = 7; // v7: 4PM Food Notes Processing columns + log table
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -272,6 +272,22 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
     private static final String COLUMN_IS_TRANSFERRED = "isTransferred";
     private static final String COLUMN_IS_SAVED_TO_COLLECTION = "isSavedToCollection";
+
+    // 4PM Processing columns (added in DB version 7)
+    private static final String COLUMN_IS_4PM_PROCESSED = "is_4pm_processed";
+    private static final String COLUMN_PROCESSED_DATE = "processed_date";
+    private static final String COLUMN_AI_UPDATED_FIELDS = "ai_updated_fields";
+    private static final String COLUMN_FINAL_CALORIES = "final_calories";
+    private static final String COLUMN_FINAL_POINTS = "final_points";
+
+    // 4PM Processing Log Table (added in DB version 7)
+    private static final String TABLE_FOURPM_LOG = "fourpm_processing_log";
+    private static final String COLUMN_LOG_ID = "log_id";
+    private static final String COLUMN_LOG_PROCESSING_DATE = "processing_date";
+    private static final String COLUMN_LOG_TOTAL_CALORIES = "total_calories";
+    private static final String COLUMN_LOG_TOTAL_POINTS = "total_points";
+    private static final String COLUMN_LOG_NOTE_IDS_JSON = "note_ids_json";
+    private static final String COLUMN_LOG_CREATED_AT = "created_at";
 
     //    Memo Table (FIFO max 10 entries)
     private static final String TABLE_MEMO = "memo";
@@ -566,6 +582,26 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (SQLException alreadyexist) {
             // Table already exists
         }
+
+        // ====== 4PM Food Notes Processing — DB v7 additions ======
+        // ALTER TABLE quick_food_note to add 4PM processing columns (safe to retry each launch)
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_IS_4PM_PROCESSED + " INTEGER DEFAULT 0"); } catch (Exception ignore4pm1) { /* column already exists */ }
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_PROCESSED_DATE + " TEXT DEFAULT ''"); } catch (Exception ignore4pm2) { /* column already exists */ }
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_AI_UPDATED_FIELDS + " TEXT DEFAULT ''"); } catch (Exception ignore4pm3) { /* column already exists */ }
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_CALORIES + " INTEGER DEFAULT 0"); } catch (Exception ignore4pm4) { /* column already exists */ }
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_POINTS + " INTEGER DEFAULT 0"); } catch (Exception ignore4pm5) { /* column already exists */ }
+
+        // Create 4PM processing log table
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOURPM_LOG + " ("
+                    + COLUMN_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_LOG_PROCESSING_DATE + " TEXT UNIQUE, "
+                    + COLUMN_LOG_TOTAL_CALORIES + " INTEGER DEFAULT 0, "
+                    + COLUMN_LOG_TOTAL_POINTS + " INTEGER DEFAULT 0, "
+                    + COLUMN_LOG_NOTE_IDS_JSON + " TEXT DEFAULT '', "
+                    + COLUMN_LOG_CREATED_AT + " TEXT DEFAULT '')");
+        } catch (Exception ignore4pm6) { /* table already exists */ }
+        // ====== End 4PM additions ======
 
         try //at launch take all table creations to OnCreate
         {
@@ -941,6 +977,53 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             } catch (Exception e) {
                 android.util.Log.e("DB_UPGRADE", "Error adding memo_title column: " + e.getMessage());
                 e.printStackTrace();
+            }
+        }
+
+        // Add 4PM processing columns and log table if upgrading from version < 7
+        if (oldVersion < 7) {
+            android.util.Log.d("DB_UPGRADE", "Applying v7 upgrade: 4PM processing columns + log table");
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_IS_4PM_PROCESSED + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "Added is_4pm_processed column");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "is_4pm_processed already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_PROCESSED_DATE + " TEXT DEFAULT ''");
+                android.util.Log.d("DB_UPGRADE", "Added processed_date column");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "processed_date already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_AI_UPDATED_FIELDS + " TEXT DEFAULT ''");
+                android.util.Log.d("DB_UPGRADE", "Added ai_updated_fields column");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "ai_updated_fields already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_CALORIES + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "Added final_calories column");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "final_calories already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_POINTS + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "Added final_points column");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "final_points already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOURPM_LOG + " ("
+                        + COLUMN_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_LOG_PROCESSING_DATE + " TEXT UNIQUE, "
+                        + COLUMN_LOG_TOTAL_CALORIES + " INTEGER DEFAULT 0, "
+                        + COLUMN_LOG_TOTAL_POINTS + " INTEGER DEFAULT 0, "
+                        + COLUMN_LOG_NOTE_IDS_JSON + " TEXT DEFAULT '', "
+                        + COLUMN_LOG_CREATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "Created fourpm_processing_log table");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "fourpm_processing_log already exists: " + e.getMessage());
             }
         }
 
@@ -3825,6 +3908,152 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         return insertedId;
+    }
+
+    // ==================================================================================
+    // 4PM FOOD NOTES PROCESSING METHODS
+    // ==================================================================================
+
+    /**
+     * Fetch all food notes from the previous calendar day that have NOT yet been
+     * through 4PM processing (is_4pm_processed = 0).
+     *
+     * @return List of FoodNoteProcessingItem objects ready for AI enrichment.
+     */
+    public List<FoodNoteProcessingItem> getPreviousDayFoodNotes() {
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
+        String yesterdayPrefix = new java.text.SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                .format(yesterday.getTime());
+
+        android.util.Log.d("4PM_DB", "Fetching previous day notes with date prefix: " + yesterdayPrefix);
+
+        List<FoodNoteProcessingItem> notes = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_QUICK_FOOD_NOTE_ID + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_DATE + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_FOOD + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_CALORIES + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_QUANTITY
+                            + " FROM " + TABLE_QUICK_FOOD_NOTE
+                            + " WHERE " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?"
+                            + " AND " + COLUMN_IS_4PM_PROCESSED + " = 0",
+                    new String[]{yesterdayPrefix + "%"}
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    int noteId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_QUICK_FOOD_NOTE_ID));
+                    String noteDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_QUICK_FOOD_NOTE_DATE));
+                    String food = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_QUICK_FOOD_NOTE_FOOD));
+                    String calories = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_QUICK_FOOD_NOTE_CALORIES));
+                    String quantity = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_QUICK_FOOD_NOTE_QUANTITY));
+                    notes.add(new FoodNoteProcessingItem(noteId, noteDate, food, calories, quantity));
+                } while (cursor.moveToNext());
+                cursor.close();
+            }
+            android.util.Log.d("4PM_DB", "Found " + notes.size() + " previous day notes for processing");
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DB", "Error fetching previous day notes: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return notes;
+    }
+
+    /**
+     * Persist the confirmed 4PM processing results for a single food note.
+     * Call this only after the user confirms the review dialog.
+     *
+     * @param noteId          The note_id of the food note to update.
+     * @param finalCalories   The confirmed final calorie value.
+     * @param finalPoints     The confirmed final points value.
+     * @param aiUpdatedFields Comma-separated names of fields AI filled (e.g. "calories"), or empty.
+     */
+    public void update4PMNote(int noteId, int finalCalories, int finalPoints, String aiUpdatedFields) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_IS_4PM_PROCESSED, 1);
+            values.put(COLUMN_PROCESSED_DATE,
+                    new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date()));
+            values.put(COLUMN_AI_UPDATED_FIELDS, aiUpdatedFields != null ? aiUpdatedFields : "");
+            values.put(COLUMN_FINAL_CALORIES, finalCalories);
+            values.put(COLUMN_FINAL_POINTS, finalPoints);
+
+            int rows = db.update(TABLE_QUICK_FOOD_NOTE, values,
+                    COLUMN_QUICK_FOOD_NOTE_ID + " = ?",
+                    new String[]{String.valueOf(noteId)});
+
+            android.util.Log.d("4PM_DB", "update4PMNote: noteId=" + noteId
+                    + ", cal=" + finalCalories + ", pts=" + finalPoints
+                    + ", rows=" + rows);
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DB", "Error in update4PMNote for id=" + noteId + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Check whether 4PM processing has already been completed for the given date string.
+     * Used as an idempotent guard to prevent duplicate balance updates.
+     *
+     * @param dateStr Date in "dd-MM-yyyy" format.
+     * @return true if a log entry exists for this date.
+     */
+    public boolean isAlreadyProcessedForDate(String dateStr) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_LOG_ID + " FROM " + TABLE_FOURPM_LOG
+                            + " WHERE " + COLUMN_LOG_PROCESSING_DATE + " = ?",
+                    new String[]{dateStr}
+            );
+            boolean exists = (cursor != null && cursor.getCount() > 0);
+            if (cursor != null) cursor.close();
+            android.util.Log.d("4PM_DB", "isAlreadyProcessedForDate(" + dateStr + ") = " + exists);
+            return exists;
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DB", "Error checking processed date: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Insert a 4PM processing log entry.
+     * Uses CONFLICT_IGNORE so a duplicate date silently returns -1.
+     *
+     * @param dateStr      Date key in "dd-MM-yyyy" format.
+     * @param totalCalories Total calories across all processed notes.
+     * @param totalPoints   Total points across all processed notes.
+     * @param noteIdsJson   JSON array string of processed note IDs, e.g. "[1,2,3]".
+     * @return Inserted row ID, or -1 if duplicate / error.
+     */
+    public long insert4PMProcessingResult(String dateStr, int totalCalories, int totalPoints,
+                                           String noteIdsJson) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_LOG_PROCESSING_DATE, dateStr);
+            values.put(COLUMN_LOG_TOTAL_CALORIES, totalCalories);
+            values.put(COLUMN_LOG_TOTAL_POINTS, totalPoints);
+            values.put(COLUMN_LOG_NOTE_IDS_JSON, noteIdsJson != null ? noteIdsJson : "[]");
+            values.put(COLUMN_LOG_CREATED_AT,
+                    new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault()).format(new Date()));
+
+            id = db.insertWithOnConflict(TABLE_FOURPM_LOG, null, values,
+                    SQLiteDatabase.CONFLICT_IGNORE);
+            android.util.Log.d("4PM_DB", "insert4PMProcessingResult: date=" + dateStr
+                    + ", cal=" + totalCalories + ", id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DB", "Error inserting 4PM log: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return id;
     }
 }
 

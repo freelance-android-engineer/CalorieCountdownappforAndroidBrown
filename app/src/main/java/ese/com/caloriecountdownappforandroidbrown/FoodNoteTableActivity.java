@@ -22,6 +22,7 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -57,6 +58,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "FoodNotePrefs";
     private static final String PREF_LAST_SELECTED_DATE = "last_selected_date";
     private static final String PREF_SELECTED_DATE_TIMESTAMP = "selected_date_timestamp";
+
+    // Intent extra: when set to true in the launching intent, auto-start the 4PM workflow
+    private static final String EXTRA_START_4PM_PROCESSING = "start_4pm_processing";
 
     private TextView tvDateRangeTitle;
 
@@ -230,8 +234,18 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+        // 4PM Food Notes Processing button
+        Button btn4PM = findViewById(R.id.btn4PM);
+        btn4PM.setOnClickListener(v -> start4PMProcessingWorkflow());
+
         // Initialize Memo Panel views
         initializeMemoPanel();
+
+        // Auto-trigger 4PM workflow if launched from the 4PM notification
+        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_START_4PM_PROCESSING, false)) {
+            // Post with slight delay to ensure UI is fully ready
+            tableLayout.post(() -> start4PMProcessingWorkflow());
+        }
     }
 
     // ========== MEMO PANEL LOGIC ==========
@@ -2047,6 +2061,377 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             Toast.makeText(this, "Permission denied. Cannot access " + source, Toast.LENGTH_SHORT).show();
         }
     }
+
+    // ==================================================================================
+    // 4PM FOOD NOTES PROCESSING WORKFLOW
+    // ==================================================================================
+
+    /**
+     * Entry point for the 4PM processing workflow.
+     * Performs idempotent guard, fetches previous-day notes, then starts AI enrichment.
+     * Safe to call from the manual button or from the notification intent.
+     */
+    private void start4PMProcessingWorkflow() {
+        String todayDate = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                .format(new java.util.Date());
+
+        // Idempotent guard — one processing per calendar day
+        if (databaseHelper.isAlreadyProcessedForDate(todayDate)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Already Processed Today")
+                    .setMessage("4PM Food Notes have already been processed for today (" + todayDate + ").\n\n"
+                            + "Each day can only be processed once to prevent duplicate balance updates.")
+                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                    .show();
+            return;
+        }
+
+        // Fetch yesterday's unprocessed notes
+        java.util.List<FoodNoteProcessingItem> notes = databaseHelper.getPreviousDayFoodNotes();
+
+        if (notes.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("No Notes Found")
+                    .setMessage("No unprocessed food notes found for yesterday.\n\n"
+                            + "Add food notes during the day, then use the 4PM button at or after 4:00 PM "
+                            + "to process them.")
+                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                    .show();
+            return;
+        }
+
+        // Count notes with missing calories
+        int missingCaloriesCount = 0;
+        for (FoodNoteProcessingItem note : notes) {
+            if (note.originalCalories == null || note.originalCalories.trim().isEmpty()
+                    || note.originalCalories.trim().equals("0")) {
+                missingCaloriesCount++;
+            }
+        }
+
+        String previewMessage = "Found " + notes.size() + " food note(s) from yesterday.\n";
+        if (missingCaloriesCount > 0) {
+            previewMessage += "AI will estimate calories for " + missingCaloriesCount + " note(s) with missing values.\n";
+        } else {
+            previewMessage += "All notes already have calorie values.\n";
+        }
+        previewMessage += "\nProceed with processing?";
+
+        final String confirmMsg = previewMessage;
+        new AlertDialog.Builder(this)
+                .setTitle("4PM Food Notes Processing")
+                .setMessage(confirmMsg)
+                .setPositiveButton("Start Processing", (d, w) -> {
+                    d.dismiss();
+                    execute4PMProcessing(notes);
+                })
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
+                .show();
+    }
+
+    /**
+     * Shows a progress dialog and drives sequential AI enrichment of all notes.
+     * When done, transitions to the review dialog.
+     */
+    private void execute4PMProcessing(java.util.List<FoodNoteProcessingItem> notes) {
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Preparing to process " + notes.size() + " note(s)...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        processNotesSequentiallyFrom(notes, 0, progressDialog, () -> {
+            progressDialog.dismiss();
+
+            // Calculate totals
+            int totalCalories = 0;
+            int totalPoints = 0;
+            for (FoodNoteProcessingItem note : notes) {
+                totalCalories += note.finalCalories;
+                totalPoints += note.finalPoints;
+            }
+
+            android.util.Log.d("4PM_WORKFLOW", "All notes processed. totalCalories=" + totalCalories
+                    + ", totalPoints=" + totalPoints);
+
+            show4PMReviewDialog(notes, totalCalories, totalPoints);
+        });
+    }
+
+    /**
+     * Processes one note at a time, recursing through the list via AI callbacks.
+     * Notes that already have calorie values are passed through without an AI call.
+     * If AI fails for a note, processing continues and the note retains its original value.
+     *
+     * @param notes          Full list of notes to process.
+     * @param index          Current position in the list.
+     * @param progressDialog Dialog to update with current progress.
+     * @param onAllDone      Runnable called when all notes are processed.
+     */
+    private void processNotesSequentiallyFrom(java.util.List<FoodNoteProcessingItem> notes,
+                                               int index,
+                                               android.app.ProgressDialog progressDialog,
+                                               Runnable onAllDone) {
+        if (index >= notes.size()) {
+            onAllDone.run();
+            return;
+        }
+
+        FoodNoteProcessingItem note = notes.get(index);
+        progressDialog.setMessage("Processing " + (index + 1) + " / " + notes.size() + ":\n" + note.food);
+
+        boolean caloriesMissing = (note.originalCalories == null
+                || note.originalCalories.trim().isEmpty()
+                || note.originalCalories.trim().equals("0"));
+
+        if (!caloriesMissing) {
+            // Calories already present — no AI call needed
+            try {
+                note.finalCalories = Integer.parseInt(note.originalCalories.trim());
+            } catch (NumberFormatException nfe) {
+                android.util.Log.w("4PM_WORKFLOW", "Non-integer calories for note " + note.noteId
+                        + " (" + note.originalCalories + ") — defaulting to 0");
+                note.finalCalories = 0;
+            }
+            note.finalPoints = note.finalCalories;
+            processNotesSequentiallyFrom(notes, index + 1, progressDialog, onAllDone);
+            return;
+        }
+
+        // Build AI prompt — reuses the same pattern as existing btnAI in showFoodInputDialog
+        StringBuilder promptBuilder = new StringBuilder("How many calories are in ");
+        if (note.quantity != null && !note.quantity.trim().isEmpty()) {
+            promptBuilder.append(note.quantity.trim()).append(" of ");
+        } else {
+            promptBuilder.append("a typical serving of ");
+        }
+        promptBuilder.append(note.food).append(
+                "? Respond with ONLY a single integer number representing the total calories. "
+                        + "No text, no units, just the number.");
+
+        android.util.Log.d("4PM_AI", "Calling AI for note " + note.noteId + " (" + note.food + ")");
+
+        GeminiApiService.calculateCalories(this, promptBuilder.toString(), result -> {
+            android.util.Log.d("4PM_AI", "AI result for '" + note.food + "': " + result);
+
+            if (result != null && !result.trim().isEmpty()) {
+                java.util.regex.Matcher matcher = java.util.regex.Pattern
+                        .compile("\\d+(\\.\\d+)?")
+                        .matcher(result.trim());
+                if (matcher.find()) {
+                    try {
+                        int aiCalories = (int) Math.round(Double.parseDouble(matcher.group()));
+                        // Sanity bounds: 1–10000 kcal
+                        if (aiCalories >= 1 && aiCalories <= 10000) {
+                            note.finalCalories = aiCalories;
+                            note.finalPoints = aiCalories;
+                            note.aiUpdatedFields = "calories";
+                            note.aiProcessed = true;
+                            android.util.Log.d("4PM_AI", "AI filled calories=" + aiCalories
+                                    + " for '" + note.food + "'");
+                        } else {
+                            android.util.Log.w("4PM_AI", "AI returned out-of-range value " + aiCalories
+                                    + " for '" + note.food + "' — discarding");
+                        }
+                    } catch (NumberFormatException nfe) {
+                        android.util.Log.e("4PM_AI", "Failed to parse AI number for '" + note.food + "'");
+                    }
+                } else {
+                    android.util.Log.w("4PM_AI", "No numeric value found in AI response for '"
+                            + note.food + "'");
+                }
+            } else {
+                android.util.Log.w("4PM_AI", "AI returned null/empty for '" + note.food + "' — skipping");
+            }
+
+            // Continue regardless of success or failure
+            processNotesSequentiallyFrom(notes, index + 1, progressDialog, onAllDone);
+        });
+    }
+
+    /**
+     * Shows the 4PM review dialog with the processed notes list, totals,
+     * and Confirm / Edit Again / Cancel buttons.
+     */
+    private void show4PMReviewDialog(java.util.List<FoodNoteProcessingItem> notes,
+                                      int totalCalories, int totalPoints) {
+        android.view.View dialogView = android.view.LayoutInflater.from(this)
+                .inflate(R.layout.dialog_4pm_review, null);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+        AlertDialog reviewDialog = builder.create();
+
+        LinearLayout llContainer = dialogView.findViewById(R.id.llNotesContainer);
+        TextView tvTotalCalories = dialogView.findViewById(R.id.tvTotalCalories4PM);
+        TextView tvTotalPoints = dialogView.findViewById(R.id.tvTotalPoints4PM);
+        Button btnConfirm = dialogView.findViewById(R.id.btnConfirm4PM);
+        Button btnEditAgain = dialogView.findViewById(R.id.btnEditAgain4PM);
+        Button btnCancelReview = dialogView.findViewById(R.id.btnCancel4PM);
+
+        tvTotalCalories.setText(String.valueOf(totalCalories));
+        tvTotalPoints.setText(String.valueOf(totalPoints));
+
+        // Inflate one row per processed note
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
+        for (FoodNoteProcessingItem note : notes) {
+            android.view.View rowView = inflater.inflate(R.layout.item_4pm_food_note, llContainer, false);
+
+            TextView tvFood = rowView.findViewById(R.id.tvFoodName4PM);
+            TextView tvCal = rowView.findViewById(R.id.tvCalories4PM);
+            TextView tvPts = rowView.findViewById(R.id.tvPoints4PM);
+            TextView tvAiFlag = rowView.findViewById(R.id.tvAiFlag4PM);
+
+            tvFood.setText(note.food);
+            tvCal.setText(String.valueOf(note.finalCalories));
+            tvPts.setText(String.valueOf(note.finalPoints));
+
+            if (note.aiProcessed) {
+                // Highlight AI-filled value in orange to distinguish from user-entered data
+                tvCal.setTextColor(android.graphics.Color.parseColor("#E65100"));
+                tvAiFlag.setVisibility(View.VISIBLE);
+            }
+
+            llContainer.addView(rowView);
+
+            // Thin divider between rows
+            View divider = new View(this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1);
+            lp.setMargins(0, 0, 0, 0);
+            divider.setLayoutParams(lp);
+            divider.setBackgroundColor(android.graphics.Color.parseColor("#E0E0E0"));
+            llContainer.addView(divider);
+        }
+
+        btnConfirm.setOnClickListener(v -> {
+            reviewDialog.dismiss();
+            confirm4PMProcessing(notes, totalCalories, totalPoints);
+        });
+
+        btnEditAgain.setOnClickListener(v -> {
+            reviewDialog.dismiss();
+            Toast.makeText(this,
+                    "Edit your food notes, then press '4PM' again to re-process.",
+                    Toast.LENGTH_LONG).show();
+        });
+
+        btnCancelReview.setOnClickListener(v -> {
+            reviewDialog.dismiss();
+            Toast.makeText(this, "4PM processing cancelled. No changes saved.", Toast.LENGTH_SHORT).show();
+        });
+
+        reviewDialog.show();
+    }
+
+    /**
+     * Called when the user taps Confirm in the review dialog.
+     * Writes processing results to DB, updates the Countdown Balance,
+     * and syncs to the backend.
+     */
+    private void confirm4PMProcessing(java.util.List<FoodNoteProcessingItem> notes,
+                                       int totalCalories, int totalPoints) {
+        String todayDate = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                .format(new java.util.Date());
+        String todayDateTime = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", java.util.Locale.getDefault())
+                .format(new java.util.Date());
+
+        // Build note IDs JSON array for the log entry
+        StringBuilder noteIdsJson = new StringBuilder("[");
+        for (int i = 0; i < notes.size(); i++) {
+            if (i > 0) noteIdsJson.append(",");
+            noteIdsJson.append(notes.get(i).noteId);
+        }
+        noteIdsJson.append("]");
+
+        final String finalNoteIdsJson = noteIdsJson.toString();
+
+        // DB writes on background thread (following existing executorService pattern)
+        executorService.submit(() -> {
+            try {
+                // Step 1: Persist AI-enriched values for each note
+                for (FoodNoteProcessingItem note : notes) {
+                    databaseHelper.update4PMNote(
+                            note.noteId, note.finalCalories, note.finalPoints, note.aiUpdatedFields);
+                }
+
+                // Step 2: Insert idempotent processing log (CONFLICT_IGNORE prevents duplicates)
+                long logId = databaseHelper.insert4PMProcessingResult(
+                        todayDate, totalCalories, totalPoints, finalNoteIdsJson);
+                android.util.Log.d("4PM_CONFIRM", "Processing log saved — logId=" + logId);
+            } catch (Exception e) {
+                android.util.Log.e("4PM_CONFIRM", "DB write error during confirm: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            runOnUiThread(() -> {
+                // Step 3: Add to Main Countdown Balance
+                boolean balanceUpdated = false;
+                if (totalCalories > 0 && CCD_GUI_CD_CIF1.instance != null) {
+                    CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
+                    balanceUpdated = true;
+                    android.util.Log.d("4PM_CONFIRM", "AddToBalance(" + totalCalories + ") called");
+                } else if (CCD_GUI_CD_CIF1.instance == null) {
+                    android.util.Log.w("4PM_CONFIRM",
+                            "CCD_GUI_CD_CIF1.instance is null — balance update deferred");
+                }
+
+                // Step 4: Best-effort backend sync
+                sync4PMResultToBackend(notes, totalCalories, todayDateTime);
+
+                // Step 5: Success message
+                String successMsg = "Successfully processed " + notes.size() + " food note(s).\n\n"
+                        + "Total Calories: " + totalCalories + "\n"
+                        + "Total Points:   " + totalPoints + "\n\n";
+                if (balanceUpdated) {
+                    successMsg += "Countdown Balance updated!";
+                } else if (totalCalories <= 0) {
+                    successMsg += "No calories to add (total is 0).";
+                } else {
+                    successMsg += "Return to the main screen to see the updated balance.";
+                }
+
+                new AlertDialog.Builder(this)
+                        .setTitle("4PM Processing Complete")
+                        .setMessage(successMsg)
+                        .setPositiveButton("OK", (d, w) -> d.dismiss())
+                        .show();
+            });
+        });
+    }
+
+    /**
+     * Syncs the 4PM processing result to the Azure backend.
+     * Uses the existing addFoodItem endpoint with a processing-result marker.
+     * Failures are logged and silently swallowed — local data is the source of truth.
+     */
+    private void sync4PMResultToBackend(java.util.List<FoodNoteProcessingItem> notes,
+                                         int totalCalories, String dateTime) {
+        java.util.Map<String, Object> syncData = new java.util.HashMap<>();
+        syncData.put("food_item_name", "4PM_Processing_" + dateTime.replace(":", "-"));
+        syncData.put("calories_per_100g", (double) totalCalories);
+        syncData.put("note_date", dateTime);
+        syncData.put("quantity", notes.size() + "_notes_processed");
+        syncData.put("food_type", "4PM_LOG");
+
+        SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(this);
+        apiClient.addFoodItem(syncData, new ApiResultCallback() {
+            @Override
+            public void onSuccess(String response) {
+                android.util.Log.d("4PM_SYNC", "4PM processing result synced to backend");
+            }
+
+            @Override
+            public void onFailure() {
+                android.util.Log.w("4PM_SYNC",
+                        "4PM backend sync failed — data safe locally, will not retry");
+            }
+        });
+    }
+
+    // ==================================================================================
+    // END 4PM PROCESSING WORKFLOW
+    // ==================================================================================
 
     /**
      * Checks if the previous day's debit update has been performed.

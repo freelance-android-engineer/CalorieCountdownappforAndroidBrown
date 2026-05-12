@@ -246,13 +246,14 @@
             android:enabled="true"
             android:exported="true" />
 
-        <!-- Daily Alarm Receiver for 4:00 PM and 9:59 PM notifications -->
+        <!-- Daily Alarm Receiver for 3:30 PM, 4:00 PM, and 9:59 PM notifications -->
         <receiver
             android:name=".DailyAlarmReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="ese.com.caloriecountdownappforandroidbrown.CREDIT_DAY_END" />
                 <action android:name="ese.com.caloriecountdownappforandroidbrown.DEBIT_DAY_END" />
+                <action android:name="ese.com.caloriecountdownappforandroidbrown.FOURPM_FOOD_NOTES" />
             </intent-filter>
         </receiver>
 

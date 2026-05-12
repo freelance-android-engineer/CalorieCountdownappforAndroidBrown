@@ -21,12 +21,15 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "DailyAlarmReceiver";
     public static final String ACTION_CREDIT_DAY_END = "ese.com.caloriecountdownappforandroidbrown.CREDIT_DAY_END";
     public static final String ACTION_DEBIT_DAY_END = "ese.com.caloriecountdownappforandroidbrown.DEBIT_DAY_END";
+    public static final String ACTION_4PM_FOOD_NOTES = "ese.com.caloriecountdownappforandroidbrown.FOURPM_FOOD_NOTES";
 
     private static final String CHANNEL_ID_CREDIT = "credit_day_end_channel";
     private static final String CHANNEL_ID_DEBIT = "debit_day_end_channel";
+    private static final String CHANNEL_ID_4PM = "fourpm_food_notes_channel";
 
     private static final int NOTIFICATION_ID_CREDIT = 4000;
     private static final int NOTIFICATION_ID_DEBIT = 2159;
+    private static final int NOTIFICATION_ID_4PM = 1600;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -45,6 +48,10 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 showDebitDayEndNotification(context);
                 // Re-schedule for tomorrow
                 DailyAlarmScheduler.scheduleDebitDayEndAlarm(context);
+            } else if (ACTION_4PM_FOOD_NOTES.equals(action)) {
+                show4PMFoodNotesNotification(context);
+                // Re-schedule for tomorrow
+                DailyAlarmScheduler.schedule4PMFoodNotesAlarm(context);
             }
         } finally {
             pendingResult.finish();
@@ -114,6 +121,43 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             manager.notify(NOTIFICATION_ID_DEBIT, builder.build());
+        }
+    }
+
+    /**
+     * 4:00 PM Notification — Food Notes Processing
+     * Prompts user to open Food Notes and run the 4PM processing workflow.
+     * Tapping the notification opens FoodNoteTableActivity and auto-starts the workflow.
+     */
+    private void show4PMFoodNotesNotification(Context context) {
+        Log.d(TAG, "Showing 4PM Food Notes Processing notification");
+
+        createNotificationChannel(context, CHANNEL_ID_4PM,
+                "4PM Food Notes", "Daily 4:00 PM reminder to process yesterday's food notes");
+
+        // Open FoodNoteTableActivity and auto-trigger the 4PM workflow
+        Intent openIntent = new Intent(context, FoodNoteTableActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        openIntent.putExtra("start_4pm_processing", true);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NOTIFICATION_ID_4PM,
+                openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_4PM)
+                .setSmallIcon(R.drawable.ic_launcher2)
+                .setContentTitle("4PM Food Notes Processing")
+                .setContentText("Time to process yesterday's food notes!")
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText("It's 4:00 PM — tap to open your Food Notes and process yesterday's entries. "
+                                + "The AI will estimate any missing calorie values, and you can review the totals before confirming."))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setDefaults(NotificationCompat.DEFAULT_ALL);
+
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID_4PM, builder.build());
         }
     }
 

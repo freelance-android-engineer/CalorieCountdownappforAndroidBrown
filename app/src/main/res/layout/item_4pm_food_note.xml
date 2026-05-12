@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="6dp"
+    android:background="@android:color/white"
+    android:gravity="center_vertical">
+
+    <!-- Food name (takes 40% of width) -->
+    <TextView
+        android:id="@+id/tvFoodName4PM"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:textSize="13sp"
+        android:textColor="@android:color/black"
+        android:text="Food Name"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <!-- Calories value (20%) - orange if AI-filled -->
+    <TextView
+        android:id="@+id/tvCalories4PM"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="13sp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:text="0" />
+
+    <!-- Points value (20%) -->
+    <TextView
+        android:id="@+id/tvPoints4PM"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="13sp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:text="0" />
+
+    <!-- AI indicator badge (hidden unless AI filled this row) -->
+    <TextView
+        android:id="@+id/tvAiFlag4PM"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@android:color/white"
+        android:background="#E65100"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:text="AI"
+        android:visibility="gone" />
+
+</LinearLayout>

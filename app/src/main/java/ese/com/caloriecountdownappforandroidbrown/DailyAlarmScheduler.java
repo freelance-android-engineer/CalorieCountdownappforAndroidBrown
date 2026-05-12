@@ -24,6 +24,7 @@ public class DailyAlarmScheduler {
 
     private static final int REQUEST_CODE_CREDIT_DAY_END = 4000;
     private static final int REQUEST_CODE_DEBIT_DAY_END = 2159;
+    private static final int REQUEST_CODE_4PM_FOOD_NOTES = 1600;
 
     private static final int CREDIT_HOUR = 15;
     private static final int CREDIT_MINUTE = 30;
@@ -31,13 +32,17 @@ public class DailyAlarmScheduler {
     private static final int DEBIT_HOUR = 9;
     private static final int DEBIT_MINUTE = 59;
 
+    private static final int FOURPM_HOUR = 16;
+    private static final int FOURPM_MINUTE = 0;
+
     /**
-     * Schedule both daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
+     * Schedule all three daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
      */
     public static void scheduleBothAlarms(Context context) {
         scheduleCreditDayEndAlarm(context);
         scheduleDebitDayEndAlarm(context);
-        Log.d(TAG, "Both daily alarms scheduled (3:30 PM and 9:59 PM)");
+        schedule4PMFoodNotesAlarm(context);
+        Log.d(TAG, "All daily alarms scheduled (3:30 PM, 4:00 PM, 9:59 PM)");
     }
 
     /**
@@ -77,6 +82,25 @@ public class DailyAlarmScheduler {
     }
 
     /**
+     * Schedule the 4:00 PM Food Notes Processing alarm.
+     * Fires once per day; DailyAlarmReceiver re-schedules it for the next day.
+     */
+    public static void schedule4PMFoodNotesAlarm(Context context) {
+        Calendar calendar = getNextAlarmTime(FOURPM_HOUR, FOURPM_MINUTE);
+
+        Intent intent = new Intent(context, DailyAlarmReceiver.class);
+        intent.setAction(DailyAlarmReceiver.ACTION_4PM_FOOD_NOTES);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_4PM_FOOD_NOTES, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        setExactAlarm(context, calendar.getTimeInMillis(), pendingIntent);
+
+        Log.d(TAG, "4PM Food Notes alarm scheduled for: " + calendar.getTime());
+    }
+
+    /**
      * Cancel both alarms.
      */
     public static void cancelBothAlarms(Context context) {
@@ -97,7 +121,14 @@ public class DailyAlarmScheduler {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         alarmManager.cancel(debitPi);
 
-        Log.d(TAG, "Both daily alarms cancelled");
+        Intent fourPMIntent = new Intent(context, DailyAlarmReceiver.class);
+        fourPMIntent.setAction(DailyAlarmReceiver.ACTION_4PM_FOOD_NOTES);
+        PendingIntent fourPMPi = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_4PM_FOOD_NOTES, fourPMIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        alarmManager.cancel(fourPMPi);
+
+        Log.d(TAG, "All daily alarms cancelled");
     }
 
     /**
