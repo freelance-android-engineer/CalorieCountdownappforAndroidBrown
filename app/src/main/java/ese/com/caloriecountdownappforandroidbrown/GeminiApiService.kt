@@ -13,9 +13,11 @@ import java.io.IOException
 
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 
 
@@ -63,7 +65,6 @@ Salt:
                     .addFormDataPart("contents", contentsArray.toString())
                     .build()
 
-                val client = OkHttpClient()
                 val request = Request.Builder()
                     .url(BACKEND_URL)
                     .post(requestBody)
@@ -234,6 +235,107 @@ Salt:
                         }
                     } catch (ex: Exception) {
                         Log.e("GeminiApiService", "Exception parsing response", ex)
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(null)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+
+    @JvmStatic
+    fun analyzeMemo(context: Context, prompt: String, imageBase64: String?, callback: CalorieCallback) {
+        Log.d("GeminiApiService", "analyzeMemo() called, hasImage=${imageBase64 != null}")
+
+        val contentsArray = JSONArray()
+        val partsArray = JSONArray()
+        val textObject = JSONObject()
+        textObject.put("text", prompt)
+        partsArray.put(textObject)
+
+        val contentObject = JSONObject()
+        contentObject.put("role", "user")
+        contentObject.put("parts", partsArray)
+        contentsArray.put(contentObject)
+
+        val bodyBuilder = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("temperature", "0.4")
+            .addFormDataPart("maxOutputTokens", "2048")
+            .addFormDataPart("contents", contentsArray.toString())
+
+        if (imageBase64 != null) {
+            val imageBytes = android.util.Base64.decode(imageBase64, android.util.Base64.DEFAULT)
+            bodyBuilder.addFormDataPart(
+                "image", "memo_image.jpg",
+                imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+        }
+
+        val request = Request.Builder()
+            .url(BACKEND_URL)
+            .post(bodyBuilder.build())
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("GeminiApiService", "analyzeMemo request failed: ${e.message}", e)
+                (context as? Activity)?.runOnUiThread {
+                    callback.onResult(null)
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (!response.isSuccessful) {
+                        Log.e("GeminiApiService", "analyzeMemo unsuccessful response: ${response.code}")
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(null)
+                        }
+                        return
+                    }
+
+                    val responseData = response.body?.string()
+                    try {
+                        val jsonResponse = JSONObject(responseData)
+                        var contentText: String? = null
+
+                        val dataObj = jsonResponse.optJSONObject("data")
+                        if (dataObj != null) {
+                            val text = dataObj.optString("text", "")
+                            if (text.isNotEmpty()) contentText = text
+                        }
+
+                        if (contentText.isNullOrEmpty()) {
+                            val rawObj = dataObj?.optJSONObject("raw") ?: jsonResponse
+                            val candidates = rawObj.optJSONArray("candidates")
+                            val parts = candidates?.getJSONObject(0)
+                                ?.getJSONObject("content")
+                                ?.getJSONArray("parts")
+
+                            if (parts != null && parts.length() > 0) {
+                                for (i in parts.length() - 1 downTo 0) {
+                                    val part = parts.getJSONObject(i)
+                                    if (!part.optBoolean("thought", false)) {
+                                        contentText = part.optString("text")
+                                        break
+                                    }
+                                }
+                                if (contentText == null) {
+                                    contentText = parts.getJSONObject(parts.length() - 1).optString("text")
+                                }
+                            }
+                        }
+
+                        Log.d("GeminiApiService", "analyzeMemo parsed text: $contentText")
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(contentText)
+                        }
+                    } catch (ex: Exception) {
+                        Log.e("GeminiApiService", "Exception parsing analyzeMemo response", ex)
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(null)
                         }

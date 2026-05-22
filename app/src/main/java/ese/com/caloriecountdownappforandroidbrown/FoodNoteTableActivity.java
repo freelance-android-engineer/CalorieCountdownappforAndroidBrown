@@ -81,6 +81,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private ImageView ivMemoAddImage;
     private Button btnMemoSave;
     private Button btnMemoClear;
+    private Button btnMemoAi;
     private String memoImageBase64 = null;
 
     // Dialog components for image upload
@@ -259,6 +260,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         ivMemoAddImage = findViewById(R.id.ivMemoAddImage);
         btnMemoSave = findViewById(R.id.btnMemoSave);
         btnMemoClear = findViewById(R.id.btnMemoClear);
+        btnMemoAi = findViewById(R.id.btnMemoAi);
 
         // Image icon click - shows dialog with Camera/Gallery options
         ivMemoAddImage.setOnClickListener(new View.OnClickListener() {
@@ -289,6 +291,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 clearMemoPanel();
+            }
+        });
+
+        // AI button - analyzes memo text and/or attached image with AI
+        btnMemoAi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleMemoAiButtonClick();
             }
         });
 
@@ -459,6 +469,68 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         ivMemoImagePreview.setVisibility(View.GONE);
         ivMemoAddImage.setVisibility(View.VISIBLE);
         Toast.makeText(this, "Memo cleared", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Handle AI button click on memo panel.
+     * Collects memo text and attached image (if any), sends to AI for analysis,
+     * and shows the result in a dialog.
+     * Supports: text only, image only, or text + image together.
+     */
+    private void handleMemoAiButtonClick() {
+        String memoText = etMemoText.getText().toString().trim();
+        boolean hasText = !memoText.isEmpty();
+        boolean hasImage = memoImageBase64 != null;
+
+        if (!hasText && !hasImage) {
+            Toast.makeText(this, "Please add some text or an image to analyze", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Build AI prompt based on what's available
+        String prompt;
+        if (hasText && hasImage) {
+            prompt = "Analyze the following memo text and the attached image together. " +
+                    "Provide a detailed response covering key observations, any food-related insights, " +
+                    "and a brief summary.\n\nMemo text:\n" + memoText;
+        } else if (hasText) {
+            prompt = "Analyze the following memo and provide key insights, observations, " +
+                    "and a brief summary:\n\n" + memoText;
+        } else {
+            prompt = "Analyze this image and provide a detailed description of what you see, " +
+                    "including any food items, quantities, or relevant observations.";
+        }
+
+        // Show loading dialog
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Analyzing memo with AI...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        android.util.Log.d("MemoAI", "Starting AI analysis: hasText=" + hasText + ", hasImage=" + hasImage);
+
+        GeminiApiService.analyzeMemo(this, prompt, hasImage ? memoImageBase64 : null,
+                new GeminiApiService.CalorieCallback() {
+                    @Override
+                    public void onResult(String result) {
+                        runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            if (result != null && !result.trim().isEmpty()) {
+                                android.util.Log.d("MemoAI", "AI result received successfully");
+                                new AlertDialog.Builder(FoodNoteTableActivity.this)
+                                        .setTitle("AI Analysis")
+                                        .setMessage(result.trim())
+                                        .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                        .show();
+                            } else {
+                                android.util.Log.e("MemoAI", "AI returned null or empty result");
+                                Toast.makeText(FoodNoteTableActivity.this,
+                                        "AI analysis failed. Please check your internet connection and try again.",
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+                });
     }
 
     /**
@@ -1128,7 +1200,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                     progressDialog.dismiss();
                                     if (result != null && !result.trim().isEmpty()) {
                                         android.util.Log.d("FoodNoteAI", "AI result received: " + result);
-                                        showCaloriesResult(result);
+                                        showCaloriesResult(result, selectedFoods);
                                     } else {
                                         android.util.Log.e("FoodNoteAI", "AI returned null or empty result");
                                         Toast.makeText(FoodNoteTableActivity.this, "Failed to calculate calories. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
@@ -1163,7 +1235,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     private String buildCaloriesPrompt(List<Map<String, String>> foods) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Calculate the calories for the following foods:\n\n");
+        sb.append("Estimate the calories for each food below. ");
+        sb.append("For EACH item output exactly one line in the format:\n");
+        sb.append("FOOD_NAME: NUMBER calories\n");
+        sb.append("Then on the last line: TOTAL: NUMBER calories\n");
+        sb.append("Use only whole numbers. No extra text.\n\n");
 
         for (Map<String, String> food : foods) {
             String name = food.getOrDefault("food", "");
@@ -1178,25 +1254,120 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         }
 
-        sb.append("\nFor each item, provide estimated calories. If quantity is missing, assume per 100g.\n");
-        sb.append("Finally, provide the total calories.\n");
-
         return sb.toString();
     }
 
-    private void showCaloriesResult(String response) {
-        String message;
+    /**
+     * Shows the AI calorie estimation result and offers to apply the values back to the
+     * selected food notes. If parsing succeeds, a confirmation step shows what will be written
+     * before any DB change is made.
+     */
+    private void showCaloriesResult(String response, List<Map<String, String>> selectedFoods) {
+        String message = (response != null && !response.trim().isEmpty())
+                ? response.trim()
+                : "AI did not return a result. Please try again.";
 
-        if (response != null && !response.trim().isEmpty()) {
-            message = response.trim();
-        } else {
-            message = "AI did not return a result. Please try again.";
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Calorie Estimation")
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+
+        // Only show Apply button when we have foods to update and a non-empty response
+        if (selectedFoods != null && !selectedFoods.isEmpty()
+                && response != null && !response.trim().isEmpty()) {
+            builder.setNeutralButton("Apply to Notes", (dialog, which) -> {
+                List<Integer> parsed = parseCaloriesFromAiResponse(response, selectedFoods.size());
+                if (parsed.isEmpty()) {
+                    Toast.makeText(this,
+                            "Could not extract calorie values from AI response. Edit notes manually.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                confirmAndApplyCalories(parsed, selectedFoods);
+            });
+        }
+
+        builder.show();
+    }
+
+    /**
+     * Parses per-item calorie values from the AI response text.
+     * Scans each line for the pattern "N calories" or "N kcal" (whole numbers only).
+     * Lines that contain "total" are excluded so the sum line is not mistaken for an item.
+     * Returns up to {@code maxItems} values in the order they appear.
+     */
+    private List<Integer> parseCaloriesFromAiResponse(String response, int maxItems) {
+        List<Integer> result = new ArrayList<>();
+        if (response == null || response.trim().isEmpty()) return result;
+
+        // Match whole numbers followed by "cal", "calories", or "kcal" (case-insensitive)
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "(\\d+)\\s*(?:cal(?:ories)?|kcal)", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+        for (String line : response.split("\n")) {
+            // Skip the total line — it is not a per-item value
+            if (line.trim().toLowerCase(java.util.Locale.getDefault()).startsWith("total")) continue;
+
+            java.util.regex.Matcher m = p.matcher(line);
+            if (m.find()) {
+                try {
+                    int cal = Integer.parseInt(m.group(1));
+                    if (cal > 0 && cal <= 10000) {
+                        result.add(cal);
+                        android.util.Log.d("FoodNoteAI", "Parsed calories=" + cal + " from: " + line.trim());
+                    }
+                } catch (NumberFormatException ignore) { /* skip unparseable */ }
+            }
+            if (result.size() >= maxItems) break;
+        }
+
+        android.util.Log.d("FoodNoteAI", "parseCaloriesFromAiResponse: found " + result.size()
+                + "/" + maxItems + " values");
+        return result;
+    }
+
+    /**
+     * Shows a confirmation dialog listing the calorie values that will be written to each note,
+     * then writes them to the DB and refreshes the table on user confirmation.
+     */
+    private void confirmAndApplyCalories(List<Integer> parsedCalories,
+                                          List<Map<String, String>> selectedFoods) {
+        int count = Math.min(parsedCalories.size(), selectedFoods.size());
+        StringBuilder sb = new StringBuilder("Apply these calorie values to your food notes?\n\n");
+        for (int i = 0; i < count; i++) {
+            String foodName = selectedFoods.get(i).getOrDefault("food", "(unknown)");
+            sb.append(foodName).append(": ").append(parsedCalories.get(i)).append(" cal\n");
+        }
+        if (parsedCalories.size() < selectedFoods.size()) {
+            sb.append("\n(").append(selectedFoods.size() - parsedCalories.size())
+              .append(" note(s) without a parsed value will not be changed.)");
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Calorie Estimation")
-                .setMessage(message)
-                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .setTitle("Confirm Apply")
+                .setMessage(sb.toString())
+                .setPositiveButton("Apply", (d, w) -> {
+                    int updated = 0;
+                    for (int i = 0; i < count; i++) {
+                        String noteIdStr = selectedFoods.get(i).get("note_id");
+                        if (noteIdStr == null) continue;
+                        try {
+                            int noteId = Integer.parseInt(noteIdStr);
+                            int cal    = parsedCalories.get(i);
+                            // Update only calories — leave date, food name, quantity unchanged
+                            int rows = databaseHelper.updateFoodNoteCaloriesOnly(noteId, cal);
+                            if (rows > 0) updated++;
+                            android.util.Log.d("FoodNoteAI", "Updated note id=" + noteId
+                                    + " calories=" + cal + " rows=" + rows);
+                        } catch (NumberFormatException e) {
+                            android.util.Log.w("FoodNoteAI", "Invalid note_id: " + noteIdStr);
+                        }
+                    }
+                    loadFoodNotesFromDatabase();
+                    Toast.makeText(this, updated + " note(s) updated with AI calorie values.",
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -2391,13 +2562,153 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     successMsg += "Return to the main screen to see the updated balance.";
                 }
 
+                final String finalSuccessMsg = successMsg;
+                final int finalTotalCalories = totalCalories;
+                final String finalTodayDate = todayDate;
                 new AlertDialog.Builder(this)
                         .setTitle("4PM Processing Complete")
-                        .setMessage(successMsg)
-                        .setPositiveButton("OK", (d, w) -> d.dismiss())
+                        .setMessage(finalSuccessMsg)
+                        .setPositiveButton("View Step Challenge", (d, w) -> {
+                            d.dismiss();
+                            // Step 6: Chain Debit / Steps Challenge calculation
+                            launch4PMDebitStepsChallenge(finalTotalCalories, finalTodayDate);
+                        })
+                        .setNeutralButton("OK", (d, w) -> d.dismiss())
                         .show();
             });
         });
+    }
+
+    /**
+     * Entry point for the 4PM Debit / Steps Challenge calculation.
+     *
+     * <p>Reads the current countdown balance and the gender-based daily budget,
+     * runs {@link FourPMDebitStepsProcessor#calculate}, persists the result,
+     * and shows the summary dialog. Idempotent: if a challenge already exists
+     * for today, the saved result is displayed instead of recalculating.</p>
+     *
+     * @param confirmedCalories Total calories confirmed during the 4PM credit processing.
+     * @param processingDate    Today's date in {@code dd-MM-yyyy} format.
+     */
+    private void launch4PMDebitStepsChallenge(int confirmedCalories, String processingDate) {
+        android.util.Log.d("4PM_DEBIT", "launch4PMDebitStepsChallenge: cal=" + confirmedCalories
+                + ", date=" + processingDate);
+
+        // Guard: if already calculated today, show the saved result
+        if (databaseHelper.isDebitChallengeProcessedForDate(processingDate)) {
+            android.util.Log.d("4PM_DEBIT", "Debit challenge already processed for " + processingDate
+                    + " — loading saved result");
+            FourPMDebitResult saved = databaseHelper.getLastDebitChallenge();
+            if (saved != null) {
+                show4PMDebitStepsDialog(saved);
+            }
+            return;
+        }
+
+        // Read current countdown balance (before today's credit is visible in main UI)
+        int currentBalance = 0;
+        try {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(this);
+            String balanceStr = adapter.RetrieveBalance();
+            if (balanceStr != null && !balanceStr.trim().isEmpty()) {
+                currentBalance = Integer.parseInt(balanceStr.trim().replace(",", ""));
+            }
+        } catch (NumberFormatException nfe) {
+            android.util.Log.w("4PM_DEBIT", "Could not parse balance — defaulting to 0");
+        }
+
+        // Read gender-based daily budget from SharedPreferences
+        android.content.SharedPreferences pref =
+                getSharedPreferences("Calorie_Countdown", MODE_PRIVATE);
+        String gender = pref.getString("user_gender", "female");
+        int dailyBudget = FourPMDebitStepsProcessor.resolveDailyBudget(gender);
+
+        android.util.Log.d("4PM_DEBIT", "gender=" + gender + ", budget=" + dailyBudget
+                + ", balance=" + currentBalance);
+
+        // Calculate challenge on background thread; persist and show on main thread
+        final int capturedBalance = currentBalance;
+        final int capturedBudget  = dailyBudget;
+        executorService.submit(() -> {
+            FourPMDebitResult result = FourPMDebitStepsProcessor.calculate(
+                    processingDate, confirmedCalories, capturedBudget, capturedBalance);
+
+            long savedId = databaseHelper.saveDebitStepsChallenge(result);
+            android.util.Log.d("4PM_DEBIT", "Challenge saved, db id=" + savedId
+                    + ", result=" + result);
+
+            runOnUiThread(() -> show4PMDebitStepsDialog(result));
+        });
+    }
+
+    /**
+     * Shows the 4PM Debit / Steps Challenge result dialog.
+     *
+     * <p>Highlights the step target in a large, bold TextView and provides context
+     * on how the figure was derived. Includes an Accrual reminder when capped.</p>
+     *
+     * @param result The fully calculated {@link FourPMDebitResult} to display.
+     */
+    private void show4PMDebitStepsDialog(FourPMDebitResult result) {
+        if (result == null) {
+            android.util.Log.e("4PM_DEBIT", "show4PMDebitStepsDialog: result is null");
+            return;
+        }
+
+        String title  = result.hasChallengeNeeded
+                ? "Step Challenge — " + String.format("%,d", result.stepChallenge) + " steps"
+                : "No Step Challenge Today!";
+
+        String message = result.buildSummaryMessage();
+
+        android.util.Log.d("4PM_DEBIT", "Showing debit dialog: " + title);
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Got it!", (d, w) -> d.dismiss())
+                .setNegativeButton("Details", (d, w) -> {
+                    d.dismiss();
+                    show4PMDebitDetailsDialog(result);
+                })
+                .show();
+    }
+
+    /**
+     * Shows a detailed breakdown dialog for the Debit / Steps Challenge.
+     * Gives the user a clear view of every number in the algorithm.
+     */
+    private void show4PMDebitDetailsDialog(FourPMDebitResult result) {
+        StringBuilder detail = new StringBuilder();
+        detail.append("--- Inputs ---\n");
+        detail.append("Processing date:     ").append(result.processingDate).append("\n");
+        detail.append("Food calories:       ").append(result.totalFoodCalories).append(" cal\n");
+        detail.append("Daily budget:        ").append(result.dailyBudget).append(" cal\n");
+        detail.append("Countdown balance:   ").append(result.currentBalance).append("\n\n");
+
+        detail.append("--- Calculation ---\n");
+        detail.append("Kitty excess:        ").append(result.kittyExcess).append(" cal");
+        detail.append(result.kittyExcess > 0 ? " (over budget)\n" : " (within budget)\n");
+        detail.append("Balance penalty:     ").append(result.balancePenalty).append(" cal\n");
+        detail.append("Total excess:        ").append(result.excessCalories).append(" cal\n");
+        if (result.hasChallengeNeeded) {
+            detail.append("+ Bonus penalty:     ").append(FourPMDebitStepsProcessor.BONUS_PENALTY_CALORIES).append(" cal\n");
+            detail.append("Target:              ")
+                  .append(result.excessCalories + FourPMDebitStepsProcessor.BONUS_PENALTY_CALORIES)
+                  .append(" cal\n");
+            detail.append("Steps (target/0.089): ").append(String.format("%,d", result.stepChallenge));
+            if (result.isCapped) detail.append(" (CAPPED at 30 000)");
+            detail.append("\n");
+        }
+
+        detail.append("\n--- Formula ---\n");
+        detail.append("steps = (excess + 250) / 0.089\ncapped at 30 000 max.");
+
+        new AlertDialog.Builder(this)
+                .setTitle("Step Challenge Breakdown")
+                .setMessage(detail.toString())
+                .setPositiveButton("Close", (d, w) -> d.dismiss())
+                .show();
     }
 
     /**

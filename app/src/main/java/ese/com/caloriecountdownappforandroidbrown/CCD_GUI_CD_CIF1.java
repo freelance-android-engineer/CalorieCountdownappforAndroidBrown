@@ -108,6 +108,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     Toolbar toolbar;
     private PreferencesHelper preferencesHelper;
 
+    // Kitty deployment guard: prevents duplicate Kitty triggers within a single credit cycle.
+    // Reset to false at the start of each new credit operation; set true once Kitty fires.
+    private volatile boolean mKittyDeployed = false;
+    private final Handler mKittyHandler = new Handler(Looper.getMainLooper());
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -167,10 +172,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         mCreditButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-                //data_model_adapter.setSex(true);
+                // Double-click guard: disable immediately so a second tap cannot start a
+                // second Food_Diary_Sheet_CIF3 before the first one returns.
+                mCreditButton.setEnabled(false);
+                // Reset Kitty guard so this new credit operation can trigger Kitty exactly once.
+                mKittyDeployed = false;
                 StartFoodDiaryAidSheetCIF3();
-                //CancelAlarm();
             }
         });
 
@@ -749,6 +756,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         android.util.Log.d("ActivityResult", "[onActivityResult] requestcode=" + requestcode + ", resultcode=" + resultcode + ", data=" + (data != null ? "present" : "null"));
 
+        // Re-enable the credit button as soon as we return from the food diary,
+        // whether the user confirmed food items OR cancelled. This covers both paths
+        // and prevents the button staying disabled if the user backs out.
+        if (requestcode == REQUEST_CODE_GET_FOOD_ITEM && mCreditButton != null) {
+            mCreditButton.setEnabled(true);
+        }
+
         // Root cause fix: null data check moved OUTSIDE try-catch so it cannot be silently swallowed.
         // The original empty catch (Exception c) {} was swallowing the return statement's effect
         // when any unexpected exception occurred, allowing null data to reach code below.
@@ -1171,11 +1185,15 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             mBalance_text = CountdownFigure;
             long storeResult = StoreCountdownBalance(CountdownFigure);
             android.util.Log.d("CreditCalc", "[Countup] Balance stored, storeResult=" + storeResult + ", newBalanceText=" + CountdownFigure);
-            Kitty();
+            // Step 3/3: All credit steps confirmed (food logged, balance updated, DB stored)
+            // → trigger Kitty deployment exactly once via the guarded dispatcher.
+            triggerKittyDeployment("Countup-before4pm");
         } catch (NumberFormatException e) {
             android.util.Log.e("CreditCalc", "[Countup] NFE: " + e.getMessage(), e);
+            // Kitty must NOT fire on failure — do not call triggerKittyDeployment here.
         } catch (Exception e) {
             android.util.Log.e("CreditCalc", "[Countup] Exception: " + e.getMessage(), e);
+            // Kitty must NOT fire on failure — do not call triggerKittyDeployment here.
         }
     }
 
@@ -1219,6 +1237,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                         dialog.Showing("It's past 4:00 PM (Credit Day End).\n\n" +
                                 "Your food entry of " + credit + " calories has been added to tomorrow's first meal box.\n\n" +
                                 "Focus on completing your Step Challenge for today!");
+                        // Credit routed to next day successfully — trigger Kitty for today's status.
+                        triggerKittyDeployment("routeCredit-after4pm-found");
                         return;
                     }
                 }
@@ -1231,6 +1251,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         dialog.Showing("It's past 4:00 PM (Credit Day End).\n\n" +
                 "Your food entry of " + credit + " calories will be carried over to tomorrow.\n\n" +
                 "Focus on completing your Step Challenge for today!");
+        // Fallback: tomorrow's day not found in collection — still trigger Kitty for today.
+        triggerKittyDeployment("routeCredit-after4pm-fallback");
     }
 
     private void OpenAccount(int OpeningBalance) {
@@ -1543,6 +1565,43 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Gen_Pop.Delete_Database();
     }
 
+
+    /**
+     * Triggers Kitty deployment after a confirmed credit transaction.
+     *
+     * Call this ONLY after ALL three credit steps have succeeded:
+     *   1. Food journal recorded to local DB (Record_Food_Journal / DB store)
+     *   2. Balance updated on the UI TextView (Countup / routeCreditToNextDay)
+     *   3. Balance persisted to SQLite (StoreCountdownBalance)
+     *
+     * Safety guarantees:
+     *   - mKittyDeployed flag prevents a second call from the same credit cycle firing again.
+     *   - Handler.post() keeps Kitty on the main thread — non-blocking to the caller.
+     *   - mKittyDeployed is reset inside the finally block so the NEXT credit cycle is clean.
+     *   - Failure catch-blocks in Countup() deliberately do NOT call this method.
+     *
+     * @param context short tag identifying the code path (used for logcat only).
+     */
+    private void triggerKittyDeployment(final String context) {
+        if (mKittyDeployed) {
+            android.util.Log.d("KittyFlow", "[KittyDeploy] Duplicate trigger suppressed — context: " + context);
+            return;
+        }
+        mKittyDeployed = true;
+        android.util.Log.d("KittyFlow", "[KittyDeploy] Deploying Kitty — context: " + context);
+        mKittyHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Kitty();
+                    android.util.Log.d("KittyFlow", "[KittyDeploy] Kitty deployment complete — context: " + context);
+                } finally {
+                    // Reset flag so the next legitimate credit operation can trigger Kitty once.
+                    mKittyDeployed = false;
+                }
+            }
+        });
+    }
 
     private void Kitty() {
 

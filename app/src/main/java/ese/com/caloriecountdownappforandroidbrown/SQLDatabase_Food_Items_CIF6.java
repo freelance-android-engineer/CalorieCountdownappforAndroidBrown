@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 7; // v7: 4PM Food Notes Processing columns + log table
+    private static final int VERSION = 8; // v8: 4PM Debit/Steps Challenge result table
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -288,6 +288,20 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_LOG_TOTAL_POINTS = "total_points";
     private static final String COLUMN_LOG_NOTE_IDS_JSON = "note_ids_json";
     private static final String COLUMN_LOG_CREATED_AT = "created_at";
+
+    // 4PM Debit / Steps Challenge Table (added in DB version 8)
+    private static final String TABLE_FOURPM_DEBIT = "fourpm_debit_challenge";
+    private static final String COLUMN_DEBIT_ID              = "challenge_id";
+    private static final String COLUMN_DEBIT_DATE            = "challenge_date";       // TEXT UNIQUE "dd-MM-yyyy"
+    private static final String COLUMN_DEBIT_FOOD_CALORIES   = "total_food_calories";
+    private static final String COLUMN_DEBIT_DAILY_BUDGET    = "daily_budget";
+    private static final String COLUMN_DEBIT_BALANCE         = "countdown_balance";
+    private static final String COLUMN_DEBIT_KITTY_EXCESS    = "kitty_excess";
+    private static final String COLUMN_DEBIT_BALANCE_PENALTY = "balance_penalty";
+    private static final String COLUMN_DEBIT_EXCESS_CALORIES = "excess_calories";
+    private static final String COLUMN_DEBIT_STEP_CHALLENGE  = "step_challenge";
+    private static final String COLUMN_DEBIT_IS_CAPPED       = "is_capped";            // 0/1
+    private static final String COLUMN_DEBIT_CREATED_AT      = "created_at";
 
     //    Memo Table (FIFO max 10 entries)
     private static final String TABLE_MEMO = "memo";
@@ -901,6 +915,25 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.d("Table creation", "Food notes collection table creation in catch block: " + e.getMessage());
         }
 
+        // Create 4PM Debit / Steps Challenge Table (v8)
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOURPM_DEBIT + " ("
+                    + COLUMN_DEBIT_ID              + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_DEBIT_DATE            + " TEXT UNIQUE, "
+                    + COLUMN_DEBIT_FOOD_CALORIES   + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_DAILY_BUDGET    + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_BALANCE         + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_KITTY_EXCESS    + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_BALANCE_PENALTY + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_EXCESS_CALORIES + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_STEP_CHALLENGE  + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_IS_CAPPED       + " INTEGER DEFAULT 0, "
+                    + COLUMN_DEBIT_CREATED_AT      + " TEXT DEFAULT '')");
+            android.util.Log.d("Table creation", "created " + TABLE_FOURPM_DEBIT);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_FOURPM_DEBIT + " creation: " + e.getMessage());
+        }
+
     }
 
     @Override
@@ -1024,6 +1057,27 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "Created fourpm_processing_log table");
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", "fourpm_processing_log already exists: " + e.getMessage());
+            }
+        }
+
+        // v8: 4PM Debit / Steps Challenge result table
+        if (oldVersion < 8) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOURPM_DEBIT + " ("
+                        + COLUMN_DEBIT_ID              + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_DEBIT_DATE            + " TEXT UNIQUE, "
+                        + COLUMN_DEBIT_FOOD_CALORIES   + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_DAILY_BUDGET    + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_BALANCE         + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_KITTY_EXCESS    + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_BALANCE_PENALTY + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_EXCESS_CALORIES + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_STEP_CHALLENGE  + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_IS_CAPPED       + " INTEGER DEFAULT 0, "
+                        + COLUMN_DEBIT_CREATED_AT      + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v8: created " + TABLE_FOURPM_DEBIT);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_FOURPM_DEBIT + " already exists: " + e.getMessage());
             }
         }
 
@@ -3086,6 +3140,36 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
 
+    /**
+     * Updates only the calories column for a food note by ID.
+     * Used by the AI save-back flow so other fields (date, food name, quantity) are not touched.
+     *
+     * @param noteId   The note_id to update.
+     * @param calories New calorie value to store.
+     * @return Number of rows affected (1 on success, 0 if not found).
+     */
+    public int updateFoodNoteCaloriesOnly(int noteId, int calories) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, String.valueOf(calories));
+            int rows = db.update(
+                    TABLE_QUICK_FOOD_NOTE,
+                    values,
+                    COLUMN_QUICK_FOOD_NOTE_ID + " = ?",
+                    new String[]{String.valueOf(noteId)});
+            android.util.Log.d("FoodNoteDB", "updateFoodNoteCaloriesOnly: id=" + noteId
+                    + ", cal=" + calories + ", rows=" + rows);
+            return rows;
+        } catch (Exception e) {
+            android.util.Log.e("FoodNoteDB", "Error updating calories for id=" + noteId
+                    + ": " + e.getMessage());
+            return 0;
+        } finally {
+            db.close();
+        }
+    }
+
     // DBHelper
     public void markAllAsTransferred() {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -4054,6 +4138,124 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             e.printStackTrace();
         }
         return id;
+    }
+
+    // ==================================================================================
+    // 4PM DEBIT / STEPS CHALLENGE — DB ACCESS LAYER  (added in v8)
+    // ==================================================================================
+
+    /**
+     * Persist a {@link FourPMDebitResult} to the {@code fourpm_debit_challenge} table.
+     *
+     * <p>Uses {@code CONFLICT_IGNORE} so a duplicate date silently returns {@code -1}
+     * instead of throwing — identical behaviour to {@link #insert4PMProcessingResult}.
+     * The caller should check for {@code -1} and warn if needed, but never crash.</p>
+     *
+     * @param result The fully calculated challenge result (never null).
+     * @return Inserted row ID, or {@code -1} on duplicate date or any error.
+     */
+    public long saveDebitStepsChallenge(FourPMDebitResult result) {
+        if (result == null) {
+            android.util.Log.e("4PM_DEBIT_DB", "saveDebitStepsChallenge: result is null — skipping");
+            return -1;
+        }
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_DEBIT_DATE,            result.processingDate);
+            values.put(COLUMN_DEBIT_FOOD_CALORIES,   result.totalFoodCalories);
+            values.put(COLUMN_DEBIT_DAILY_BUDGET,    result.dailyBudget);
+            values.put(COLUMN_DEBIT_BALANCE,         result.currentBalance);
+            values.put(COLUMN_DEBIT_KITTY_EXCESS,    result.kittyExcess);
+            values.put(COLUMN_DEBIT_BALANCE_PENALTY, result.balancePenalty);
+            values.put(COLUMN_DEBIT_EXCESS_CALORIES, result.excessCalories);
+            values.put(COLUMN_DEBIT_STEP_CHALLENGE,  result.stepChallenge);
+            values.put(COLUMN_DEBIT_IS_CAPPED,       result.isCapped ? 1 : 0);
+            values.put(COLUMN_DEBIT_CREATED_AT,
+                    new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+                            .format(new Date()));
+
+            id = db.insertWithOnConflict(TABLE_FOURPM_DEBIT, null, values,
+                    SQLiteDatabase.CONFLICT_IGNORE);
+
+            android.util.Log.d("4PM_DEBIT_DB", "saveDebitStepsChallenge: date=" + result.processingDate
+                    + ", steps=" + result.stepChallenge + ", id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DEBIT_DB", "Error saving debit challenge: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return id;
+    }
+
+    /**
+     * Check whether a Debit / Steps Challenge has already been saved for the given date.
+     *
+     * <p>Used as an idempotent guard — prevents regenerating and re-showing the challenge
+     * if the user taps the 4PM button again after confirming.</p>
+     *
+     * @param dateStr Date in {@code dd-MM-yyyy} format.
+     * @return {@code true} if a row with that date already exists in the table.
+     */
+    public boolean isDebitChallengeProcessedForDate(String dateStr) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DEBIT_ID + " FROM " + TABLE_FOURPM_DEBIT
+                            + " WHERE " + COLUMN_DEBIT_DATE + " = ?",
+                    new String[]{dateStr});
+            boolean exists = (cursor != null && cursor.getCount() > 0);
+            if (cursor != null) cursor.close();
+            android.util.Log.d("4PM_DEBIT_DB", "isDebitChallengeProcessedForDate("
+                    + dateStr + ") = " + exists);
+            return exists;
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DEBIT_DB",
+                    "Error checking debit challenge date: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Retrieve the most recently saved Debit / Steps Challenge, or {@code null} if none exists.
+     *
+     * <p>Used to display the saved challenge when the user opens the 4PM screen after the
+     * workflow has already run for today.</p>
+     *
+     * @return The latest {@link FourPMDebitResult}, or {@code null} if the table is empty.
+     */
+    public FourPMDebitResult getLastDebitChallenge() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_FOURPM_DEBIT
+                            + " ORDER BY " + COLUMN_DEBIT_ID + " DESC LIMIT 1",
+                    null);
+            if (cursor == null || !cursor.moveToFirst()) {
+                if (cursor != null) cursor.close();
+                return null;
+            }
+
+            FourPMDebitResult result = new FourPMDebitResult(
+                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_DATE)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_FOOD_CALORIES)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_DAILY_BUDGET)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_BALANCE)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_KITTY_EXCESS)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_BALANCE_PENALTY)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_EXCESS_CALORIES)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_STEP_CHALLENGE)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_IS_CAPPED)) == 1,
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DEBIT_STEP_CHALLENGE)) > 0
+            );
+            cursor.close();
+            android.util.Log.d("4PM_DEBIT_DB", "getLastDebitChallenge → " + result);
+            return result;
+        } catch (Exception e) {
+            android.util.Log.e("4PM_DEBIT_DB", "Error reading last debit challenge: " + e.getMessage());
+            return null;
+        }
     }
 }
 

@@ -200,7 +200,7 @@
 
         </LinearLayout>
 
-        <!-- Save and Clear Buttons Row -->
+        <!-- Save, Clear, and AI Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -215,7 +215,7 @@
                 android:layout_weight="1"
                 android:text="Save"
                 android:textSize="14sp"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="4dp" />
 
             <Button
                 android:id="@+id/btnMemoClear"
@@ -223,6 +223,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Clear"
+                android:textSize="14sp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnMemoAi"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="AI"
                 android:textSize="14sp" />
 
         </LinearLayout>
