@@ -2359,6 +2359,67 @@
         <item>Weight training, free weights;0.039</item>
         <item>Whitewater: rafting, kayaking;0.04</item>
         <item>Wrestling;0.045</item>
+        <!-- ── Gym / Strength Training (reps-based, use Reps field instead of Minutes) ── -->
+        <item>Gym: Bench Press (per rep);0.002</item>
+        <item>Gym: Squat / Back Squat (per rep);0.0025</item>
+        <item>Gym: Deadlift (per rep);0.003</item>
+        <item>Gym: Leg Press (per rep);0.002</item>
+        <item>Gym: Leg Extension (per rep);0.0015</item>
+        <item>Gym: Leg Curl (per rep);0.0015</item>
+        <item>Gym: Leg Raise (per rep);0.0012</item>
+        <item>Gym: Calf Raise (per rep);0.0008</item>
+        <item>Gym: Barbell Row (per rep);0.0022</item>
+        <item>Gym: Seated Row (per rep);0.0018</item>
+        <item>Gym: Lat Pulldown (per rep);0.002</item>
+        <item>Gym: Pull-up / Chin-up (per rep);0.003</item>
+        <item>Gym: Overhead Shoulder Press (per rep);0.002</item>
+        <item>Gym: Lateral Raise (per rep);0.001</item>
+        <item>Gym: Front Raise (per rep);0.001</item>
+        <item>Gym: Arnold Press (per rep);0.002</item>
+        <item>Gym: Bicep Curl (per rep);0.0015</item>
+        <item>Gym: Hammer Curl (per rep);0.0015</item>
+        <item>Gym: Tricep Pushdown (per rep);0.0012</item>
+        <item>Gym: Skull Crusher (per rep);0.0015</item>
+        <item>Gym: Dip (per rep);0.0025</item>
+        <item>Gym: Push-up (per rep);0.0018</item>
+        <item>Gym: Incline Bench Press (per rep);0.002</item>
+        <item>Gym: Decline Bench Press (per rep);0.0018</item>
+        <item>Gym: Dumbbell Fly (per rep);0.0015</item>
+        <item>Gym: Cable Crossover (per rep);0.0012</item>
+        <item>Gym: Hip Thrust / Glute Bridge (per rep);0.002</item>
+        <item>Gym: Romanian Deadlift (per rep);0.0025</item>
+        <item>Gym: Sumo Deadlift (per rep);0.0028</item>
+        <item>Gym: Lunge (per rep);0.002</item>
+        <item>Gym: Reverse Lunge (per rep);0.002</item>
+        <item>Gym: Step-up (per rep);0.0022</item>
+        <item>Gym: Box Jump (per rep);0.003</item>
+        <item>Gym: Burpee (per rep);0.005</item>
+        <item>Gym: Mountain Climber (per rep);0.003</item>
+        <item>Gym: Russian Twist (per rep);0.0012</item>
+        <item>Gym: Plank Row (per rep);0.002</item>
+        <item>Gym: Sit-up (per rep);0.0015</item>
+        <item>Gym: Crunch (per rep);0.0012</item>
+        <item>Gym: Ab Wheel Rollout (per rep);0.003</item>
+        <item>Gym: Face Pull (per rep);0.001</item>
+        <item>Gym: Upright Row (per rep);0.0018</item>
+        <item>Gym: Shrug (per rep);0.001</item>
+        <item>Gym: Good Morning (per rep);0.002</item>
+        <item>Gym: Hack Squat (per rep);0.0022</item>
+        <item>Gym: Bulgarian Split Squat (per rep);0.0025</item>
+        <item>Gym: Goblet Squat (per rep);0.0022</item>
+        <item>Gym: Kettlebell Swing (per rep);0.004</item>
+        <item>Gym: Kettlebell Press (per rep);0.0018</item>
+        <item>Gym: Sled Push (per rep);0.005</item>
+        <item>Gym: Battle Ropes (per rep / wave);0.006</item>
+        <item>Gym: Rowing Machine (per stroke);0.003</item>
+        <item>Gym: Assault Bike (per rev);0.004</item>
+        <item>Gym: Jump Squat (per rep);0.003</item>
+        <item>Gym: Push Press (per rep);0.0022</item>
+        <item>Gym: Power Clean (per rep);0.003</item>
+        <item>Gym: Hang Clean (per rep);0.0028</item>
+        <item>Gym: Snatch (per rep);0.003</item>
+        <item>Gym: Tire Flip (per rep);0.008</item>
+        <item>Gym: Farmers Walk (per metre);0.002</item>
     </string-array>
 
 

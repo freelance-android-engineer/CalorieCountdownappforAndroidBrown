@@ -332,6 +332,15 @@
                 android:backgroundTint="@color/colorPrimary"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnCheckBeforeYouEat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Check Before You Eat"
+                android:textStyle="bold"
+                android:backgroundTint="#FF6F00"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
 

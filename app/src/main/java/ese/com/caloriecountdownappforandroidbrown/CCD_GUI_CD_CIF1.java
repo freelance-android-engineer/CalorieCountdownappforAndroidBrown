@@ -97,6 +97,15 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
 
     public static CountdownToZeroDayCiF1004 mDaysToZero;
+
+    /**
+     * mDayZero — flat list of DayCiF1005 objects spanning from today to estimated zero date.
+     * Rule: numberOfDays = openingBalance / 25  (each day targets 25-point minimum countdown).
+     * Populated by buildMDayZeroList() when opening balance is available.
+     * Use mDaysToZero for the richer CountdownToZeroDayCiF1004 collection.
+     */
+    public static java.util.List<DayCiF1005> mDayZero = new java.util.ArrayList<>();
+
     private int mBalance;
     private java.util.Date mBalanceLastUpdated;
 
@@ -982,18 +991,106 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
     }
 
-    private void Store_Dayend2()
-    {
-        //Algorithm Engineering Noir:
-        //Step One
-        //Android
-        //You need to first check if the current time is 4pm or past 4pm.
-        //If it is the activate this Call and do something, if not, do nothing.
-        //If it is past 4pm and the boolean variable  hasDayEndAlreadyBeenStoredandCFWD4theDay is not true
-        //then store the current balance in SQLite (just once) has to be in DayEnd2 Table.
-        //then check somet the initial the next day DayType and store relevatne variable in there and in
-        //current day DayType in the overall list collecton of Dayz in CiF001.
-        //Remember only deal with DayEnd2 Table in SQLite to get Kitty() working well and properely.
+    /** Public entry point for DailyAlarmReceiver to call when the 9:59 PM alarm fires. */
+    public void Store_Dayend2_Public() {
+        Store_Dayend2();
+    }
+
+    /**
+     * 9:59 PM Midnight Scrape — Store Day End 2 Snapshot.
+     *
+     * Fires after the 9:59 PM alarm (and also after every debit update if past 4 PM).
+     * Idempotent: stores only ONCE per calendar day using isDayEnd2StoredForDate() guard.
+     *
+     * Captures:
+     *   - Current countdown balance
+     *   - Gender-based daily calorie budget (2000F / 2500M)
+     *   - Total food note calories consumed today (non-transferred notes)
+     *   - Kitty = budget - food_calories
+     *   - Estimated Zero Date (balance / 250 days from today)
+     *
+     * Stores result in dayend_balance2 SQLite table via storeDayEnd2Snapshot().
+     */
+    private void Store_Dayend2() {
+        try {
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+
+            // Only run at or after 4 PM (16:00)
+            if (hour < 16) {
+                android.util.Log.d("DayEnd2", "[Store_Dayend2] Before 4 PM — skipping.");
+                return;
+            }
+
+            String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                    .format(now.getTime());
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(this);
+
+            // Idempotent guard: only snapshot once per day
+            if (db.isDayEnd2StoredForDate(today)) {
+                android.util.Log.d("DayEnd2", "[Store_Dayend2] Already stored for " + today + " — skipping.");
+                return;
+            }
+
+            int currentBalance = Get_currentBalanceInt();
+
+            // Gender-based daily calorie budget
+            SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+            String gender = prefs.getString("user_gender", "male");
+            int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+
+            // Today's food note calories (non-transferred)
+            int todayFoodCalories = db.getTotalFoodNoteCaloriesToday();
+            int kittyValue = dailyBudget - todayFoodCalories;
+
+            // Estimated zero date at 250 cal/day countdown rate
+            int daysToZero = (currentBalance > 0) ? (int) Math.ceil((double) currentBalance / 250.0) : 0;
+            Calendar zeroDate = Calendar.getInstance();
+            zeroDate.add(Calendar.DAY_OF_YEAR, daysToZero);
+            String estimatedZeroDate = new java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                    .format(zeroDate.getTime());
+
+            // Store snapshot locally
+            db.storeDayEnd2Snapshot(today, currentBalance, dailyBudget, todayFoodCalories, kittyValue, estimatedZeroDate);
+
+            android.util.Log.d("DayEnd2", "[Store_Dayend2] Snapshot stored:"
+                    + " date=" + today
+                    + " balance=" + currentBalance
+                    + " budget=" + dailyBudget
+                    + " food=" + todayFoodCalories
+                    + " kitty=" + kittyValue
+                    + " zeroDate=" + estimatedZeroDate);
+
+            // Azure backend sync — fire-and-forget
+            final String snapDate = today;
+            final int snapBalance = currentBalance;
+            final int snapBudget = dailyBudget;
+            final int snapFood = todayFoodCalories;
+            final int snapKitty = kittyValue;
+            final String snapZeroDate = estimatedZeroDate;
+            new Thread(() -> {
+                try {
+                    SharedPreferences prefs2 = getSharedPreferences("Calorie_Countdown", 0);
+                    String clientName = prefs2.getString("client_name", "Client");
+                    if (clientName == null || clientName.isEmpty()) clientName = "Client";
+                    SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(getApplicationContext());
+                    apiClient.syncDayEnd(clientName, snapDate, snapBalance, snapBudget,
+                            snapFood, snapKitty, snapZeroDate, new ApiResultCallback() {
+                        @Override public void onSuccess(String response) {
+                            android.util.Log.d("DayEnd2", "[syncDayEnd] OK date=" + snapDate + " balance=" + snapBalance);
+                        }
+                        @Override public void onFailure() {
+                            android.util.Log.w("DayEnd2", "[syncDayEnd] Backend sync failed — local DB is authoritative.");
+                        }
+                    });
+                } catch (Exception ex) {
+                    android.util.Log.w("DayEnd2", "[syncDayEnd] Exception during sync: " + ex.getMessage());
+                }
+            }).start();
+
+        } catch (Exception e) {
+            android.util.Log.e("DayEnd2", "[Store_Dayend2] Exception: " + e.getMessage(), e);
+        }
     }
 
 
@@ -1335,6 +1432,31 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             long storeResult = data_model_adapter.StoreBalance(cleanBalance);
             android.util.Log.d("BalanceStore", "[StoreCountdownBalance] stored balance=" + cleanBalance
                     + ", dayEnd=" + (balanceInt - 100) + ", storeResult=" + storeResult + ", dayEndResult=" + dayEndResult);
+
+            // Azure backend sync — fire-and-forget, never blocks UI, failures logged only
+            final int finalBalanceInt = balanceInt;
+            final String finalBalance = cleanBalance;
+            new Thread(() -> {
+                try {
+                    SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+                    String clientName = prefs.getString("client_name", "Client");
+                    if (clientName == null || clientName.isEmpty()) clientName = "Client";
+                    String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                            .format(new java.util.Date());
+                    SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(getApplicationContext());
+                    apiClient.syncBalance(clientName, today, finalBalanceInt, "BALANCE_UPDATE", new ApiResultCallback() {
+                        @Override public void onSuccess(String response) {
+                            android.util.Log.d("BalanceSync", "[syncBalance] OK balance=" + finalBalance);
+                        }
+                        @Override public void onFailure() {
+                            android.util.Log.w("BalanceSync", "[syncBalance] Backend sync failed — local DB is authoritative.");
+                        }
+                    });
+                } catch (Exception ex) {
+                    android.util.Log.w("BalanceSync", "[syncBalance] Exception during sync: " + ex.getMessage());
+                }
+            }).start();
+
             return storeResult;
         } catch (NumberFormatException e) {
             android.util.Log.e("BalanceStore", "[StoreCountdownBalance] NFE parsing balance='" + Balance + "': " + e.getMessage(), e);
@@ -2093,7 +2215,46 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
     {
         mDaysToZero = new CountdownToZeroDayCiF1004(IN.getStartCountdown(), IN);
-        //mDaysToZero.setupType();
+        // Also build the flat mDayZero list (Opening Balance / 25 = number of days)
+        buildMDayZeroList(IN.getStartCountdown());
+    }
+
+    /**
+     * Build the mDayZero flat list of DayCiF1005 objects.
+     *
+     * Rule (per client spec): numberOfDays = openingBalance / 25
+     * Example: 100,000 / 25 = 4,000 days
+     *
+     * Each DayCiF1005 represents one future day from today, counting down by 25 points/day.
+     * The last object's date is the estimated zero-balance date.
+     *
+     * @param openingBalance the countdown starting balance
+     */
+    public static void buildMDayZeroList(int openingBalance) {
+        mDayZero = new java.util.ArrayList<>();
+        if (openingBalance <= 0) {
+            android.util.Log.w("mDayZero", "[buildMDayZeroList] openingBalance <= 0, list empty.");
+            return;
+        }
+
+        int numberOfDays = openingBalance / 25; // 100000 / 25 = 4000 days
+        android.util.Log.d("mDayZero", "[buildMDayZeroList] openingBalance=" + openingBalance
+                + " → numberOfDays=" + numberOfDays);
+
+        java.time.LocalDateTime date = java.time.LocalDateTime.now();
+        int balance = openingBalance;
+
+        for (int i = 0; i < numberOfDays; i++) {
+            int endBalance = Math.max(0, balance - 25);
+            DayCiF1005 day = new DayCiF1005(i, balance, openingBalance, endBalance, date, String.valueOf(balance - 25), "0");
+            mDayZero.add(day);
+            balance = endBalance;
+            date = date.plusDays(1);
+            if (balance == 0) break; // Stop early if we've reached zero
+        }
+
+        android.util.Log.d("mDayZero", "[buildMDayZeroList] Built " + mDayZero.size() + " DayCiF1005 entries."
+                + " Last date: " + (mDayZero.isEmpty() ? "N/A" : mDayZero.get(mDayZero.size() - 1).getDay()));
     }
 
     private void ResetAlarmTimer(ObjectWithAllTheTimesCIF10 obj)
@@ -2415,6 +2576,14 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      * @param previousBalance the balance before the debit was applied
      * @param newBalance      the balance after the debit was applied
      */
+    /**
+     * Shows the full Countdown Report after a debit update.
+     * Format:
+     *   Previous Balance / New Balance / Net Gain or Loss
+     *   Kitty Value (gender-based budget - today's food calories)
+     *   Estimated Zero Date
+     *   Encouragement text
+     */
     private void showCountdownReport(int previousBalance, int newBalance) {
         // Get client name from preferences
         String clientName = "Client";
@@ -2424,36 +2593,69 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             clientName = name;
         }
 
-        // Get today's date formatted
+        // Today's date
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String dateStr = now.getDayOfMonth() + " " +
                 now.getMonth().toString().substring(0, 1) +
                 now.getMonth().toString().substring(1).toLowerCase() +
                 " " + now.getYear();
 
+        // Kitty value: gender-based budget - food calories consumed today
+        String gender = pref.getString("user_gender", "male");
+        int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+        int todayFoodCals = 0;
+        try {
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(this);
+            todayFoodCals = db.getTotalFoodNoteCaloriesToday();
+        } catch (Exception e) {
+            android.util.Log.e("ReportKitty", "Failed to get today food cals: " + e.getMessage());
+        }
+        int kittyValue = dailyBudget - todayFoodCals;
+
+        // Estimated zero date at 250-point/day countdown rate
+        int daysToZero = (newBalance > 0) ? (int) Math.ceil((double) newBalance / 250.0) : 0;
+        Calendar zeroCal = Calendar.getInstance();
+        zeroCal.add(Calendar.DAY_OF_YEAR, daysToZero);
+        String estimatedZeroDate = new java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                .format(zeroCal.getTime());
+
         int difference = previousBalance - newBalance;
 
         StringBuilder report = new StringBuilder();
-        report.append("Countdown Report\n\n");
+        report.append("═══ Countdown Report ═══\n\n");
         report.append("Date: ").append(dateStr).append("\n\n");
-        report.append("Previous Day Balance: ").append(new RoundingCIF13().IntToString(previousBalance)).append(" Cr\n");
-        report.append("New Day End Balance: ").append(new RoundingCIF13().IntToString(newBalance)).append(" Cr\n\n");
+        report.append("Previous Balance:  ").append(new RoundingCIF13().IntToString(previousBalance)).append(" Cr\n");
+        report.append("New Balance:       ").append(new RoundingCIF13().IntToString(newBalance)).append(" Cr\n");
 
         if (difference > 0) {
-            // Successful countdown
-            report.append("Countdown = ").append(new RoundingCIF13().IntToString(difference)).append(" Points \uD83D\uDD3B\n\n");
-            report.append("Well done, ").append(clientName).append("! Great job today! Keep up the momentum!");
+            report.append("Net Countdown:     -").append(new RoundingCIF13().IntToString(difference)).append(" pts \uD83D\uDD3B\n");
         } else if (difference == 0) {
-            report.append("No change today - you held your ground.\n\n");
-            report.append("Tomorrow is a new opportunity to countdown, ").append(clientName).append("!");
+            report.append("Net Countdown:     0 pts (held ground)\n");
         } else {
-            // Countup - bad day
-            int countup = Math.abs(difference);
-            report.append("Countdown (Countup) = \n");
-            report.append(new RoundingCIF13().IntToString(countup)).append(" Points \uD83D\uDD3A\n\n");
-            report.append("Dear ").append(clientName).append(",\n");
-            report.append("Don't be discouraged, tomorrow is a brand new day and a brand new chance to get back on track, ");
-            report.append("it's a marathon, keep going! You can do it!!!\uD83D\uDE4C\uD83D\uDE4C");
+            report.append("Net Countup:       +").append(new RoundingCIF13().IntToString(Math.abs(difference))).append(" pts \uD83D\uDD3A\n");
+        }
+
+        report.append("\n── Kitty Report ──\n");
+        report.append("Daily Budget:      ").append(new RoundingCIF13().IntToString(dailyBudget)).append(" cal\n");
+        report.append("Food Consumed:     ").append(new RoundingCIF13().IntToString(todayFoodCals)).append(" cal\n");
+        if (kittyValue >= 0) {
+            report.append("Kitty Remaining:   ").append(new RoundingCIF13().IntToString(kittyValue)).append(" cal left\n");
+        } else {
+            report.append("Kitty Deficit:     ").append(new RoundingCIF13().IntToString(Math.abs(kittyValue))).append(" cal over budget\n");
+        }
+
+        report.append("\n── Zero Date ──\n");
+        report.append("Estimated Zero:    ").append(estimatedZeroDate);
+        report.append(" (").append(daysToZero).append(" days)\n");
+
+        report.append("\n");
+        if (difference > 0) {
+            report.append("Well done, ").append(clientName).append("! Great countdown today! Keep up the momentum!");
+        } else if (difference == 0) {
+            report.append("You held your ground today, ").append(clientName).append(". Tomorrow is a new opportunity!");
+        } else {
+            report.append("Don't be discouraged, ").append(clientName)
+                    .append("! Tomorrow is a brand new day — it's a marathon, keep going! \uD83D\uDE4C");
         }
 
         Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();

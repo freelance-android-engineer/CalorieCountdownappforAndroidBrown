@@ -86,20 +86,48 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         mDebit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EditText editText63 = (EditText) findViewById(R.id.edit_text63);
-                EditText editText64 = (EditText) findViewById(R.id.edit_text64);
-                Spinner spinner = (Spinner) findViewById(R.id.spincity);
-                mCountdown = new Fitness_Item_CIF5();
-                mCountdown.setmUserWeightlbs(new RoundingCIF13().StringToFloat(editText63.getText().toString()));
-                mCountdown.setmMinutesPerformed((int) (new RoundingCIF13().StringToFloat(editText64.getText().toString())));
-                String s = spinner.getSelectedItem().toString();
-                mCountdown.ConvertSpinnerItem(s);
+                try {
+                    EditText editText63 = (EditText) findViewById(R.id.edit_text63);
+                    EditText editText64 = (EditText) findViewById(R.id.edit_text64);
+                    Spinner spinner = (Spinner) findViewById(R.id.spincity);
 
-                //Algorithm Engineering
-                //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
-                //remember to implement those double try bug fixes.
-                StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
-                BackToParent(GetCountdownDebit(mCountdown));
+                    // Guard: weight field
+                    if (editText63 == null || editText63.getText().toString().trim().isEmpty()) {
+                        Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                                "Please enter your weight in lbs.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    // Guard: minutes/reps field
+                    if (editText64 == null || editText64.getText().toString().trim().isEmpty()) {
+                        Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                                "Please enter minutes or reps performed.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    // Guard: spinner selection
+                    if (spinner == null || spinner.getSelectedItem() == null) {
+                        Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                                "Please select an activity.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    mCountdown = new Fitness_Item_CIF5();
+                    mCountdown.setmUserWeightlbs(new RoundingCIF13().StringToFloat(editText63.getText().toString().trim()));
+                    mCountdown.setmMinutesPerformed((int) (new RoundingCIF13().StringToFloat(editText64.getText().toString().trim())));
+                    String s = spinner.getSelectedItem().toString();
+                    mCountdown.ConvertSpinnerItem(s);
+
+                    StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                    BackToParent(GetCountdownDebit(mCountdown));
+
+                } catch (NumberFormatException e) {
+                    android.util.Log.e("DebitButton", "NFE parsing debit fields: " + e.getMessage(), e);
+                    Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                            "Invalid number entered. Please check weight and minutes fields.", Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    android.util.Log.e("DebitButton", "Debit button exception: " + e.getMessage(), e);
+                    Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
+                            "Error processing debit: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -307,11 +335,82 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         finish();
     }
 
+    /**
+     * Store a day-end snapshot at the moment the user taps Debit (if past 4 PM).
+     * Delegates to SQLDatabase's storeDayEnd2Snapshot — idempotent (once per day).
+     *
+     * @param fourPMDayEndBalance the current countdown balance to snapshot
+     */
     private void StoreDayEnd2(int fourPMDayEndBalance) {
-        //Algorithm Engineering Noir:
-        //Insert Implementation Code Logic to Store Day End2 Balance here, if past 16:00
-        //remember to implement those double try bug fixes.
+        try {
+            android.app.Application app = getApplication();
+            java.util.Calendar now = java.util.Calendar.getInstance();
+            int hour = now.get(java.util.Calendar.HOUR_OF_DAY);
 
+            // Only persist if it's 4 PM or later
+            if (hour < 16) {
+                android.util.Log.d("StoreDayEnd2", "Before 4 PM — skipping.");
+                return;
+            }
+
+            String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                    .format(now.getTime());
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(app);
+
+            if (db.isDayEnd2StoredForDate(today)) {
+                android.util.Log.d("StoreDayEnd2", "Already stored for " + today + " — skipping.");
+                return;
+            }
+
+            android.content.SharedPreferences prefs = app.getSharedPreferences("Calorie_Countdown", 0);
+            String gender = prefs.getString("user_gender", "male");
+            int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+            int todayFoodCals = db.getTotalFoodNoteCaloriesToday();
+            int kittyValue = dailyBudget - todayFoodCals;
+
+            int daysToZero = (fourPMDayEndBalance > 0)
+                    ? (int) Math.ceil((double) fourPMDayEndBalance / 250.0) : 0;
+            java.util.Calendar zeroDate = java.util.Calendar.getInstance();
+            zeroDate.add(java.util.Calendar.DAY_OF_YEAR, daysToZero);
+            String estimatedZeroDate = new java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                    .format(zeroDate.getTime());
+
+            db.storeDayEnd2Snapshot(today, fourPMDayEndBalance, dailyBudget,
+                    todayFoodCals, kittyValue, estimatedZeroDate);
+
+            android.util.Log.d("StoreDayEnd2", "Snapshot stored: balance=" + fourPMDayEndBalance
+                    + " kitty=" + kittyValue + " zeroDate=" + estimatedZeroDate);
+
+            // Azure backend sync — fire-and-forget, never blocks the Debit button flow
+            final String snapDate = today;
+            final int snapBalance = fourPMDayEndBalance;
+            final int snapBudget = dailyBudget;
+            final int snapFood = todayFoodCals;
+            final int snapKitty = kittyValue;
+            final String snapZeroDate = estimatedZeroDate;
+            final android.content.Context appCtx = app.getApplicationContext();
+            new Thread(() -> {
+                try {
+                    String clientName = prefs.getString("client_name", "Client");
+                    if (clientName == null || clientName.isEmpty()) clientName = "Client";
+                    SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(appCtx);
+                    apiClient.syncDayEnd(clientName, snapDate, snapBalance, snapBudget,
+                            snapFood, snapKitty, snapZeroDate, new ApiResultCallback() {
+                        @Override public void onSuccess(String response) {
+                            android.util.Log.d("StoreDayEnd2", "[syncDayEnd] OK date=" + snapDate);
+                        }
+                        @Override public void onFailure() {
+                            android.util.Log.w("StoreDayEnd2", "[syncDayEnd] Backend sync failed — local DB is authoritative.");
+                        }
+                    });
+                } catch (Exception ex) {
+                    android.util.Log.w("StoreDayEnd2", "[syncDayEnd] Exception: " + ex.getMessage());
+                }
+            }).start();
+
+        } catch (Exception e) {
+            android.util.Log.e("StoreDayEnd2", "Exception: " + e.getMessage(), e);
+        }
     }
 
     private void showWorkoutDialog() {

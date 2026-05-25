@@ -2972,6 +2972,90 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
+    /**
+     * Returns true if a dayend_balance2 snapshot has already been stored for the given date.
+     * Used as idempotency guard inside Store_Dayend2() so we only snapshot once per day.
+     *
+     * @param date "dd-MM-yyyy" formatted date string
+     */
+    public boolean isDayEnd2StoredForDate(String date) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM " + TABLE_DAYEND_BALANCE2
+                            + " WHERE " + COLUMN_DAYEND_BALANCE_DATE2 + " = ?",
+                    new String[]{date});
+            if (cursor.moveToFirst()) {
+                int count = cursor.getInt(0);
+                cursor.close();
+                return count > 0;
+            }
+            if (cursor != null) cursor.close();
+        } catch (Exception e) {
+            Log.e(TAG, "[isDayEnd2StoredForDate] " + e.getMessage(), e);
+        }
+        return false;
+    }
+
+    /**
+     * Store a complete 9:59 PM day-end snapshot in dayend_balance2.
+     * Captures balance, daily budget, food calories consumed, kitty value, and estimated zero date.
+     * The date is stored as the primary "balance_dayend_budget" composite key to remain
+     * compatible with the existing 3-column table schema.
+     *
+     * @param date             "dd-MM-yyyy" formatted date string
+     * @param balance          countdown balance at day-end
+     * @param dailyBudget      gender-based calorie budget (2000F / 2500M)
+     * @param todayFoodCals    total calories consumed today (food notes)
+     * @param kittyValue       dailyBudget - todayFoodCals
+     * @param estimatedZeroDate human-readable estimated zero date
+     */
+    public void storeDayEnd2Snapshot(String date, int balance, int dailyBudget,
+                                     int todayFoodCals, int kittyValue, String estimatedZeroDate) {
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_DAYEND_BALANCE_DATE2, date);
+            // Repurpose budget column: store JSON-style summary string
+            String budgetSummary = "budget=" + dailyBudget
+                    + "|food=" + todayFoodCals
+                    + "|kitty=" + kittyValue
+                    + "|zeroDate=" + estimatedZeroDate;
+            cv.put(COLUMN_DAYEND_BALANCE_BALANCE_BUDGET, budgetSummary);
+            cv.put(COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL, String.valueOf(balance));
+            long res = getWritableDatabase().insert(TABLE_DAYEND_BALANCE2, null, cv);
+            Log.d(TAG, "[storeDayEnd2Snapshot] Stored date=" + date
+                    + " balance=" + balance + " kitty=" + kittyValue
+                    + " zeroDate=" + estimatedZeroDate + " rowId=" + res);
+        } catch (Exception e) {
+            Log.e(TAG, "[storeDayEnd2Snapshot] " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Returns the total calories from all non-transferred food notes entered today.
+     * "Today" is defined as matching the current date prefix "dd-MM-yyyy".
+     */
+    public int getTotalFoodNoteCaloriesToday() {
+        int total = 0;
+        String todayPrefix = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                    "SELECT SUM(" + COLUMN_QUICK_FOOD_NOTE_CALORIES + ") FROM "
+                            + TABLE_QUICK_FOOD_NOTE
+                            + " WHERE " + COLUMN_IS_TRANSFERRED + " = 0"
+                            + " AND " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?",
+                    new String[]{todayPrefix + "%"});
+            if (cursor.moveToFirst()) {
+                total = cursor.getInt(0);
+            }
+            cursor.close();
+        } catch (Exception e) {
+            Log.e(TAG, "[getTotalFoodNoteCaloriesToday] " + e.getMessage(), e);
+        }
+        return total;
+    }
+
     public CountdownToZeroDayCiF1004 Retrieve_CountdownToZeroDayCiF1004() {
         //Go through Table DayEnd2, Retreive and convert each row to a DayTypeCiF1003 add
         //to a newly created CountdownToZeroDayType1004 and return as OUTPUT of this

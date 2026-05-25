@@ -239,6 +239,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btn4PM = findViewById(R.id.btn4PM);
         btn4PM.setOnClickListener(v -> start4PMProcessingWorkflow());
 
+        // Check Before You Eat button
+        Button btnCheckBeforeYouEat = findViewById(R.id.btnCheckBeforeYouEat);
+        btnCheckBeforeYouEat.setOnClickListener(v -> showCheckBeforeYouEatDialog());
+
         // Initialize Memo Panel views
         initializeMemoPanel();
 
@@ -247,6 +251,169 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             // Post with slight delay to ensure UI is fully ready
             tableLayout.post(() -> start4PMProcessingWorkflow());
         }
+    }
+
+    // ========== CHECK BEFORE YOU EAT ==========
+
+    /**
+     * "Check Before You Eat" feature.
+     *
+     * User enters a food name (and optional quantity/portion).
+     * AI returns macros: Calories, Protein, Carbs, Fats.
+     * Result is shown inline — fast lookup before deciding whether to eat.
+     */
+    private void showCheckBeforeYouEatDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Check Before You Eat");
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 16);
+
+        final EditText etFoodName = new EditText(this);
+        etFoodName.setHint("Food name (e.g. Grilled Chicken)");
+        etFoodName.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        layout.addView(etFoodName);
+
+        final EditText etPortion = new EditText(this);
+        etPortion.setHint("Portion/quantity (e.g. 200g, 1 cup) — optional");
+        etPortion.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        layout.addView(etPortion);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Check", null); // Set to null to override default dismiss
+        builder.setNegativeButton("Cancel", (d, w) -> d.dismiss());
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Override Positive button to prevent auto-dismiss on validation failure
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String foodName = etFoodName.getText().toString().trim();
+            String portion = etPortion.getText().toString().trim();
+
+            if (foodName.isEmpty()) {
+                Toast.makeText(this, "Please enter a food name", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Build a structured prompt for macros
+            StringBuilder promptBuilder = new StringBuilder();
+            promptBuilder.append("Provide the macronutrients for ");
+            if (!portion.isEmpty()) {
+                promptBuilder.append(portion).append(" of ");
+            }
+            promptBuilder.append(foodName).append(".\n\n");
+            promptBuilder.append("Reply ONLY in this exact format (numbers only, no units):\n");
+            promptBuilder.append("Calories: <number>\n");
+            promptBuilder.append("Protein: <number>g\n");
+            promptBuilder.append("Carbs: <number>g\n");
+            promptBuilder.append("Fat: <number>g\n");
+            promptBuilder.append("\nNo other text, no ranges, just these 4 lines.");
+
+            dialog.dismiss();
+
+            // Show loading
+            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+            progress.setMessage("Checking macros for \"" + foodName + "\"...");
+            progress.setCancelable(false);
+            progress.show();
+
+            android.util.Log.d("CheckBeforeEat", "Prompt: " + promptBuilder);
+
+            GeminiApiService.calculateCalories(this, promptBuilder.toString(),
+                    new GeminiApiService.CalorieCallback() {
+                        @Override
+                        public void onResult(String result) {
+                            runOnUiThread(() -> {
+                                progress.dismiss();
+                                if (result != null && !result.trim().isEmpty()) {
+                                    showMacroResultDialog(foodName, portion, result.trim());
+                                } else {
+                                    Toast.makeText(FoodNoteTableActivity.this,
+                                            "AI check failed. Please check connection and try again.",
+                                            Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                    });
+        });
+    }
+
+    /**
+     * Parse and display the macro result from AI in a clean dialog.
+     * Extracts Calories, Protein, Carbs, Fat from AI response.
+     * Also offers a quick "Add to Notes" shortcut.
+     */
+    private void showMacroResultDialog(String foodName, String portion, String aiResponse) {
+        // Parse macros from AI text
+        int calories = extractMacroInt(aiResponse, "Calories");
+        String proteinStr = extractMacroStr(aiResponse, "Protein");
+        String carbsStr = extractMacroStr(aiResponse, "Carbs");
+        String fatStr = extractMacroStr(aiResponse, "Fat");
+
+        String displayPortion = portion.isEmpty() ? "standard serving" : portion;
+
+        StringBuilder msg = new StringBuilder();
+        msg.append("Food: ").append(foodName).append("\n");
+        msg.append("Portion: ").append(displayPortion).append("\n\n");
+        msg.append("Calories:  ").append(calories).append(" kcal\n");
+        msg.append("Protein:   ").append(proteinStr).append("\n");
+        msg.append("Carbs:     ").append(carbsStr).append("\n");
+        msg.append("Fat:       ").append(fatStr).append("\n\n");
+
+        // Contextual advice
+        if (calories > 800) {
+            msg.append("⚠️ High calorie item — consider a smaller portion.");
+        } else if (calories < 150) {
+            msg.append("✓ Low calorie choice — good to go!");
+        } else {
+            msg.append("Moderate calorie item — fits most plans in moderation.");
+        }
+
+        AlertDialog.Builder resultBuilder = new AlertDialog.Builder(this);
+        resultBuilder.setTitle("Macro Check Result");
+        resultBuilder.setMessage(msg.toString());
+
+        // Quick-add to food notes with these calories
+        final int finalCalories = calories;
+        resultBuilder.setPositiveButton("Add to Notes", (d, w) -> {
+            String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
+            long insertedId = databaseHelper.insertFoodNote(
+                    currentDateTime, foodName, String.valueOf(finalCalories),
+                    portion.isEmpty() ? "1" : portion);
+            if (insertedId > 0) {
+                addRowToTable((int) insertedId, foodName,
+                        portion.isEmpty() ? "1" : portion,
+                        String.valueOf(finalCalories), currentDateTime);
+                Toast.makeText(this, "\"" + foodName + "\" added to your food notes", Toast.LENGTH_SHORT).show();
+            }
+        });
+        resultBuilder.setNegativeButton("Done", (d, w) -> d.dismiss());
+        resultBuilder.show();
+    }
+
+    /** Extract an integer macro value from AI text for a given label (e.g. "Calories"). */
+    private int extractMacroInt(String text, String label) {
+        try {
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                    "(?i)" + label + "\\s*:\\s*([\\d]+)");
+            java.util.regex.Matcher m = p.matcher(text);
+            if (m.find()) return Integer.parseInt(m.group(1));
+        } catch (Exception ignored) {}
+        return 0;
+    }
+
+    /** Extract a macro value string (e.g. "25g") from AI text for a given label. */
+    private String extractMacroStr(String text, String label) {
+        try {
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                    "(?i)" + label + "\\s*:\\s*([\\d.]+(?:g|mg)?)");
+            java.util.regex.Matcher m = p.matcher(text);
+            if (m.find()) return m.group(1);
+        } catch (Exception ignored) {}
+        return "N/A";
     }
 
     // ========== MEMO PANEL LOGIC ==========

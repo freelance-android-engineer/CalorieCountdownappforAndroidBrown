@@ -29,7 +29,7 @@ public class DailyAlarmScheduler {
     private static final int CREDIT_HOUR = 15;
     private static final int CREDIT_MINUTE = 30;
 
-    private static final int DEBIT_HOUR = 9;
+    private static final int DEBIT_HOUR = 21;   // 9:59 PM (was incorrectly 9 = 9:59 AM)
     private static final int DEBIT_MINUTE = 59;
 
     private static final int FOURPM_HOUR = 16;

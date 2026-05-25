@@ -13,6 +13,8 @@ class SQLHeavyClientType008(private val context: Context) {
         private const val BASE_URL = "https://api.carbonemissionstrading.eu/api/v1"
         private const val ENDPOINT_FOOD_SEARCH = "$BASE_URL/food/search"
         private const val ENDPOINT_ADD_FOOD = "$BASE_URL/food"
+        private const val ENDPOINT_BALANCE_SYNC = "$BASE_URL/balance/sync"
+        private const val ENDPOINT_DAYEND_SYNC = "$BASE_URL/balance/dayend"
         private const val CONTENT_TYPE_JSON = "application/json"
     }
 
@@ -114,6 +116,73 @@ class SQLHeavyClientType008(private val context: Context) {
         val json = JSONObject(foodData)
         println("🍴 Adding food item: ${foodData["food_item_name"]}")
         postRequestAsync(ENDPOINT_ADD_FOOD, json, callback)
+    }
+
+    // -------------------- BALANCE SYNC APIs --------------------
+
+    /**
+     * Sync a credit or debit balance update to the backend.
+     *
+     * @param clientName  client identifier from SharedPreferences "client_name"
+     * @param date        date string "dd-MM-yyyy"
+     * @param balance     new countdown balance (integer)
+     * @param transactionType  "CREDIT" or "DEBIT"
+     * @param callback    result callback (fire-and-forget; failures are logged only)
+     */
+    fun syncBalance(
+        clientName: String,
+        date: String,
+        balance: Int,
+        transactionType: String,
+        callback: ApiResultCallback
+    ) {
+        val json = JSONObject().apply {
+            put("@context", "https://schema.org")
+            put("@type", "FinancialTransaction")
+            put("client_name", clientName)
+            put("transaction_date", date)
+            put("countdown_balance", balance)
+            put("transaction_type", transactionType)
+        }
+        println("💰 Syncing balance: client=$clientName date=$date balance=$balance type=$transactionType")
+        postRequestAsync(ENDPOINT_BALANCE_SYNC, json, callback)
+    }
+
+    /**
+     * Sync the 9:59 PM day-end snapshot to the backend.
+     *
+     * @param clientName       client identifier
+     * @param date             snapshot date "dd-MM-yyyy"
+     * @param balance          countdown balance at day-end
+     * @param dailyBudget      gender-based budget (2000F / 2500M)
+     * @param foodCals         total food note calories consumed today
+     * @param kittyValue       dailyBudget - foodCals (can be negative)
+     * @param estimatedZeroDate formatted date when balance reaches zero "dd MMM yyyy"
+     * @param callback         result callback
+     */
+    fun syncDayEnd(
+        clientName: String,
+        date: String,
+        balance: Int,
+        dailyBudget: Int,
+        foodCals: Int,
+        kittyValue: Int,
+        estimatedZeroDate: String,
+        callback: ApiResultCallback
+    ) {
+        val json = JSONObject().apply {
+            put("@context", "https://schema.org")
+            put("@type", "DayEndSnapshot")
+            put("client_name", clientName)
+            put("snapshot_date", date)
+            put("countdown_balance", balance)
+            put("daily_budget", dailyBudget)
+            put("food_calories_consumed", foodCals)
+            put("kitty_value", kittyValue)
+            put("estimated_zero_date", estimatedZeroDate)
+        }
+        println("🌙 Syncing day-end: client=$clientName date=$date balance=$balance kitty=$kittyValue zeroDate=$estimatedZeroDate")
+        postRequestAsync(ENDPOINT_DAYEND_SYNC, json, callback)
     }
 }
 
