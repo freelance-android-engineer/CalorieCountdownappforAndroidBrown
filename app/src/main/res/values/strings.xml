@@ -2595,6 +2595,9 @@
     <!-- BMR Feature -->
     <string name="bmr_button">BMR</string>
 
+    <!-- Midnight Scrape -->
+    <string name="midnight_scrape_button">Midnight Scrape</string>
+
     <!-- Exercise Debit — Cardio and Strength Training -->
     <string name="btn_cardio">Cardio</string>
     <string name="btn_strength_training">Strength Training</string>

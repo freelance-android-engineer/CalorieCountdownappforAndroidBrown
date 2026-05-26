@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 9; // v9: exercise_items table (Cardio + Strength Training)
+    private static final int VERSION = 10; // v10: recorded_steps table (Midnight Scrape reconciliation)
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -311,6 +311,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_EXERCISE_DURATION_MIN  = "exercise_duration_minutes";
     private static final String COLUMN_EXERCISE_REPS          = "exercise_reps";
     private static final String COLUMN_EXERCISE_CAL_PER_UNIT  = "exercise_calories_per_unit";
+
+    // Recorded Steps Table (added in DB version 10) — Midnight Scrape reconciliation
+    private static final String TABLE_RECORDED_STEPS   = "recorded_steps";
+    private static final String COLUMN_RS_ID           = "rs_id";
+    private static final String COLUMN_RS_DATE         = "rs_date";        // "dd-MM-yyyy"
+    private static final String COLUMN_RS_STEP_COUNT   = "rs_step_count";
 
     //    Memo Table (FIFO max 10 entries)
     private static final String TABLE_MEMO = "memo";
@@ -960,6 +966,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         // Seed sample exercise data (inserts only if the table is empty)
         seedExerciseDataIfNeeded(db);
 
+        // Create recorded_steps table (v10) — Midnight Scrape reconciliation
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_RECORDED_STEPS + " ("
+                    + COLUMN_RS_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_RS_DATE       + " TEXT UNIQUE, "
+                    + COLUMN_RS_STEP_COUNT + " INTEGER DEFAULT 0)");
+            android.util.Log.d("Table creation", "created " + TABLE_RECORDED_STEPS);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_RECORDED_STEPS + " creation: " + e.getMessage());
+        }
+
     }
 
     @Override
@@ -1124,6 +1141,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             seedExerciseDataIfNeeded(db);
         }
 
+        // v10: recorded_steps table (Midnight Scrape reconciliation)
+        if (oldVersion < 10) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_RECORDED_STEPS + " ("
+                        + COLUMN_RS_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_RS_DATE       + " TEXT UNIQUE, "
+                        + COLUMN_RS_STEP_COUNT + " INTEGER DEFAULT 0)");
+                android.util.Log.d("DB_UPGRADE", "v10: created " + TABLE_RECORDED_STEPS);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_RECORDED_STEPS + " already exists: " + e.getMessage());
+            }
+        }
+
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
     }
 
@@ -1239,6 +1269,51 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("ExerciseDB", "insertExerciseItem: " + e.getMessage(), e);
             return -1L;
         }
+    }
+
+    // ── Recorded Steps helpers (Midnight Scrape) ──────────────────────────────
+
+    /**
+     * Stores (or replaces) the user-recorded step count for the given date.
+     * Called from Debit_Steps when the user taps "Debit Steps".
+     * @param date "dd-MM-yyyy" string for today
+     * @param stepCount the step count the user entered
+     */
+    public void storeRecordedSteps(String date, int stepCount) {
+        SQLiteDatabase db = getWritableDatabase();
+        android.content.ContentValues cv = new android.content.ContentValues();
+        cv.put(COLUMN_RS_DATE,       date);
+        cv.put(COLUMN_RS_STEP_COUNT, stepCount);
+        try {
+            // REPLACE handles both INSERT (first time) and UPDATE (if already stored today)
+            db.insertWithOnConflict(TABLE_RECORDED_STEPS, null, cv,
+                    SQLiteDatabase.CONFLICT_REPLACE);
+            android.util.Log.d("RecordedSteps", "stored " + stepCount + " steps for " + date);
+        } catch (Exception e) {
+            android.util.Log.e("RecordedSteps", "storeRecordedSteps: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Returns the recorded step count for the given date, or -1 if none was stored.
+     * @param date "dd-MM-yyyy" string
+     */
+    public int getRecordedStepsForDate(String date) {
+        SQLiteDatabase db = getReadableDatabase();
+        android.database.Cursor c = null;
+        try {
+            c = db.query(TABLE_RECORDED_STEPS,
+                    new String[]{COLUMN_RS_STEP_COUNT},
+                    COLUMN_RS_DATE + " = ?",
+                    new String[]{date},
+                    null, null, null);
+            if (c.moveToFirst()) return c.getInt(0);
+        } catch (Exception e) {
+            android.util.Log.e("RecordedSteps", "getRecordedStepsForDate: " + e.getMessage(), e);
+        } finally {
+            if (c != null) c.close();
+        }
+        return -1;
     }
 
     //From Green i

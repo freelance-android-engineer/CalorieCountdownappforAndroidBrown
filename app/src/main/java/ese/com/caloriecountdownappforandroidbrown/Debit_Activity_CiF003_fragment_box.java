@@ -37,6 +37,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mOpenStepApp;
     private Button mDrop100Points;
     private Button mBMR;
+    private Button mMidnightScrape;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -168,6 +169,15 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View v) {
                 showBMRDialog();
+            }
+        });
+
+        // Midnight Scrape button - reconciles recorded vs actual step count
+        mMidnightScrape = (Button) findViewById(R.id.btnMidnightScrape);
+        mMidnightScrape.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showMidnightScrapeDialog();
             }
         });
 
@@ -499,6 +509,88 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             android.util.Log.e("Workout", "[deduct100Points] Exception: " + e.getMessage(), e);
             Toast.makeText(Debit_Activity_CiF003_fragment_box.this,
                 "Error updating balance: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // ── Midnight Scrape ───────────────────────────────────────────────────────
+
+    /**
+     * Midnight Scrape reconciliation:
+     *  - Fetches the step count the user recorded via "Debit Steps" today.
+     *  - Compares it against the current system sensor reading (mStep_Count).
+     *  - If the sensor shows MORE steps than recorded, the difference is debited
+     *    from the Main Countdown Balance (difference × 0.089 points).
+     *  - Nothing is debited if actual ≤ recorded.
+     */
+    private void showMidnightScrapeDialog() {
+        try {
+            // 1. Fetch recorded steps for today from SQLite
+            String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                    .format(new java.util.Date());
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+            int recordedSteps = db.getRecordedStepsForDate(today);
+
+            // 2. Get actual system step count from the hardware sensor
+            int actualSteps = mStep_Count;
+
+            // 3. Build the dialog message regardless of outcome, so the user always sees data
+            String recordedDisplay = (recordedSteps >= 0) ? String.valueOf(recordedSteps) : "Not recorded today";
+
+            if (recordedSteps < 0) {
+                // No entry stored yet — inform the user
+                new AlertDialog.Builder(this)
+                        .setTitle("Midnight Scrape")
+                        .setMessage("No step entry found for today.\n\n"
+                                + "Please use \"Debit Balance with Steps Manually\" first to record your steps, "
+                                + "then run Midnight Scrape to reconcile any difference.")
+                        .setPositiveButton("OK", null)
+                        .show();
+                return;
+            }
+
+            int difference = actualSteps - recordedSteps;
+
+            if (difference <= 0) {
+                // Actual is equal to or less than recorded — no reconciliation needed
+                new AlertDialog.Builder(this)
+                        .setTitle("Midnight Scrape")
+                        .setMessage("No reconciliation needed.\n\n"
+                                + "Recorded steps : " + recordedSteps + "\n"
+                                + "Actual steps   : " + actualSteps + "\n\n"
+                                + "You have not exceeded your recorded count.")
+                        .setPositiveButton("OK", null)
+                        .show();
+                return;
+            }
+
+            // 4. Calculate the calorie-equivalent debit for the extra steps
+            int debitPoints = Math.round(difference * 0.089f);
+            if (debitPoints < 1) debitPoints = 1; // minimum 1 point if there is any difference
+
+            final int finalDebit = debitPoints;
+            final int finalDiff  = difference;
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Midnight Scrape")
+                    .setMessage("Step reconciliation found a discrepancy:\n\n"
+                            + "Recorded steps : " + recordedSteps + "\n"
+                            + "Actual steps   : " + actualSteps + "\n"
+                            + "Extra steps    : " + finalDiff + "\n\n"
+                            + "Debit          : " + finalDebit + " points\n\n"
+                            + "Apply this debit to your Countdown Balance?")
+                    .setPositiveButton("Yes, Apply Debit", new android.content.DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(android.content.DialogInterface dialog, int which) {
+                            StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                            BackToParent(finalDebit);
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+
+        } catch (Exception e) {
+            android.util.Log.e("MidnightScrape", "showMidnightScrapeDialog: " + e.getMessage(), e);
+            Toast.makeText(this, "Midnight Scrape error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

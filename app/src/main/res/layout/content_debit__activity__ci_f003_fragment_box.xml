@@ -98,6 +98,12 @@
             android:layout_marginTop="16dp"
             android:text="@string/bmr_button"/>
 
+        <Button
+            android:id="@+id/btnMidnightScrape"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/midnight_scrape_button"/>
 
     </LinearLayout>
     </ScrollView>

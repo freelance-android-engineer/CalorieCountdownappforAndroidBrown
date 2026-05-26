@@ -13,9 +13,23 @@ class Debit_Steps : AppCompatActivity() {
         setContentView(R.layout.activity_debit_steps)
 
         findViewById<android.widget.Button>(R.id.button23).setOnClickListener {
+            // Persist the entered step count for Midnight Scrape reconciliation
+            val stepsText = findViewById<EditText>(R.id.editTextTextPersonName5)
+                .text.toString().trim()
+            val stepsEntered = stepsText.toIntOrNull() ?: 0
+            if (stepsEntered > 0) {
+                try {
+                    val today = java.text.SimpleDateFormat(
+                        "dd-MM-yyyy", java.util.Locale.getDefault()
+                    ).format(java.util.Date())
+                    SQLDatabase_Food_Items_CIF6(this).storeRecordedSteps(today, stepsEntered)
+                } catch (ex: Exception) {
+                    android.util.Log.e("DebitSteps", "storeRecordedSteps failed: ${ex.message}", ex)
+                }
+            }
 
-                view -> CCD_GUI_CD_CIF1.instance.Countup(GetManualSteps())
-
+            // Existing behaviour — unchanged
+            CCD_GUI_CD_CIF1.instance.Countup(GetManualSteps())
             finish()
         }
 
