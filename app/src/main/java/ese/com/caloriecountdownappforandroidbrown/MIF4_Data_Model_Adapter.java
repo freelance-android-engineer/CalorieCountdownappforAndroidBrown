@@ -2121,5 +2121,27 @@ public class Meal_Type
 
     }
 
+    // ── Exercise Items (Cardio + Strength Training) ───────────────────────────
+
+    /** Returns all exercise items for the given category from the local DB. */
+    public java.util.List<ExerciseItem> getExerciseItems(String category) {
+        SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(context);
+        return db.getExerciseItems(category);
+    }
+
+    /**
+     * Inserts a new exercise item. Returns the row id, or -1 on duplicate / error.
+     */
+    public long addExerciseItem(String category, String name,
+                                float durationMinutes, int reps, float caloriesPerUnit) {
+        SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(context);
+        return db.insertExerciseItem(category, name, durationMinutes, reps, caloriesPerUnit);
+    }
+
+    /** Returns true if an exercise item with the same category + name already exists. */
+    public boolean exerciseItemExists(String category, String name) {
+        SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(context);
+        return db.exerciseItemExists(category, name);
+    }
 
 }

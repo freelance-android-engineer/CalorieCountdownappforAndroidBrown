@@ -170,7 +170,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Update your Food Diary", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Update Countdown Balance", Snackbar.LENGTH_LONG)
                         .setAction("Update", null).show();
             }
         });
@@ -1577,7 +1577,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             @Override
             public void onClick(View view)
             {
-                Snackbar.make(view, "Update your Food Diary", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Update Countdown Balance", Snackbar.LENGTH_LONG)
                         .setAction("Update", null).show();
             }
         });

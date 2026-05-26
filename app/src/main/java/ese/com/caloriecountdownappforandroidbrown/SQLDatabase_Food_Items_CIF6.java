@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 8; // v8: 4PM Debit/Steps Challenge result table
+    private static final int VERSION = 9; // v9: exercise_items table (Cardio + Strength Training)
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -302,6 +302,15 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_DEBIT_STEP_CHALLENGE  = "step_challenge";
     private static final String COLUMN_DEBIT_IS_CAPPED       = "is_capped";            // 0/1
     private static final String COLUMN_DEBIT_CREATED_AT      = "created_at";
+
+    // Exercise Items Table (added in DB version 9) — Cardio & Strength Training
+    private static final String TABLE_EXERCISE_ITEMS          = "exercise_items";
+    private static final String COLUMN_EXERCISE_ID            = "exercise_id";
+    private static final String COLUMN_EXERCISE_CATEGORY      = "exercise_category"; // CARDIO | STRENGTH_TRAINING
+    private static final String COLUMN_EXERCISE_NAME          = "exercise_name";
+    private static final String COLUMN_EXERCISE_DURATION_MIN  = "exercise_duration_minutes";
+    private static final String COLUMN_EXERCISE_REPS          = "exercise_reps";
+    private static final String COLUMN_EXERCISE_CAL_PER_UNIT  = "exercise_calories_per_unit";
 
     //    Memo Table (FIFO max 10 entries)
     private static final String TABLE_MEMO = "memo";
@@ -934,6 +943,23 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.w("Table creation", TABLE_FOURPM_DEBIT + " creation: " + e.getMessage());
         }
 
+        // Create exercise_items table (v9)
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_EXERCISE_ITEMS + " ("
+                    + COLUMN_EXERCISE_ID           + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_EXERCISE_CATEGORY     + " TEXT NOT NULL, "
+                    + COLUMN_EXERCISE_NAME         + " TEXT NOT NULL, "
+                    + COLUMN_EXERCISE_DURATION_MIN + " REAL DEFAULT 0, "
+                    + COLUMN_EXERCISE_REPS         + " INTEGER DEFAULT 0, "
+                    + COLUMN_EXERCISE_CAL_PER_UNIT + " REAL DEFAULT 0)");
+            android.util.Log.d("Table creation", "created " + TABLE_EXERCISE_ITEMS);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_EXERCISE_ITEMS + " creation: " + e.getMessage());
+        }
+
+        // Seed sample exercise data (inserts only if the table is empty)
+        seedExerciseDataIfNeeded(db);
+
     }
 
     @Override
@@ -1081,7 +1107,138 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             }
         }
 
+        // v9: exercise_items table (Cardio + Strength Training)
+        if (oldVersion < 9) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_EXERCISE_ITEMS + " ("
+                        + COLUMN_EXERCISE_ID           + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_EXERCISE_CATEGORY     + " TEXT NOT NULL, "
+                        + COLUMN_EXERCISE_NAME         + " TEXT NOT NULL, "
+                        + COLUMN_EXERCISE_DURATION_MIN + " REAL DEFAULT 0, "
+                        + COLUMN_EXERCISE_REPS         + " INTEGER DEFAULT 0, "
+                        + COLUMN_EXERCISE_CAL_PER_UNIT + " REAL DEFAULT 0)");
+                android.util.Log.d("DB_UPGRADE", "v9: created " + TABLE_EXERCISE_ITEMS);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_EXERCISE_ITEMS + " already exists: " + e.getMessage());
+            }
+            seedExerciseDataIfNeeded(db);
+        }
+
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
+    }
+
+    // ── Exercise Items helpers ────────────────────────────────────────────────
+
+    /** Inserts seed data the first time exercise_items is empty. */
+    private void seedExerciseDataIfNeeded(SQLiteDatabase db) {
+        try {
+            android.database.Cursor c = db.rawQuery(
+                    "SELECT COUNT(*) FROM " + TABLE_EXERCISE_ITEMS, null);
+            int count = 0;
+            if (c != null) {
+                if (c.moveToFirst()) count = c.getInt(0);
+                c.close();
+            }
+            if (count > 0) return; // already seeded
+
+            // Cardio seed items (calories_per_unit = cal/min)
+            insertExerciseSeed(db, ExerciseItem.CATEGORY_CARDIO,    "Running",  20f, 0,  10.0f);
+            insertExerciseSeed(db, ExerciseItem.CATEGORY_CARDIO,    "Cycling",  30f, 0,   7.0f);
+
+            // Strength Training seed items (calories_per_unit = cal/rep)
+            insertExerciseSeed(db, ExerciseItem.CATEGORY_STRENGTH,  "Bench Press", 0f, 10, 0.5f);
+            insertExerciseSeed(db, ExerciseItem.CATEGORY_STRENGTH,  "Squats",      0f, 15, 0.5f);
+
+            android.util.Log.d("ExerciseSeed", "Seeded " + TABLE_EXERCISE_ITEMS + " with sample data");
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseSeed", "Seed failed: " + e.getMessage(), e);
+        }
+    }
+
+    private void insertExerciseSeed(SQLiteDatabase db, String category, String name,
+                                    float durationMin, int reps, float calPerUnit) {
+        android.content.ContentValues cv = new android.content.ContentValues();
+        cv.put(COLUMN_EXERCISE_CATEGORY,     category);
+        cv.put(COLUMN_EXERCISE_NAME,         name);
+        cv.put(COLUMN_EXERCISE_DURATION_MIN, durationMin);
+        cv.put(COLUMN_EXERCISE_REPS,         reps);
+        cv.put(COLUMN_EXERCISE_CAL_PER_UNIT, calPerUnit);
+        db.insert(TABLE_EXERCISE_ITEMS, null, cv);
+    }
+
+    /**
+     * Returns all exercise items for the given category ("CARDIO" or "STRENGTH_TRAINING").
+     */
+    public java.util.List<ExerciseItem> getExerciseItems(String category) {
+        java.util.List<ExerciseItem> list = new java.util.ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+        android.database.Cursor c = null;
+        try {
+            c = db.query(TABLE_EXERCISE_ITEMS,
+                    null,
+                    COLUMN_EXERCISE_CATEGORY + " = ?",
+                    new String[]{category},
+                    null, null,
+                    COLUMN_EXERCISE_NAME + " ASC");
+            while (c.moveToNext()) {
+                ExerciseItem item = new ExerciseItem(
+                        c.getLong(c.getColumnIndexOrThrow(COLUMN_EXERCISE_ID)),
+                        c.getString(c.getColumnIndexOrThrow(COLUMN_EXERCISE_CATEGORY)),
+                        c.getString(c.getColumnIndexOrThrow(COLUMN_EXERCISE_NAME)),
+                        c.getFloat(c.getColumnIndexOrThrow(COLUMN_EXERCISE_DURATION_MIN)),
+                        c.getInt(c.getColumnIndexOrThrow(COLUMN_EXERCISE_REPS)),
+                        c.getFloat(c.getColumnIndexOrThrow(COLUMN_EXERCISE_CAL_PER_UNIT)));
+                list.add(item);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseDB", "getExerciseItems: " + e.getMessage(), e);
+        } finally {
+            if (c != null) c.close();
+        }
+        return list;
+    }
+
+    /**
+     * Returns true if an item with the same category + name already exists (case-insensitive).
+     */
+    public boolean exerciseItemExists(String category, String name) {
+        SQLiteDatabase db = getReadableDatabase();
+        android.database.Cursor c = null;
+        try {
+            c = db.query(TABLE_EXERCISE_ITEMS,
+                    new String[]{COLUMN_EXERCISE_ID},
+                    "LOWER(" + COLUMN_EXERCISE_CATEGORY + ") = LOWER(?) AND LOWER("
+                            + COLUMN_EXERCISE_NAME + ") = LOWER(?)",
+                    new String[]{category, name},
+                    null, null, null);
+            return c.moveToFirst();
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseDB", "exerciseItemExists: " + e.getMessage(), e);
+            return false;
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    /**
+     * Inserts a new exercise item. Returns the row id, or -1 on error / duplicate.
+     */
+    public long insertExerciseItem(String category, String name,
+                                   float durationMinutes, int reps, float caloriesPerUnit) {
+        if (exerciseItemExists(category, name)) return -1L;
+        SQLiteDatabase db = getWritableDatabase();
+        android.content.ContentValues cv = new android.content.ContentValues();
+        cv.put(COLUMN_EXERCISE_CATEGORY,     category);
+        cv.put(COLUMN_EXERCISE_NAME,         name);
+        cv.put(COLUMN_EXERCISE_DURATION_MIN, durationMinutes);
+        cv.put(COLUMN_EXERCISE_REPS,         reps);
+        cv.put(COLUMN_EXERCISE_CAL_PER_UNIT, caloriesPerUnit);
+        try {
+            return db.insert(TABLE_EXERCISE_ITEMS, null, cv);
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseDB", "insertExerciseItem: " + e.getMessage(), e);
+            return -1L;
+        }
     }
 
     //From Green i
