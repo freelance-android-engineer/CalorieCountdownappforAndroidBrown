@@ -2603,6 +2603,10 @@
     <string name="btn_strength_training">Strength Training</string>
     <string name="btn_add_cardio_item">Add Cardio Item</string>
     <string name="btn_add_strength_item">Add Strength Training Item</string>
+
+    <!-- Customization Settings -->
+    <string name="action_customize_title">Customize Appearance</string>
+    <string name="title_activity_customization_settings">Customize Appearance</string>
 </resources>
 
 

@@ -417,5 +417,9 @@
         android:id="@+id/action_Client_Guide"
         android:title="@string/action_Client_Guide_title" />
 
+    <item
+        android:id="@+id/action_customize"
+        android:title="@string/action_customize_title" />
+
 
 </menu>

@@ -336,6 +336,15 @@
                 android:layout_height="wrap_content"
                 android:text= "@string/search"/>
 
+            <!-- Loading indicator shown while Multi-Search async calls are in flight -->
+            <ProgressBar
+                android:id="@+id/multiSearchProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/uploadImageBtn"
                 android:layout_width="match_parent"

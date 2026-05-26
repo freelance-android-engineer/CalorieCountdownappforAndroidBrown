@@ -227,6 +227,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         super.onResume();
         // Refresh balance from storage when returning to this activity
         refreshBalanceFromStorage();
+        // Apply any saved appearance customizations (color, font, format, circle, background)
+        AppCustomization.apply(this);
         // Re-schedule alarms on every resume for reliability (e.g. after returning from settings)
         DailyAlarmScheduler.scheduleBothAlarms(this);
     }
@@ -572,6 +574,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 Start_Client_Guide();
             }
 
+            if (id == R.id.action_customize) {
+                startActivity(new Intent(CCD_GUI_CD_CIF1.this, CustomizationSettingsActivity.class));
+                return true;
+            }
+
             if (id == R.id.convert_stones_to_kg) {
                 showConversionInputDialog("Stones to Kilograms", "Enter weight in Stones:", "stones_to_kg");
                 return true;
@@ -713,6 +720,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         if (id == R.id.action_Client_Guide) // Physical Activity Debit
         {
             Start_Client_Guide();
+        }
+
+        if (id == R.id.action_customize) {
+            startActivity(new Intent(this, CustomizationSettingsActivity.class));
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -1271,6 +1283,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 CountdownFigure = "0";
                 android.util.Log.w("CreditCalc", "[Countup] Balance was empty, treating as 0");
             }
+            // Strip commas that may be present when comma-format display is active
+            CountdownFigure = AppCustomization.stripCommas(CountdownFigure);
 
             int currentBalance = new RoundingCIF13().StringToInt(CountdownFigure);
             int newBalance = currentBalance + credit;
@@ -1850,6 +1864,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             android.util.Log.w("BalanceRead", "[Get_currentBalanceInt] balance TextView is empty, returning 0");
             return 0;
         }
+        // Strip commas that may be present when comma-format display is active
+        balanceStr = AppCustomization.stripCommas(balanceStr);
         try {
             return new RoundingCIF13().StringToInt(balanceStr);
         } catch (NumberFormatException e) {
@@ -2027,6 +2043,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 CountdownFigure = "0";
                 android.util.Log.w("DebitCalc", "[Countdown] Balance was empty, treating as 0");
             }
+            // Strip commas that may be present when comma-format display is active
+            CountdownFigure = AppCustomization.stripCommas(CountdownFigure);
 
             int currentBalance = new RoundingCIF13().StringToInt(CountdownFigure);
             int newBalance = currentBalance - debit;
@@ -2180,7 +2198,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             int currentBalance = Get_currentBalanceInt();
 
             // Guard against null/empty input before parsing
-            String cleanInput = (input != null) ? input.replace(",", "").trim() : "0";
+            String cleanInput = (input != null) ? AppCustomization.stripCommas(input.trim()) : "0";
             if (cleanInput.isEmpty()) {
                 android.util.Log.w("AddToBalance", "[AddToBalance] input is empty, skipping");
                 return;
@@ -2190,14 +2208,29 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             android.util.Log.d("AddToBalance", "[AddToBalance] currentBalance=" + currentBalance
                     + ", caloriesToAdd=" + caloriesToAdd + ", newBalance=" + newBalance);
 
-            Set_Balance(String.valueOf(newBalance));
+            // Update balance directly without triggering Kitty() dialog.
+            // Kitty() tries to show an AlertDialog; when AddToBalance() is called from another
+            // Activity (e.g. FoodNoteTableActivity) while this Activity is in the background,
+            // AlertDialog.show() throws WindowManager$BadTokenException → crash.
+            // The Kitty check fires naturally the next time this Activity resumes.
+            String newBalanceStr = String.valueOf(newBalance);
+            mBalance_text = newBalanceStr;
+            final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+            if (countdownbalance != null) {
+                countdownbalance.setText(newBalanceStr);
+            } else {
+                android.util.Log.w("AddToBalance", "[AddToBalance] countdownbalance TextView is null");
+            }
+            StoreCountdownBalance(newBalanceStr);
             android.util.Log.d("AddToBalance", "[AddToBalance] Balance successfully updated to " + newBalance);
         } catch (NumberFormatException e) {
             android.util.Log.e("AddToBalance", "[AddToBalance] NFE: input='" + input + "', " + e.getMessage(), e);
-            android.widget.Toast.makeText(this, "Error updating balance: invalid number format", android.widget.Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> android.widget.Toast.makeText(this,
+                    "Error updating balance: invalid number format", android.widget.Toast.LENGTH_SHORT).show());
         } catch (Exception e) {
             android.util.Log.e("AddToBalance", "[AddToBalance] Exception: " + e.getMessage(), e);
-            android.widget.Toast.makeText(this, "Error updating balance: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> android.widget.Toast.makeText(this,
+                    "Error updating balance: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show());
         }
     }
 

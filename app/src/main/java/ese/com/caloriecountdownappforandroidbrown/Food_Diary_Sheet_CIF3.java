@@ -50,6 +50,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Button mMultiSearchButton;
     private Button mUploadImageButton;
     private Button mCancel;
+    private android.widget.ProgressBar mMultiSearchProgress;
     private Button mCancel2;
     private Button mAddNewItem;
     private Button mRecalibrate;
@@ -97,6 +98,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
         //Get Button 3 into Controller World.
         tableLayout = findViewById(R.id.foodTableLayout);
         mMultiSearchButton = (Button) findViewById(R.id.button4);
+        mMultiSearchProgress = (android.widget.ProgressBar) findViewById(R.id.multiSearchProgressBar);
         mUploadImageButton = (Button) findViewById(R.id.uploadImageBtn);
         mCancel = (Button) findViewById(R.id.button8);
         mCancel2 = (Button) findViewById(R.id.button9);
@@ -164,7 +166,6 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             @Override
             public void onClick(View v) {
 
-
                 //Alogrithm Engineering :
                 // For each textview per row extract Food_Item_CIF4
                 //Builder :
@@ -173,23 +174,32 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 android.util.Log.d("Multi-search", "We are above Show Fetch b");
                 mFoodItems = ExtractFoodItems(mFoodItems);
                 android.util.Log.d("Multi-search", "We are above Show Fetch c");
+
+                if (mFoodItems.isEmpty()) {
+                    android.util.Log.d("Multi-search", "No food items entered, nothing to search");
+                    Toast.makeText(Food_Diary_Sheet_CIF3.this,
+                            "Please enter at least one food item first.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 FoodItemsLab_CIF9.get(getApplicationContext()).reset();
                 android.util.Log.d("Multi-search", "We are above Show Fetch d");
+
+                // Show loading indicator and disable button to prevent double-tap
+                mMultiSearchButton.setEnabled(false);
+                if (mMultiSearchProgress != null) {
+                    mMultiSearchProgress.setVisibility(View.VISIBLE);
+                }
 
                 // Initialize search counters
                 totalSearchCount = mFoodItems.size();
                 pendingSearchCount = totalSearchCount;
 
                 for (int c = 0; c < mFoodItems.size(); c++) {
-                    //mPivot.merge(MultiSearch(mFoodItems.get(c)));
                     MultiSearch(mFoodItems.get(c));
                 }
 
                 android.util.Log.d("Multi-search", "Started " + totalSearchCount + " async searches");
-
-                // REMOVED: ShowFetch will be called when all async searches complete
-                // mFoodItems = ShowFetch(mFoodItems);
-
             }
         });
 
@@ -646,18 +656,22 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                     //Place data in Singleton Storage, for all.
                     FoodItemsLab_CIF9.get(getApplicationContext()).appendmFoodItems(FetchedFoodItems);
 
-                    // Decrement pending search counter
+                    // Decrement pending search counter (thread-safe)
                     synchronized (Food_Diary_Sheet_CIF3.this) {
                         pendingSearchCount--;
                         android.util.Log.d("Multi-search", "Search completed. Remaining: " + pendingSearchCount + "/" + totalSearchCount);
 
                         // Only show results once all searches complete
                         if (pendingSearchCount == 0) {
-                            // Notify UI to update
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
                                     android.util.Log.d("Multi-search", "All searches complete. Showing results.");
+                                    // Hide progress and re-enable button
+                                    if (mMultiSearchProgress != null) {
+                                        mMultiSearchProgress.setVisibility(View.GONE);
+                                    }
+                                    mMultiSearchButton.setEnabled(true);
                                     ArrayList<Food_Item_CIF4> allResults = FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems();
                                     ShowFetch(allResults);
                                 }

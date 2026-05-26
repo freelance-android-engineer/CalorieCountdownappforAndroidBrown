@@ -212,6 +212,10 @@
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings" />
         <activity
+            android:name=".CustomizationSettingsActivity"
+            android:label="@string/title_activity_customization_settings"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
             android:name=".Diet_Plan_Activity_fragment008"
             android:label="@string/title_activity_diet__plan__fragment008"
             android:theme="@style/AppTheme.NoActionBar" />

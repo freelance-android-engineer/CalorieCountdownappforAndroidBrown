@@ -762,15 +762,16 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
                 // === Update case ===
                 if (noteId != null) {
+                    long existingId = Long.parseLong(noteId);
                     databaseHelper.updateFoodNote(
-                            Integer.parseInt(noteId),
+                            (int) existingId,
                             currentDateTime,
                             food,
                             calories,
                             quantity
                     );
-                    updateRowInTable(Integer.parseInt(noteId), food, quantity, calories, currentDateTime);
-                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
+                    updateRowInTable((int) existingId, food, quantity, calories, currentDateTime);
+                    syncFoodNoteToBackend(existingId, food, quantity, calories, currentDateTime);
                     dialog.dismiss();
                     return;
                 }
@@ -796,7 +797,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                 public void onClick(DialogInterface dialogInterface, int which) {
                                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
                                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
-                                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
+                                    syncFoodNoteToBackend(insertedId, food, quantity, calories, currentDateTime);
 
                                     dialog.dismiss();
                                     dialogInterface.dismiss();
@@ -807,7 +808,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 } else {
                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
-                    syncFoodNoteToBackend(food, quantity, calories, currentDateTime);
+                    syncFoodNoteToBackend(insertedId, food, quantity, calories, currentDateTime);
 
                     dialog.dismiss();
                 }
@@ -954,45 +955,80 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void syncFoodNoteToBackend(String food, String quantity, String calories, String dateTime) {
-        Map<String, Object> foodData = new HashMap<>();
-        foodData.put("food_item_name", food);
-        foodData.put("quantity", quantity.isEmpty() ? "1" : quantity);
-        foodData.put("note_date", dateTime);
+    private void syncFoodNoteToBackend(long noteId, String food, String quantity, String calories, String dateTime) {
+        // Input validation — skip silently if food name is missing
+        if (food == null || food.trim().isEmpty()) {
+            android.util.Log.w("SYNC_FOOD", "Skipping sync: food name is empty");
+            return;
+        }
+        final String cleanFood = food.trim();
 
         double caloriesValue = 0;
-        if (!calories.isEmpty()) {
+        if (calories != null && !calories.trim().isEmpty()) {
             try {
-                caloriesValue = Double.parseDouble(calories);
+                caloriesValue = Double.parseDouble(calories.trim());
             } catch (NumberFormatException e) {
                 android.util.Log.w("SYNC_FOOD", "Invalid calories value: " + calories);
             }
         }
-        foodData.put("calories_per_100g", caloriesValue);
+        final double finalCalories = caloriesValue;
+
+        Map<String, Object> foodData = new HashMap<>();
+        foodData.put("food_item_name", cleanFood);
+        foodData.put("quantity", (quantity == null || quantity.trim().isEmpty()) ? "1" : quantity.trim());
+        foodData.put("note_date", dateTime);
+        foodData.put("calories_per_100g", finalCalories);
 
         SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(this);
         apiClient.addFoodItem(foodData, new ApiResultCallback() {
             @Override
             public void onSuccess(String response) {
-                runOnUiThread(() -> {
+                databaseHelper.markFoodNoteAsSynced(noteId);
+                runOnUiThread(() ->
                     Toast.makeText(FoodNoteTableActivity.this,
-                        "Synced to server!", Toast.LENGTH_SHORT).show();
-                });
+                        "Synced to server!", Toast.LENGTH_SHORT).show()
+                );
             }
 
             @Override
             public void onFailure() {
-                runOnUiThread(() -> {
-                    Toast.makeText(FoodNoteTableActivity.this,
-                        "Server sync failed - will retry later.", Toast.LENGTH_LONG).show();
-                });
+                // Note stays unsynced (is_synced=0); retrySyncPendingNotes() will pick it up on next resume
+                android.util.Log.w("SYNC_FOOD", "Server sync failed for noteId=" + noteId + "; will retry on next resume");
             }
         });
     }
 
+    /** Called on resume to retry any food notes that failed to sync previously. */
+    private void retrySyncPendingNotes() {
+        new Thread(() -> {
+            List<String[]> pending = databaseHelper.getUnsyncedFoodNotes();
+            if (pending.isEmpty()) return;
+            android.util.Log.d("SYNC_FOOD", "Retrying " + pending.size() + " unsynced food note(s)");
+            for (String[] row : pending) {
+                long id       = Long.parseLong(row[0]);
+                String food   = row[1];
+                String cals   = row[2];
+                String qty    = row[3];
+                String date   = row[4];
+                syncFoodNoteToBackend(id, food, qty, cals, date);
+            }
+        }).start();
+    }
+
     private void addFoodItemToBackendCloud(Food_Item_CIF4 foodItem, String quantity) {
+        // Validation — skip items with no name or zero/negative calories
+        String itemName = foodItem.Get_food_item_name();
+        if (itemName == null || itemName.trim().isEmpty()) {
+            android.util.Log.w("AddToCloud", "Skipping cloud add: food name is empty");
+            return;
+        }
+        if (foodItem.Get_calories_per_100g() <= 0) {
+            android.util.Log.w("AddToCloud", "Skipping cloud add: calories <= 0 for " + itemName);
+            return;
+        }
+
         Map<String, Object> foodData = new HashMap<>();
-        foodData.put("food_item_name", foodItem.Get_food_item_name());
+        foodData.put("food_item_name", itemName.trim());
         foodData.put("calories_per_100g", (double) foodItem.Get_calories_per_100g());
         foodData.put("fat_per_100g", (double) foodItem.Get_fat_per_100g());
         foodData.put("saturated_fat", (double) foodItem.Get_saturated_fat());
@@ -1273,6 +1309,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        retrySyncPendingNotes();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // Shutdown the executor when the activity is destroyed to avoid memory leaks
@@ -1427,7 +1469,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     /**
      * Shows the AI calorie estimation result and offers to apply the values back to the
      * selected food notes. If parsing succeeds, a confirmation step shows what will be written
-     * before any DB change is made.
+     * before any DB change is made, then credits the total to the countdown balance.
      */
     private void showCaloriesResult(String response, List<Map<String, String>> selectedFoods) {
         String message = (response != null && !response.trim().isEmpty())
@@ -1442,7 +1484,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Only show Apply button when we have foods to update and a non-empty response
         if (selectedFoods != null && !selectedFoods.isEmpty()
                 && response != null && !response.trim().isEmpty()) {
-            builder.setNeutralButton("Apply to Notes", (dialog, which) -> {
+            final int parsedTotal = parseTotalCaloriesFromAiResponse(response);
+            builder.setNeutralButton("Apply + Credit Balance", (dialog, which) -> {
                 List<Integer> parsed = parseCaloriesFromAiResponse(response, selectedFoods.size());
                 if (parsed.isEmpty()) {
                     Toast.makeText(this,
@@ -1450,11 +1493,34 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG).show();
                     return;
                 }
-                confirmAndApplyCalories(parsed, selectedFoods);
+                // Use the AI's TOTAL line; fall back to summing per-item values
+                int totalToCredit = parsedTotal > 0 ? parsedTotal
+                        : parsed.stream().mapToInt(Integer::intValue).sum();
+                confirmAndApplyCalories(parsed, selectedFoods, totalToCredit);
             });
         }
 
         builder.show();
+    }
+
+    /**
+     * Parses the "TOTAL: N calories" line from the AI response.
+     * Returns 0 if not found; caller should fall back to summing per-item values.
+     */
+    private int parseTotalCaloriesFromAiResponse(String response) {
+        if (response == null || response.trim().isEmpty()) return 0;
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "TOTAL:\\s*(\\d+)\\s*(?:cal(?:ories)?|kcal)?",
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher m = p.matcher(response);
+        if (m.find()) {
+            try {
+                int total = Integer.parseInt(m.group(1));
+                android.util.Log.d("FoodNoteAI", "parseTotalCaloriesFromAiResponse: total=" + total);
+                return total;
+            } catch (NumberFormatException ignore) { /* fall through */ }
+        }
+        return 0;
     }
 
     /**
@@ -1494,26 +1560,32 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     /**
-     * Shows a confirmation dialog listing the calorie values that will be written to each note,
-     * then writes them to the DB and refreshes the table on user confirmation.
+     * Shows a confirmation dialog listing the calorie values that will be written to each note.
+     * On confirmation: writes values to DB, credits the total to the countdown balance, shows a
+     * Countdown Report, then clears all checkboxes to prevent duplicate credits.
+     *
+     * @param totalCalories Total calories to credit to the countdown balance (sum or AI TOTAL line).
      */
     private void confirmAndApplyCalories(List<Integer> parsedCalories,
-                                          List<Map<String, String>> selectedFoods) {
+                                          List<Map<String, String>> selectedFoods,
+                                          int totalCalories) {
         int count = Math.min(parsedCalories.size(), selectedFoods.size());
-        StringBuilder sb = new StringBuilder("Apply these calorie values to your food notes?\n\n");
+        StringBuilder sb = new StringBuilder("Apply these AI calorie values and credit the total to your Countdown Balance?\n\n");
         for (int i = 0; i < count; i++) {
             String foodName = selectedFoods.get(i).getOrDefault("food", "(unknown)");
             sb.append(foodName).append(": ").append(parsedCalories.get(i)).append(" cal\n");
         }
+        sb.append("\nTotal to credit: ").append(totalCalories).append(" cal");
         if (parsedCalories.size() < selectedFoods.size()) {
-            sb.append("\n(").append(selectedFoods.size() - parsedCalories.size())
+            sb.append("\n\n(").append(selectedFoods.size() - parsedCalories.size())
               .append(" note(s) without a parsed value will not be changed.)");
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Confirm Apply")
+                .setTitle("Confirm Apply + Credit")
                 .setMessage(sb.toString())
-                .setPositiveButton("Apply", (d, w) -> {
+                .setPositiveButton("Apply + Credit", (d, w) -> {
+                    // Step 1: update per-item calories in DB
                     int updated = 0;
                     for (int i = 0; i < count; i++) {
                         String noteIdStr = selectedFoods.get(i).get("note_id");
@@ -1521,7 +1593,6 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                         try {
                             int noteId = Integer.parseInt(noteIdStr);
                             int cal    = parsedCalories.get(i);
-                            // Update only calories — leave date, food name, quantity unchanged
                             int rows = databaseHelper.updateFoodNoteCaloriesOnly(noteId, cal);
                             if (rows > 0) updated++;
                             android.util.Log.d("FoodNoteAI", "Updated note id=" + noteId
@@ -1530,11 +1601,80 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             android.util.Log.w("FoodNoteAI", "Invalid note_id: " + noteIdStr);
                         }
                     }
+
+                    // Step 2: credit total calories to countdown balance (via home screen instance)
+                    if (totalCalories > 0) {
+                        if (CCD_GUI_CD_CIF1.instance != null) {
+                            CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
+                            android.util.Log.d("FoodNoteAI", "Credited " + totalCalories + " cal to balance");
+                        } else {
+                            // Fallback: home screen not in memory — update balance via DB adapter directly.
+                            // CCD_GUI_CD_CIF1.onResume() will read the updated value when it comes back.
+                            try {
+                                MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
+                                String current = adapter.RetrieveBalance();
+                                int cur = (current != null && !current.trim().isEmpty())
+                                        ? Integer.parseInt(current.replaceAll("[^\\d-]", "")) : 0;
+                                int newBal = cur + totalCalories;
+                                adapter.StoreBalance(String.valueOf(newBal));
+                                android.util.Log.d("FoodNoteAI", "Balance updated via DB fallback: " + newBal);
+                            } catch (Exception e) {
+                                android.util.Log.e("FoodNoteAI", "DB balance fallback error: " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Step 3: reload table
                     loadFoodNotesFromDatabase();
-                    Toast.makeText(this, updated + " note(s) updated with AI calorie values.",
-                            Toast.LENGTH_SHORT).show();
+
+                    // Step 4: clear all checkboxes to prevent accidental duplicate credit
+                    clearAllCheckboxes();
+
+                    // Step 5: show Countdown Report
+                    showAiCountdownReport(parsedCalories, selectedFoods, totalCalories, updated);
                 })
                 .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** Unchecks all checkboxes in the food note table. */
+    private void clearAllCheckboxes() {
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            View child = tableLayout.getChildAt(i);
+            if (child instanceof TableRow) {
+                View first = ((TableRow) child).getChildAt(0);
+                if (first instanceof CheckBox) ((CheckBox) first).setChecked(false);
+            }
+        }
+    }
+
+    /**
+     * Shows a "Countdown Report" dialog after AI calories have been applied and credited,
+     * explaining exactly what was credited and why.
+     */
+    private void showAiCountdownReport(List<Integer> parsedCalories,
+                                        List<Map<String, String>> selectedFoods,
+                                        int totalCredited,
+                                        int notesUpdated) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("AI Calorie Estimation applied successfully.\n\n");
+        sb.append("Notes updated: ").append(notesUpdated).append("\n");
+        sb.append("Total calories credited: ").append(totalCredited).append(" cal\n\n");
+        sb.append("Breakdown:\n");
+        int count = Math.min(parsedCalories.size(), selectedFoods.size());
+        for (int i = 0; i < count; i++) {
+            String name = selectedFoods.get(i).getOrDefault("food", "(unknown)");
+            String qty  = selectedFoods.get(i).getOrDefault("quantity", "");
+            sb.append("• ").append(name);
+            if (!qty.isEmpty()) sb.append(" (").append(qty).append(")");
+            sb.append(" — ").append(parsedCalories.get(i)).append(" cal\n");
+        }
+        sb.append("\nYour Countdown Balance has been updated.");
+
+        new AlertDialog.Builder(this)
+                .setTitle("Countdown Report")
+                .setMessage(sb.toString())
+                .setPositiveButton("OK", null)
                 .show();
     }
 

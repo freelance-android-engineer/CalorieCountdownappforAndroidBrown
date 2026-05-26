@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 10; // v10: recorded_steps table (Midnight Scrape reconciliation)
+    private static final int VERSION = 11; // v11: is_synced column on quick_food_note for backend sync tracking
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -272,6 +272,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_QUICK_FOOD_NOTE_QUANTITY = "note_quantity";
     private static final String COLUMN_IS_TRANSFERRED = "isTransferred";
     private static final String COLUMN_IS_SAVED_TO_COLLECTION = "isSavedToCollection";
+    // Backend sync status (added in DB version 11): 0 = pending, 1 = synced
+    private static final String COLUMN_IS_SYNCED = "is_synced";
 
     // 4PM Processing columns (added in DB version 7)
     private static final String COLUMN_IS_4PM_PROCESSED = "is_4pm_processed";
@@ -889,7 +891,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + COLUMN_QUICK_FOOD_NOTE_CALORIES + " TEXT, "
                     + COLUMN_QUICK_FOOD_NOTE_QUANTITY + " TEXT, "
                     + COLUMN_IS_TRANSFERRED + " INTEGER DEFAULT 0, " // 0 = false, 1 = true
-                    + COLUMN_IS_SAVED_TO_COLLECTION + " INTEGER DEFAULT 0" // 0 = not saved, 1 = saved to collection
+                    + COLUMN_IS_SAVED_TO_COLLECTION + " INTEGER DEFAULT 0, " // 0 = not saved, 1 = saved
+                    + COLUMN_IS_SYNCED + " INTEGER DEFAULT 0" // 0 = pending backend sync, 1 = synced
                     + ")";
             db.execSQL(CREATE_QUICK_FOOD_NOTE_TABLE);
             android.util.Log.d("Table creation", "created" + TABLE_QUICK_FOOD_NOTE);
@@ -1151,6 +1154,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v10: created " + TABLE_RECORDED_STEPS);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", TABLE_RECORDED_STEPS + " already exists: " + e.getMessage());
+            }
+        }
+
+        // v11: is_synced column on quick_food_note (backend sync tracking)
+        if (oldVersion < 11) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE
+                        + " ADD COLUMN " + COLUMN_IS_SYNCED + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "v11: added " + COLUMN_IS_SYNCED + " to " + TABLE_QUICK_FOOD_NOTE);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", COLUMN_IS_SYNCED + " column already exists: " + e.getMessage());
             }
         }
 
@@ -3583,6 +3597,55 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return isSaved;
+    }
+
+    /** Mark a food note as successfully synced to the backend. */
+    public void markFoodNoteAsSynced(long noteId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_IS_SYNCED, 1);
+            db.update(TABLE_QUICK_FOOD_NOTE, values,
+                    COLUMN_QUICK_FOOD_NOTE_ID + "=?",
+                    new String[]{String.valueOf(noteId)});
+            android.util.Log.d("FoodNoteDB", "markFoodNoteAsSynced: id=" + noteId);
+        } finally {
+            db.close();
+        }
+    }
+
+    /**
+     * Returns all food notes that have not yet been synced to the backend.
+     * Each String[] contains: [note_id, note_food, note_calories, note_quantity, note_date]
+     */
+    public List<String[]> getUnsyncedFoodNotes() {
+        List<String[]> result = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT " + COLUMN_QUICK_FOOD_NOTE_ID + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_FOOD + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_CALORIES + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_QUANTITY + ", "
+                            + COLUMN_QUICK_FOOD_NOTE_DATE
+                            + " FROM " + TABLE_QUICK_FOOD_NOTE
+                            + " WHERE " + COLUMN_IS_SYNCED + " = 0",
+                    null);
+            while (cursor.moveToNext()) {
+                result.add(new String[]{
+                        cursor.getString(0), // note_id
+                        cursor.getString(1), // food
+                        cursor.getString(2), // calories
+                        cursor.getString(3), // quantity
+                        cursor.getString(4)  // date
+                });
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+            db.close();
+        }
+        return result;
     }
 
     public Cursor getTransferredQuickFoodNotes() {
