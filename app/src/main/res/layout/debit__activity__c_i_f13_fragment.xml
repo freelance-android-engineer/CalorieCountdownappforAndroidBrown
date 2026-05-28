@@ -106,6 +106,12 @@
             android:layout_height="wrap_content"
             android:text="@string/btn_strength_training" />
 
+        <Button
+            android:id="@+id/button_ai"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_ai_debit" />
+
     </LinearLayout>
 
 </ScrollView>

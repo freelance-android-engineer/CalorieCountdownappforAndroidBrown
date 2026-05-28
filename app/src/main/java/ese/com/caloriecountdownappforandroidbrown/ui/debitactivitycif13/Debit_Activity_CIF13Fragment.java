@@ -28,6 +28,7 @@ import java.util.List;
 
 import ese.com.caloriecountdownappforandroidbrown.ExerciseItem;
 import ese.com.caloriecountdownappforandroidbrown.Fitness_Item_CIF5;
+import ese.com.caloriecountdownappforandroidbrown.GeminiApiService;
 import ese.com.caloriecountdownappforandroidbrown.MIF4_Data_Model_Adapter;
 import ese.com.caloriecountdownappforandroidbrown.R;
 import ese.com.caloriecountdownappforandroidbrown.RoundingCIF13;
@@ -42,6 +43,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
     private Button mCancel;
     private Button mCardio;
     private Button mStrength;
+    private Button mAiButton;
     private Fitness_Item_CIF5 mCountdown;
 
     public static Debit_Activity_CIF13Fragment newInstance() {
@@ -58,6 +60,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
         mCancel   = v.findViewById(R.id.button13);
         mCardio   = v.findViewById(R.id.button_cardio);
         mStrength = v.findViewById(R.id.button_strength);
+        mAiButton = v.findViewById(R.id.button_ai);
 
         // ── Existing Debit button ─────────────────────────────────────────────
         mDebit.setOnClickListener(view -> {
@@ -116,6 +119,9 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
         // ── Strength Training button ──────────────────────────────────────────
         mStrength.setOnClickListener(view ->
                 showExerciseDialog(ExerciseItem.CATEGORY_STRENGTH, "Strength Training"));
+
+        // ── AI Debit button ───────────────────────────────────────────────────
+        mAiButton.setOnClickListener(view -> showAiDebitInputDialog());
 
         return v;
     }
@@ -373,5 +379,91 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
         i2.putExtra(TOTAL_DEBIT_VALUE, debit);
         getActivity().setResult(AppCompatActivity.RESULT_OK, i2);
         getActivity().finish();
+    }
+
+    // ── AI Debit ──────────────────────────────────────────────────────────────
+
+    /** Shows an input dialog so the user can describe their activity before calling the AI. */
+    private void showAiDebitInputDialog() {
+        if (!isAdded() || getContext() == null) return;
+
+        EditText etActivity = new EditText(requireContext());
+        etActivity.setHint("e.g. 30 min run, 1 hour cycling");
+        etActivity.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        int pad = 48;
+        etActivity.setPadding(pad, pad / 2, pad, pad / 2);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("AI Calorie Debit")
+                .setMessage("Describe your activity and AI will estimate calories burned:")
+                .setView(etActivity)
+                .setPositiveButton("Calculate", (dlg, which) -> {
+                    String activity = etActivity.getText().toString().trim();
+                    if (activity.isEmpty()) {
+                        Toast.makeText(requireContext(),
+                                "Please describe your activity.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    runAiDebit(activity);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** Calls the existing AI service with a calorie-burn prompt and applies the result as a debit. */
+    private void runAiDebit(String activityDescription) {
+        if (!isAdded() || getActivity() == null) return;
+
+        android.app.ProgressDialog progress = new android.app.ProgressDialog(requireContext());
+        progress.setMessage("AI is estimating calories burned...");
+        progress.setCancelable(false);
+        progress.show();
+
+        String prompt = "How many calories would I burn doing " + activityDescription
+                + "? Respond with ONLY a single integer number representing the total calories burned."
+                + " No text, no units, just the number.";
+
+        GeminiApiService.calculateCalories(requireActivity(), prompt, new GeminiApiService.CalorieCallback() {
+            @Override
+            public void onResult(String result) {
+                if (!isAdded() || getContext() == null) {
+                    progress.dismiss();
+                    return;
+                }
+                progress.dismiss();
+                if (result == null || result.trim().isEmpty()) {
+                    android.util.Log.e("DebitAI", "AI returned null or empty");
+                    Toast.makeText(requireContext(),
+                            "AI estimation failed. Please check your connection and try again.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                java.util.regex.Matcher matcher = java.util.regex.Pattern
+                        .compile("\\d+(\\.\\d+)?")
+                        .matcher(result.trim());
+                if (!matcher.find()) {
+                    android.util.Log.w("DebitAI", "No number found in AI response: " + result.trim());
+                    Toast.makeText(requireContext(),
+                            "Could not parse AI response. Please try again.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                try {
+                    int debitValue = (int) Math.round(Double.parseDouble(matcher.group()));
+                    if (debitValue <= 0) {
+                        Toast.makeText(requireContext(),
+                                "AI returned an invalid value. Please try again.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    BackToParent(debitValue);
+                } catch (NumberFormatException e) {
+                    android.util.Log.e("DebitAI", "Number parse failed: " + result.trim());
+                    Toast.makeText(requireContext(),
+                            "Could not parse AI response. Please try again.",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 }
