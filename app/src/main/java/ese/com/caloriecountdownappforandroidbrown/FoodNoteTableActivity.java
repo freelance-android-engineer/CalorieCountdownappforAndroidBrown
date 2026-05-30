@@ -903,6 +903,16 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     return;
                 }
 
+                if (quantity.isEmpty()) {
+                    Toast.makeText(FoodNoteTableActivity.this, "Please enter a quantity first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (!NetworkUtil.isInternetAvailable(FoodNoteTableActivity.this)) {
+                    Toast.makeText(FoodNoteTableActivity.this, "No internet connection. Please check your network and try again.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
                 // Build prompt for calorie estimation
                 StringBuilder promptBuilder = new StringBuilder();
                 promptBuilder.append("How many calories are in ");

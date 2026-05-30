@@ -8,7 +8,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.Toast;
-import android.widget.View;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
