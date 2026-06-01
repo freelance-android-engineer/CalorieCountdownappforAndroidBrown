@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 11; // v11: is_synced column on quick_food_note for backend sync tracking
+    private static final int VERSION = 12; // v12: HealthDataBloodPressure, HealthDataHeartRate, HealthDataBloodSugar tables
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -482,6 +482,33 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public static final String COLUMN_HEART_RATE_BPM = "bpm";
     public static final String COLUMN_HEART_RATE_NOTE = "note";
 
+    // ── Health Data Reading Tables (v12) ─────────────────────────────────────
+
+    // Blood Pressure
+    public static final String TABLE_HEALTH_BP         = "HealthDataBloodPressure";
+    public static final String COLUMN_BP_ID            = "id";
+    public static final String COLUMN_BP_DATE          = "date";
+    public static final String COLUMN_BP_TIME          = "time";
+    public static final String COLUMN_BP_SYSTOLIC      = "systolic";
+    public static final String COLUMN_BP_DIASTOLIC     = "diastolic";
+    public static final String COLUMN_BP_CREATED_AT    = "created_at";
+
+    // Heart Rate Readings (manual entry — separate from camera-based HeartRateTracker)
+    public static final String TABLE_HEALTH_HR         = "HealthDataHeartRate";
+    public static final String COLUMN_HRDATA_ID        = "id";
+    public static final String COLUMN_HRDATA_DATE      = "date";
+    public static final String COLUMN_HRDATA_TIME      = "time";
+    public static final String COLUMN_HRDATA_BPM       = "bpm";
+    public static final String COLUMN_HRDATA_CREATED_AT = "created_at";
+
+    // Blood Sugar
+    public static final String TABLE_HEALTH_BS         = "HealthDataBloodSugar";
+    public static final String COLUMN_BS_ID            = "id";
+    public static final String COLUMN_BS_DATE          = "date";
+    public static final String COLUMN_BS_TIME          = "time";
+    public static final String COLUMN_BS_MGDL          = "mg_dl";
+    public static final String COLUMN_BS_CREATED_AT    = "created_at";
+
 
     private Context mContext;
     private Boolean time_is_After_Four_Thirty_PM = false;
@@ -613,6 +640,36 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (SQLException alreadyexist) {
             // Table already exists
         }
+
+        // ── Health Data Reading Tables (v12) ─────────────────────────────────
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_BP + " ("
+                    + COLUMN_BP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_BP_DATE + " TEXT, "
+                    + COLUMN_BP_TIME + " TEXT, "
+                    + COLUMN_BP_SYSTOLIC + " INTEGER DEFAULT 0, "
+                    + COLUMN_BP_DIASTOLIC + " INTEGER DEFAULT 0, "
+                    + COLUMN_BP_CREATED_AT + " TEXT DEFAULT '')");
+        } catch (Exception ignore) { /* already exists */ }
+
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_HR + " ("
+                    + COLUMN_HRDATA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_HRDATA_DATE + " TEXT, "
+                    + COLUMN_HRDATA_TIME + " TEXT, "
+                    + COLUMN_HRDATA_BPM + " INTEGER DEFAULT 0, "
+                    + COLUMN_HRDATA_CREATED_AT + " TEXT DEFAULT '')");
+        } catch (Exception ignore) { /* already exists */ }
+
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_BS + " ("
+                    + COLUMN_BS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_BS_DATE + " TEXT, "
+                    + COLUMN_BS_TIME + " TEXT, "
+                    + COLUMN_BS_MGDL + " INTEGER DEFAULT 0, "
+                    + COLUMN_BS_CREATED_AT + " TEXT DEFAULT '')");
+        } catch (Exception ignore) { /* already exists */ }
+        // ─────────────────────────────────────────────────────────────────────
 
         // ====== 4PM Food Notes Processing — DB v7 additions ======
         // ALTER TABLE quick_food_note to add 4PM processing columns (safe to retry each launch)
@@ -1165,6 +1222,44 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v11: added " + COLUMN_IS_SYNCED + " to " + TABLE_QUICK_FOOD_NOTE);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", COLUMN_IS_SYNCED + " column already exists: " + e.getMessage());
+            }
+        }
+
+        // v12: Health Data Reading tables (Blood Pressure, Heart Rate, Blood Sugar)
+        if (oldVersion < 12) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_BP + " ("
+                        + COLUMN_BP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_BP_DATE + " TEXT, "
+                        + COLUMN_BP_TIME + " TEXT, "
+                        + COLUMN_BP_SYSTOLIC + " INTEGER DEFAULT 0, "
+                        + COLUMN_BP_DIASTOLIC + " INTEGER DEFAULT 0, "
+                        + COLUMN_BP_CREATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v12: created " + TABLE_HEALTH_BP);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_HEALTH_BP + " already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_HR + " ("
+                        + COLUMN_HRDATA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_HRDATA_DATE + " TEXT, "
+                        + COLUMN_HRDATA_TIME + " TEXT, "
+                        + COLUMN_HRDATA_BPM + " INTEGER DEFAULT 0, "
+                        + COLUMN_HRDATA_CREATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v12: created " + TABLE_HEALTH_HR);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_HEALTH_HR + " already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_HEALTH_BS + " ("
+                        + COLUMN_BS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_BS_DATE + " TEXT, "
+                        + COLUMN_BS_TIME + " TEXT, "
+                        + COLUMN_BS_MGDL + " INTEGER DEFAULT 0, "
+                        + COLUMN_BS_CREATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v12: created " + TABLE_HEALTH_BS);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_HEALTH_BS + " already exists: " + e.getMessage());
             }
         }
 
@@ -4148,6 +4243,248 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         Date date = Date.from(Input.atZone(ZoneId.systemDefault()).toInstant());
 
         return date;
+    }
+
+    // ==================== BLOOD PRESSURE CRUD ====================
+
+    public long insertBloodPressure(String date, String time, int systolic, int diastolic) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            String createdAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_BP_DATE, date);
+            values.put(COLUMN_BP_TIME, time);
+            values.put(COLUMN_BP_SYSTOLIC, systolic);
+            values.put(COLUMN_BP_DIASTOLIC, diastolic);
+            values.put(COLUMN_BP_CREATED_AT, createdAt);
+            id = db.insert(TABLE_HEALTH_BP, null, values);
+            android.util.Log.d("HEALTH_DB", "insertBloodPressure: " + systolic + "/" + diastolic + " id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "insertBloodPressure error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return id;
+    }
+
+    public List<HealthReadingModel> getAllBloodPressure() {
+        List<HealthReadingModel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_HEALTH_BP + " ORDER BY " + COLUMN_BP_DATE + " DESC, " + COLUMN_BP_TIME + " DESC",
+                    null);
+            if (cursor.moveToFirst()) {
+                do {
+                    list.add(new HealthReadingModel(
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BP_ID)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BP_DATE)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BP_TIME)),
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BP_SYSTOLIC)),
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BP_DIASTOLIC)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BP_CREATED_AT))
+                    ));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "getAllBloodPressure error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return list;
+    }
+
+    public boolean updateBloodPressure(int id, String date, String time, int systolic, int diastolic) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_BP_DATE, date);
+            values.put(COLUMN_BP_TIME, time);
+            values.put(COLUMN_BP_SYSTOLIC, systolic);
+            values.put(COLUMN_BP_DIASTOLIC, diastolic);
+            int rows = db.update(TABLE_HEALTH_BP, values, COLUMN_BP_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "updateBloodPressure error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
+    public boolean deleteBloodPressure(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            int rows = db.delete(TABLE_HEALTH_BP, COLUMN_BP_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "deleteBloodPressure error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
+    // ==================== HEART RATE READINGS CRUD (manual entry) ====================
+
+    public long insertManualHeartRate(String date, String time, int bpm) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            String createdAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_HRDATA_DATE, date);
+            values.put(COLUMN_HRDATA_TIME, time);
+            values.put(COLUMN_HRDATA_BPM, bpm);
+            values.put(COLUMN_HRDATA_CREATED_AT, createdAt);
+            id = db.insert(TABLE_HEALTH_HR, null, values);
+            android.util.Log.d("HEALTH_DB", "insertManualHeartRate: " + bpm + " BPM, id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "insertManualHeartRate error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return id;
+    }
+
+    public List<HealthReadingModel> getAllManualHeartRates() {
+        List<HealthReadingModel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_HEALTH_HR + " ORDER BY " + COLUMN_HRDATA_DATE + " DESC, " + COLUMN_HRDATA_TIME + " DESC",
+                    null);
+            if (cursor.moveToFirst()) {
+                do {
+                    list.add(new HealthReadingModel(
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_HRDATA_ID)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HRDATA_DATE)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HRDATA_TIME)),
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_HRDATA_BPM)),
+                            0,
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HRDATA_CREATED_AT))
+                    ));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "getAllManualHeartRates error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return list;
+    }
+
+    public boolean updateManualHeartRate(int id, String date, String time, int bpm) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_HRDATA_DATE, date);
+            values.put(COLUMN_HRDATA_TIME, time);
+            values.put(COLUMN_HRDATA_BPM, bpm);
+            int rows = db.update(TABLE_HEALTH_HR, values, COLUMN_HRDATA_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "updateManualHeartRate error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
+    public boolean deleteManualHeartRate(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            int rows = db.delete(TABLE_HEALTH_HR, COLUMN_HRDATA_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "deleteManualHeartRate error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
+    // ==================== BLOOD SUGAR CRUD ====================
+
+    public long insertBloodSugar(String date, String time, int mgDl) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            String createdAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_BS_DATE, date);
+            values.put(COLUMN_BS_TIME, time);
+            values.put(COLUMN_BS_MGDL, mgDl);
+            values.put(COLUMN_BS_CREATED_AT, createdAt);
+            id = db.insert(TABLE_HEALTH_BS, null, values);
+            android.util.Log.d("HEALTH_DB", "insertBloodSugar: " + mgDl + " mg/dL, id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "insertBloodSugar error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return id;
+    }
+
+    public List<HealthReadingModel> getAllBloodSugar() {
+        List<HealthReadingModel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_HEALTH_BS + " ORDER BY " + COLUMN_BS_DATE + " DESC, " + COLUMN_BS_TIME + " DESC",
+                    null);
+            if (cursor.moveToFirst()) {
+                do {
+                    list.add(new HealthReadingModel(
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BS_ID)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BS_DATE)),
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BS_TIME)),
+                            cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BS_MGDL)),
+                            0,
+                            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_BS_CREATED_AT))
+                    ));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "getAllBloodSugar error: " + e.getMessage());
+        } finally {
+            db.close();
+        }
+        return list;
+    }
+
+    public boolean updateBloodSugar(int id, String date, String time, int mgDl) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_BS_DATE, date);
+            values.put(COLUMN_BS_TIME, time);
+            values.put(COLUMN_BS_MGDL, mgDl);
+            int rows = db.update(TABLE_HEALTH_BS, values, COLUMN_BS_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "updateBloodSugar error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
+    public boolean deleteBloodSugar(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            int rows = db.delete(TABLE_HEALTH_BS, COLUMN_BS_ID + " = ?", new String[]{String.valueOf(id)});
+            return rows > 0;
+        } catch (Exception e) {
+            android.util.Log.e("HEALTH_DB", "deleteBloodSugar error: " + e.getMessage());
+            return false;
+        } finally {
+            db.close();
+        }
     }
 
     // ==================== MEMO TABLE CRUD OPERATIONS ====================

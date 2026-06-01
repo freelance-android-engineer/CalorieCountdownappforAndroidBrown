@@ -371,6 +371,22 @@
                 </menu>
             </item>
 
+            <item
+                android:id="@+id/submenu_health_readings"
+                android:title="@string/health_readings_title">
+                <menu>
+                    <item
+                        android:id="@+id/health_blood_pressure"
+                        android:title="@string/blood_pressure_title" />
+                    <item
+                        android:id="@+id/health_heart_rate_readings"
+                        android:title="@string/heart_rate_readings_title" />
+                    <item
+                        android:id="@+id/health_blood_sugar"
+                        android:title="@string/blood_sugar_title" />
+                </menu>
+            </item>
+
         </menu>
     </item>
 

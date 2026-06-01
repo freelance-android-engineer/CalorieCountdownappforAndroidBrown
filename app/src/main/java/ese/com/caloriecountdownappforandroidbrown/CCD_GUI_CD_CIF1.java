@@ -517,6 +517,21 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.health_blood_pressure) {
+                startActivity(new android.content.Intent(this, ese.com.caloriecountdownappforandroidbrown.BloodPressureActivity.class));
+                return true;
+            }
+
+            if (id == R.id.health_heart_rate_readings) {
+                startActivity(new android.content.Intent(this, ese.com.caloriecountdownappforandroidbrown.HeartRateReadingsActivity.class));
+                return true;
+            }
+
+            if (id == R.id.health_blood_sugar) {
+                startActivity(new android.content.Intent(this, ese.com.caloriecountdownappforandroidbrown.BloodSugarActivity.class));
+                return true;
+            }
+
             if (id == R.id.action_recalibrate) {
                 Start_Recalibration();
                 return true;

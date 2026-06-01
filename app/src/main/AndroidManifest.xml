@@ -97,6 +97,18 @@
             android:exported="false"
             android:label="@string/heart_rate_title" />
         <activity
+            android:name=".BloodPressureActivity"
+            android:exported="false"
+            android:label="@string/blood_pressure_title" />
+        <activity
+            android:name=".HeartRateReadingsActivity"
+            android:exported="false"
+            android:label="@string/heart_rate_readings_title" />
+        <activity
+            android:name=".BloodSugarActivity"
+            android:exported="false"
+            android:label="@string/blood_sugar_title" />
+        <activity
             android:name=".Client_Guide_Acitivity_Activity"
             android:exported="false"
             android:label="@string/title_activity_client_guide_acitivity"
