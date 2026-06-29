@@ -91,6 +91,19 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="@string/steps_challenge_button"
+        android:textColor="@color/green"
+        android:fontFamily="sans-serif-light"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:id="@+id/btnStepsChallengeMain"
+        android:padding="8sp"
+        android:layout_above="@+id/button2"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="@string/Credit_Button"
         android:textColor="@color/green"
         android:fontFamily="sans-serif-light"

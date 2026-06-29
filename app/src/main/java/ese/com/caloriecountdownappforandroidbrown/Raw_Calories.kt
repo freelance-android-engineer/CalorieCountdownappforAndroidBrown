@@ -36,9 +36,10 @@ class Raw_Calories : AppCompatActivity() {
 
 
             findViewById<android.widget.Button>(R.id.button22).setOnClickListener {
-
-                view -> CCD_GUI_CD_CIF1.instance.Countup(CheckGetResults())
-
+                val calories = CheckGetResults()
+                val resultIntent = android.content.Intent()
+                resultIntent.putExtra(Food_Diary_Sheet_CIF3.TOTAL_CREDIT_VALUE, calories)
+                setResult(RESULT_OK, resultIntent)
                 finish()
             }
 

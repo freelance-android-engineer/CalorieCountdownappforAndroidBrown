@@ -146,7 +146,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
                 if (FetchedFoodItems != null) {
                     SummaryBoxCIF12 summary_box = SummaryBoxCIF12.get(getApplicationContext());
 
-                    summary_box.Set_mFoodItems(mFoodItems);
+                    summary_box.Set_mFoodItems(FoodItemsLab_CIF9.get(getApplicationContext()).getmFoodItems());
 
 
                     //summary_box.Add_Fooditem(new Food_Item_CIF4("Mocha Medium"));
@@ -578,7 +578,13 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     @Override
     protected void onActivityResult(int requestcode, int resultcode, Intent data) {
         super.onActivityResult(requestcode, resultcode, data);
-        //add new item Food item CIF to results list is possible and return.
+        if (requestcode == REQUEST_CODE_JUSTADD && resultcode == RESULT_OK && data != null) {
+            int rawCalories = data.getIntExtra(TOTAL_CREDIT_VALUE, 0);
+            Intent result = new Intent();
+            result.putExtra(TOTAL_CREDIT_VALUE, rawCalories);
+            setResult(RESULT_OK, result);
+            finish();
+        }
     }
 
 
@@ -763,15 +769,16 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             Log.d(TAG, "Calories In is null Baby!");
         } else {
             i2.putExtra(TOTAL_CREDIT_VALUE, new RoundingCIF13().StringToInt(summary_box.GetListingsTotalCaloriesIN()));
-            if (summary_box.GetSummaryString() == null) {
-                i2.putExtra(SUMMATION_TEXT, "ese-edet.eu");
-                Log.d(TAG, "Summation is null Baby!");
-            }
-            i2.putExtra(SUMMATION_TEXT, summary_box.GetSummaryString());
-            setResult(RESULT_OK, i2);
             Log.d(TAG, "Everything is Cool Baby! " + summary_box.GetDebitSummaryString());
-            finish();
         }
+        if (summary_box.GetSummaryString() == null) {
+            i2.putExtra(SUMMATION_TEXT, "ese-edet.eu");
+            Log.d(TAG, "Summation is null Baby!");
+        } else {
+            i2.putExtra(SUMMATION_TEXT, summary_box.GetSummaryString());
+        }
+        setResult(RESULT_OK, i2);
+        finish();
     }
 
 

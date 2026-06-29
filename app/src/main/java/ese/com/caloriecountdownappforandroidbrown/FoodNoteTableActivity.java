@@ -832,62 +832,66 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     return;
                 }
 
-                // First use AI to get full nutrition data, then check for duplicates and add
-                android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(FoodNoteTableActivity.this);
-                progressDialog.setMessage("Fetching nutrition data for \"" + foodName + "\"...");
-                progressDialog.setCancelable(false);
-                progressDialog.show();
+                // Build food item directly from local form data — no fetch required
+                Food_Item_CIF4 foodItem = new Food_Item_CIF4();
+                foodItem.Set_food_item_name(foodName);
+                try {
+                    float userCalories = Float.parseFloat(caloriesStr);
+                    foodItem.Set_calories_per_100g(userCalories);
+                    foodItem.Set_calorie_value((int) userCalories);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(FoodNoteTableActivity.this, "Invalid calories value", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                GeminiApiService.INSTANCE.fetchNutritionData(FoodNoteTableActivity.this, foodName,
-                    foodItem -> {
-                        progressDialog.dismiss();
-
-                        // Override calories with the user's value from the note
-                        try {
-                            float userCalories = Float.parseFloat(caloriesStr);
-                            foodItem.Set_calories_per_100g(userCalories);
-                            foodItem.Set_calorie_value((int) userCalories);
-                        } catch (NumberFormatException e) {
-                            // keep AI-estimated value
-                        }
-
-                        // Check local DB for duplicate
-                        Food_Item_CIF4 existing = databaseHelper.getFoodItemByExactName(foodName);
-                        if (existing != null) {
-                            // Duplicate found - ask user
-                            new AlertDialog.Builder(FoodNoteTableActivity.this)
-                                .setTitle("Duplicate Found")
-                                .setMessage("\"" + foodName + "\" already exists in the database.\n\n"
-                                    + "Existing: " + (int) existing.Get_calories_per_100g() + " cal/100g\n"
-                                    + "New: " + (int) foodItem.Get_calories_per_100g() + " cal/100g\n\n"
-                                    + "What would you like to do?")
-                                .setPositiveButton("Overwrite", (dialogInterface, which) -> {
-                                    databaseHelper.deleteFoodItemByName(foodName);
-                                    databaseHelper.Insert_Food_Item_Row(foodItem);
-                                    addFoodItemToBackendCloud(foodItem, quantityStr);
-                                    Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" overwritten and synced to cloud", Toast.LENGTH_SHORT).show();
-                                    dialogInterface.dismiss();
-                                })
-                                .setNegativeButton("Keep Existing", (dialogInterface, which) -> {
-                                    Toast.makeText(FoodNoteTableActivity.this, "Kept existing entry for \"" + foodName + "\"", Toast.LENGTH_SHORT).show();
-                                    dialogInterface.dismiss();
-                                })
-                                .show();
-                        } else {
-                            // No duplicate - insert directly
+                // Check local DB for duplicate
+                Food_Item_CIF4 existing = databaseHelper.getFoodItemByExactName(foodName);
+                if (existing != null) {
+                    // Duplicate found - ask user
+                    new AlertDialog.Builder(FoodNoteTableActivity.this)
+                        .setTitle("Duplicate Found")
+                        .setMessage("\"" + foodName + "\" already exists in the database.\n\n"
+                            + "Existing: " + (int) existing.Get_calories_per_100g() + " cal/100g\n"
+                            + "New: " + (int) foodItem.Get_calories_per_100g() + " cal/100g\n\n"
+                            + "What would you like to do?")
+                        .setPositiveButton("Overwrite", (dialogInterface, which) -> {
+                            databaseHelper.deleteFoodItemByName(foodName);
                             databaseHelper.Insert_Food_Item_Row(foodItem);
                             addFoodItemToBackendCloud(foodItem, quantityStr);
-                            Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" added to cloud database", Toast.LENGTH_SHORT).show();
-                        }
-                        return kotlin.Unit.INSTANCE;
-                    },
-                    error -> {
-                        progressDialog.dismiss();
-                        android.util.Log.e("AddToCloud", "Failed to fetch nutrition data: " + error);
-                        Toast.makeText(FoodNoteTableActivity.this, "Failed to fetch nutrition data. Please try again.", Toast.LENGTH_LONG).show();
-                        return kotlin.Unit.INSTANCE;
-                    }
-                );
+                            Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" overwritten and synced to cloud", Toast.LENGTH_SHORT).show();
+                            dialogInterface.dismiss();
+                            // Background AI enrichment: update local DB with full macro profile
+                            GeminiApiService.INSTANCE.fetchNutritionData(FoodNoteTableActivity.this, foodName,
+                                enriched -> {
+                                    enriched.Set_calories_per_100g(foodItem.Get_calories_per_100g());
+                                    enriched.Set_calorie_value(foodItem.Get_calorie_value());
+                                    databaseHelper.deleteFoodItemByName(foodName);
+                                    databaseHelper.Insert_Food_Item_Row(enriched);
+                                    android.util.Log.d("AddToCloud", "Background enrichment done: " + foodName);
+                                },
+                                err -> android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err));
+                        })
+                        .setNegativeButton("Keep Existing", (dialogInterface, which) -> {
+                            Toast.makeText(FoodNoteTableActivity.this, "Kept existing entry for \"" + foodName + "\"", Toast.LENGTH_SHORT).show();
+                            dialogInterface.dismiss();
+                        })
+                        .show();
+                } else {
+                    // No duplicate - insert directly
+                    databaseHelper.Insert_Food_Item_Row(foodItem);
+                    addFoodItemToBackendCloud(foodItem, quantityStr);
+                    Toast.makeText(FoodNoteTableActivity.this, "\"" + foodName + "\" added to cloud database", Toast.LENGTH_SHORT).show();
+                    // Background AI enrichment: update local DB with full macro profile
+                    GeminiApiService.INSTANCE.fetchNutritionData(FoodNoteTableActivity.this, foodName,
+                        enriched -> {
+                            enriched.Set_calories_per_100g(foodItem.Get_calories_per_100g());
+                            enriched.Set_calorie_value(foodItem.Get_calorie_value());
+                            databaseHelper.deleteFoodItemByName(foodName);
+                            databaseHelper.Insert_Food_Item_Row(enriched);
+                            android.util.Log.d("AddToCloud", "Background enrichment done: " + foodName);
+                        },
+                        err -> android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err));
+                }
             }
         });
 

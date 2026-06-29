@@ -2604,6 +2604,9 @@
     <!-- Midnight Scrape -->
     <string name="midnight_scrape_button">Midnight Scrape</string>
 
+    <!-- Steps Challenge -->
+    <string name="steps_challenge_button">Steps Challenge</string>
+
     <!-- Exercise Debit — Cardio and Strength Training -->
     <string name="btn_cardio">Cardio</string>
     <string name="btn_strength_training">Strength Training</string>

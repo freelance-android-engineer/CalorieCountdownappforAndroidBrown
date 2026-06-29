@@ -38,6 +38,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mDrop100Points;
     private Button mBMR;
     private Button mMidnightScrape;
+    private Button mStepsChallenge;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -178,6 +179,15 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View v) {
                 showMidnightScrapeDialog();
+            }
+        });
+
+        // Steps Challenge button - calculates step target based on balance, day-end, and BMR
+        mStepsChallenge = (Button) findViewById(R.id.btnStepsChallenge);
+        mStepsChallenge.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showStepsChallengeDialog();
             }
         });
 
@@ -337,7 +347,18 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private void launchManual() {
         Intent i = new Intent(Debit_Activity_CiF003_fragment_box.this, Debit_Steps.class);
         startActivityForResult(i, REQUEST_CODE_DEBIT_MAN);
+    }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_DEBIT_MAN && resultCode == RESULT_OK && data != null) {
+            int debitValue = data.getIntExtra(TOTAL_DEBIT_VALUE, 0);
+            if (debitValue > 0) {
+                StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                BackToParent(debitValue);
+            }
+        }
     }
 
     private void weaselpop() {
@@ -613,5 +634,64 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
         builder.setNegativeButton("Cancel", null);
         builder.show();
+    }
+
+    /**
+     * Steps Challenge:
+     * Formula: ceil((CurrentBalance - DayEndTarget - BMR) / StepsNumerator)
+     * where DayEndTarget = PreviousDayEndBalance - 250
+     *       StepsNumerator = 0.089
+     *       BMR = 2500 (male) or 2000 (female)
+     */
+    private void showStepsChallengeDialog() {
+        try {
+            // 1. Get current balance from main activity
+            int currentBalance = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt();
+
+            // 2. Get previous day-end balance from SQLite
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+            int previousDayEnd = db.GetDayEndBalance();
+
+            // 3. Day End Target = Previous Day End Balance - 250
+            int dayEndTarget = previousDayEnd - 250;
+
+            // 4. BMR based on gender
+            android.content.SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+            String gender = prefs.getString("user_gender", "male");
+            int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+
+            // 5. Steps Numerator
+            double stepsNumerator = 0.089;
+
+            // 6. Calculate: (CurrentBalance - DayEndTarget - BMR) / StepsNumerator
+            double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+            int stepChallenge = (int) Math.ceil(rawSteps);
+            if (stepChallenge < 0) stepChallenge = 0;
+
+            // 7. Display result
+            String message = "Client Step Challenge Calculation:\n\n"
+                    + "Current Balance: " + String.format("%,d", currentBalance) + "\n"
+                    + "Previous Day End: " + String.format("%,d", previousDayEnd) + "\n"
+                    + "Day End Target: " + String.format("%,d", dayEndTarget) + "\n"
+                    + "BMR: " + String.format("%,d", bmr) + "\n"
+                    + "Steps Numerator: " + stepsNumerator + "\n\n"
+                    + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", dayEndTarget)
+                    + " - " + String.format("%,d", bmr) + ") / " + stepsNumerator + "\n\n"
+                    + "Client Step Challenge = " + String.format("%,d", stepChallenge) + " Steps";
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Steps Challenge")
+                    .setMessage(message)
+                    .setPositiveButton("OK", null)
+                    .show();
+
+            android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
+                    + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + dayEndTarget
+                    + " bmr=" + bmr + " stepChallenge=" + stepChallenge);
+
+        } catch (Exception e) {
+            android.util.Log.e("StepsChallenge", "Error: " + e.getMessage(), e);
+            Toast.makeText(this, "Steps Challenge error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 }

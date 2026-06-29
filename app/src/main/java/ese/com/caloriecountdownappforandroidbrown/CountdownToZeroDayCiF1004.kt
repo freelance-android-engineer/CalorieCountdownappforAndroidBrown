@@ -120,12 +120,12 @@ class CountdownToZeroDayCiF1004(_openingBalance: Int, inputB_HealthProfile: Heal
 
         var output: String = "I am Empty\n"
 
-        val micheck: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(0)
-        val micheck1: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(1)
-        val micheck2: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(2)
-        val micheck3: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(3)
-        val micheck4: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(4)
-        val micheck5: DayCiF1005? = numberOFDaysToXero03FEB10.removeAt(5)
+        val micheck: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(0)
+        val micheck1: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(1)
+        val micheck2: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(2)
+        val micheck3: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(3)
+        val micheck4: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(4)
+        val micheck5: DayCiF1005? = numberOFDaysToXero03FEB10.getOrNull(5)
 
         output += micheck?.day.toString()
         output += " "

@@ -59,7 +59,7 @@ Salt:
 
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
-                    .addFormDataPart("model", "gemini-flash-latest")
+                    .addFormDataPart("model", "gemini-2.5-flash")
                     .addFormDataPart("temperature", "0.4")
                     .addFormDataPart("maxOutputTokens", "2048")
                     .addFormDataPart("contents", contentsArray.toString())
@@ -158,7 +158,7 @@ Salt:
 
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("model", "gemini-2.5-flash")
             .addFormDataPart("temperature", "0.4")
             .addFormDataPart("maxOutputTokens", "2048")
             .addFormDataPart("contents", contentsArray.toString())
@@ -262,7 +262,7 @@ Salt:
 
         val bodyBuilder = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("model", "gemini-flash-latest")
+            .addFormDataPart("model", "gemini-2.5-flash")
             .addFormDataPart("temperature", "0.4")
             .addFormDataPart("maxOutputTokens", "2048")
             .addFormDataPart("contents", contentsArray.toString())

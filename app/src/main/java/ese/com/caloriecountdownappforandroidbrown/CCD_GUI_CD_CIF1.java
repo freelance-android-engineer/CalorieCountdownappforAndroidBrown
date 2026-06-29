@@ -80,6 +80,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     private Button mCreditButton;
     private Button mDebitButton;
+    private Button mStepsChallengeMain;
 
     private SummaryBoxCIF12 mSummation;
 
@@ -198,6 +199,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 //Set_currentBalance();
             }
         });
+
+        // Steps Challenge button — visible on main screen, used after crediting food notes
+        mStepsChallengeMain = (Button) findViewById(R.id.btnStepsChallengeMain);
+        if (mStepsChallengeMain != null) {
+            mStepsChallengeMain.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showStepsChallengeFromMain();
+                }
+            });
+        }
 
 
         //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
@@ -924,10 +936,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 display_dialog_cif11.SummaryBoxShowing(mSummation);
                 mSummation.reset();
 
+                // Capture balance BEFORE credit for Countdown Report
+                int previousBalance = Get_currentBalanceInt();
+                android.util.Log.d("CreditFlow", "[CREDIT] previousBalance=" + previousBalance);
+
                 android.util.Log.d("CreditFlow", "[CREDIT] Calling Countup with creditValue=" + CreditResult);
                 Countup(CreditResult);
                 android.util.Log.d("CreditFlow", "[CREDIT] Countup completed, refreshing UI");
                 Refresh();
+
+                int newBalance = Get_currentBalanceInt();
+                showCountdownReport(previousBalance, newBalance);
 
                 if (isItDayEnd()) {
                     New_Day_2();
@@ -1177,53 +1196,129 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     private void Show_Estimated_Date_To_Zero() {
-        int currentBalance = Get_currentBalanceInt();
+        try {
+            int currentBalance = Get_currentBalanceInt();
 
-        if (currentBalance <= 0) {
+            if (currentBalance <= 0) {
+                Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                display_dialog_cif11.Set_mAppContext(this);
+                display_dialog_cif11.Showing("Your Countdown Balance is already at zero or below. Congratulations!");
+                return;
+            }
+
+            // ── Fetch historical daily balances ──────────────────────────────
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+            java.util.List<Integer> history = db.getHistoricalDayEndBalances();
+
+            int avgDailyReduction;
+            String rateSource;
+            int openingBalance = 0;
+            boolean hasHistory = false;
+
+            if (history != null && history.size() >= 2) {
+                openingBalance = history.get(0);
+                int latestHistorical = history.get(history.size() - 1);
+                int totalDays = history.size() - 1;
+                int totalReduction = openingBalance - latestHistorical;
+
+                if (totalReduction > 0 && totalDays > 0) {
+                    avgDailyReduction = Math.max(1, totalReduction / totalDays);
+                    rateSource = "based on " + history.size() + " day snapshots";
+                    hasHistory = true;
+                } else {
+                    // Balance not reducing — fall back to standard rate
+                    avgDailyReduction = 250;
+                    rateSource = "standard rate (balance not reducing in history)";
+                }
+            } else {
+                avgDailyReduction = 250;
+                rateSource = "standard rate (insufficient history)";
+            }
+
+            // ── Estimated Date to Zero ───────────────────────────────────────
+            int daysToZero = (int) Math.ceil((double) currentBalance / avgDailyReduction);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_YEAR, daysToZero);
+
+            String[] monthNames = {"January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"};
+
+            String estimatedDate = buildDateLabel(calendar, monthNames);
+
+            // ── Progress Forecast ─────────────────────────────────────────────
+            StringBuilder sb = new StringBuilder();
+
+            sb.append("=== ESTIMATED DATE TO ZERO ===\n\n");
+            sb.append("Current Balance:        ").append(String.format("%,d", currentBalance)).append(" pts\n");
+            sb.append("Avg Daily Reduction:    ").append(String.format("%,d", avgDailyReduction))
+              .append(" pts/day\n                        (").append(rateSource).append(")\n");
+            sb.append("Days Remaining:         ").append(String.format("%,d", daysToZero)).append(" days\n");
+            sb.append("Estimated Date:         ").append(estimatedDate).append("\n");
+
+            if (hasHistory && openingBalance > 0) {
+                sb.append("\n=== PROGRESS FORECAST ===\n\n");
+
+                int totalProgress = openingBalance - currentBalance;
+                double progressPct = (totalProgress * 100.0) / openingBalance;
+                double remainingPct = 100.0 - progressPct;
+
+                sb.append("Opening Balance:        ").append(String.format("%,d", openingBalance)).append(" pts\n");
+                sb.append("Progress So Far:        ").append(String.format("%,d", totalProgress))
+                  .append(" pts (").append(String.format("%.1f", progressPct)).append("%)\n");
+                sb.append("Remaining:              ").append(String.format("%,d", currentBalance))
+                  .append(" pts (").append(String.format("%.1f", remainingPct)).append("%)\n");
+                sb.append("Avg Daily Progress:     ").append(String.format("%,d", avgDailyReduction)).append(" pts/day\n");
+
+                String trend;
+                if (avgDailyReduction > 250) {
+                    trend = "Ahead of 250 pt/day target";
+                } else if (avgDailyReduction == 250) {
+                    trend = "On target (250 pts/day)";
+                } else {
+                    trend = "Below 250 pt/day target";
+                }
+                sb.append("Trend:                  ").append(trend).append("\n");
+                sb.append("Forecast Completion:    ").append(estimatedDate).append("\n");
+            }
+
+            android.util.Log.d("EstimatedZero", "avg=" + avgDailyReduction + " days=" + daysToZero
+                    + " date=" + estimatedDate + " historyCount=" + (history != null ? history.size() : 0));
+
             Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
             display_dialog_cif11.Set_mAppContext(this);
-            display_dialog_cif11.Showing("Your Countdown Balance is already at zero or below. Congratulations!");
-            return;
+            display_dialog_cif11.Showing(sb.toString());
+
+        } catch (Exception e) {
+            android.util.Log.e("EstimatedZero", "Error: " + e.getMessage(), e);
+            // Never crash — fall back to minimal safe display
+            try {
+                int balance = Get_currentBalanceInt();
+                int days = (balance > 0) ? (int) Math.ceil(balance / 250.0) : 0;
+                Display_Dialog_CIF11 fallback = new Display_Dialog_CIF11();
+                fallback.Set_mAppContext(this);
+                fallback.Showing("Estimated Days to Zero: " + days + " days (standard rate)");
+            } catch (Exception ignored) {}
         }
+    }
 
-        int daysToZero = (int) Math.ceil((double) currentBalance / 250);
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_YEAR, daysToZero);
-
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-        int month = calendar.get(Calendar.MONTH);
-        int year = calendar.get(Calendar.YEAR);
-
-        String[] monthNames = {"January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"};
-
-        String daySuffix;
+    /** Formats a Calendar as "1st January, 2027". Extracted to avoid duplication. */
+    private String buildDateLabel(Calendar cal, String[] monthNames) {
+        int day   = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH);
+        int year  = cal.get(Calendar.YEAR);
+        String suffix;
         if (day >= 11 && day <= 13) {
-            daySuffix = "th";
+            suffix = "th";
         } else {
             switch (day % 10) {
-                case 1: daySuffix = "st"; break;
-                case 2: daySuffix = "nd"; break;
-                case 3: daySuffix = "rd"; break;
-                default: daySuffix = "th"; break;
+                case 1:  suffix = "st"; break;
+                case 2:  suffix = "nd"; break;
+                case 3:  suffix = "rd"; break;
+                default: suffix = "th"; break;
             }
         }
-
-        String estimatedDate = day + daySuffix + " " + monthNames[month] + ", " + year;
-
-        String message = "Based on your current Countdown Balance of "
-                + new RoundingCIF13().IntToString(currentBalance)
-                + " points, counting down at a minimum standard rate of 250 points per day, "
-                + "your estimated date to reach zero is:\n\n"
-                + estimatedDate
-                + "\n\n(" + daysToZero + " days from today)"
-                + "\n\nNaturally you don't have to stick to this timeline, "
-                + "we expect a better performance but this acts as a minimum Standard Guide.";
-
-        Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-        display_dialog_cif11.Set_mAppContext(this);
-        display_dialog_cif11.Showing(message);
+        return day + suffix + " " + monthNames[month] + ", " + year;
     }
 
 
@@ -1635,6 +1730,16 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             }
         });
 
+        mStepsChallengeMain = (Button) findViewById(R.id.btnStepsChallengeMain);
+        if (mStepsChallengeMain != null) {
+            mStepsChallengeMain.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showStepsChallengeFromMain();
+                }
+            });
+        }
+
 
         //final TextView countdownbalance = (TextView) findViewById(R.id.textView);
         //countdownbalance.setText(RetrieveCountdownBalance());
@@ -1763,7 +1868,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         {
             mDaysToZero = data_model_adapter.RetrievemForecast();
             android.util.Log.d("Calorie Countdown app", "mDayToZero, retrieved, this is Contents:");
-            android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
+            if (mDaysToZero != null) {
+                android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
+            }
         }
 
         if(mDaysToZero != null)
@@ -2624,6 +2731,92 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      * @param previousBalance the balance before the debit was applied
      * @param newBalance      the balance after the debit was applied
      */
+    /**
+     * Steps Challenge — calculates the step target based on:
+     *   (Current Balance - Day End Target - BMR) / Steps Numerator
+     * where Day End Target = Previous Day End Balance - 250
+     * Steps Numerator = 0.089 (for 265 lbs client)
+     * BMR = 2500 (male) or 2000 (female)
+     */
+    private void showStepsChallengeFromMain() {
+        try {
+            String todayDate = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                    .format(new java.util.Date());
+
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+
+            // Guard: 4PM food notes processing must be completed first
+            if (!db.isAlreadyProcessedForDate(todayDate)) {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("Steps Challenge")
+                        .setMessage("Please complete today's 4PM Food Notes processing before calculating the Steps Challenge.")
+                        .setPositiveButton("OK", (d, w) -> d.dismiss())
+                        .show();
+                return;
+            }
+
+            // Idempotent guard: if already calculated today, show the saved result
+            if (db.isStepsChallengeCalculatedForDate(todayDate)) {
+                int savedSteps = db.getSavedStepsChallenge(todayDate);
+                SharedPreferences prefsLoad = getSharedPreferences("Calorie_Countdown", 0);
+                String clientNameLoad = "Client";
+                String nameLoad = prefsLoad.getString("client_name", null);
+                if (nameLoad != null && !nameLoad.isEmpty()) clientNameLoad = nameLoad;
+                Display_Dialog_CIF11 savedDialog = new Display_Dialog_CIF11();
+                savedDialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                savedDialog.Showing(clientNameLoad + " Step Challenge (already calculated today):\n\n"
+                        + String.format("%,d", savedSteps) + " Steps");
+                return;
+            }
+
+            int currentBalance = Get_currentBalanceInt();
+            int previousDayEnd = db.GetDayEndBalance();
+
+            int dayEndTarget = previousDayEnd - 250;
+
+            SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+            String gender = prefs.getString("user_gender", "male");
+            int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+
+            double stepsNumerator = 0.089;
+
+            double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+            int stepChallenge = (int) Math.ceil(rawSteps);
+            if (stepChallenge < 0) stepChallenge = 0;
+
+            // Save to SQLite
+            db.saveStepsChallenge(todayDate, currentBalance, previousDayEnd, dayEndTarget, bmr, stepChallenge);
+
+            String clientName = "Client";
+            String name = prefs.getString("client_name", null);
+            if (name != null && !name.isEmpty()) clientName = name;
+
+            String message = clientName + " Step Challenge Calculation:\n\n"
+                    + "Current Balance: " + String.format("%,d", currentBalance) + " Cr\n"
+                    + "Previous Day End: " + String.format("%,d", previousDayEnd) + " Cr\n"
+                    + "Day End Target (prev - 250): " + String.format("%,d", dayEndTarget) + " Cr\n"
+                    + "BMR: " + String.format("%,d", bmr) + "\n"
+                    + "Steps Numerator: " + stepsNumerator + "\n\n"
+                    + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", dayEndTarget)
+                    + " - " + String.format("%,d", bmr) + ") / " + stepsNumerator + "\n\n"
+                    + clientName + " Step Challenge = " + String.format("%,d", stepChallenge) + " Steps";
+
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing(message);
+
+            android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
+                    + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + dayEndTarget
+                    + " bmr=" + bmr + " stepChallenge=" + stepChallenge);
+
+        } catch (Exception e) {
+            android.util.Log.e("StepsChallenge", "Error: " + e.getMessage(), e);
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing("Steps Challenge error: " + e.getMessage());
+        }
+    }
+
     /**
      * Shows the full Countdown Report after a debit update.
      * Format:

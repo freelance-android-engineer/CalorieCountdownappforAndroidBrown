@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 12; // v12: HealthDataBloodPressure, HealthDataHeartRate, HealthDataBloodSugar tables
+    private static final int VERSION = 13; // v13: steps_challenge_log table
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -509,6 +509,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public static final String COLUMN_BS_MGDL          = "mg_dl";
     public static final String COLUMN_BS_CREATED_AT    = "created_at";
 
+    // ── Steps Challenge Log (v13) ─────────────────────────────────────────────
+    private static final String TABLE_STEPS_CHALLENGE      = "steps_challenge_log";
+    private static final String COLUMN_SC_ID               = "challenge_id";
+    private static final String COLUMN_SC_DATE             = "challenge_date";
+    private static final String COLUMN_SC_CURRENT_BALANCE  = "current_balance";
+    private static final String COLUMN_SC_PREV_DAY_END     = "previous_day_end";
+    private static final String COLUMN_SC_DAY_END_TARGET   = "day_end_target";
+    private static final String COLUMN_SC_BMR              = "bmr";
+    private static final String COLUMN_SC_STEP_CHALLENGE   = "step_challenge";
+    private static final String COLUMN_SC_CREATED_AT       = "sc_created_at";
 
     private Context mContext;
     private Boolean time_is_After_Four_Thirty_PM = false;
@@ -668,6 +678,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + COLUMN_BS_TIME + " TEXT, "
                     + COLUMN_BS_MGDL + " INTEGER DEFAULT 0, "
                     + COLUMN_BS_CREATED_AT + " TEXT DEFAULT '')");
+        } catch (Exception ignore) { /* already exists */ }
+
+        // Steps Challenge Log (v13)
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_STEPS_CHALLENGE + " ("
+                    + COLUMN_SC_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_SC_DATE + " TEXT UNIQUE, "
+                    + COLUMN_SC_CURRENT_BALANCE + " INTEGER DEFAULT 0, "
+                    + COLUMN_SC_PREV_DAY_END + " INTEGER DEFAULT 0, "
+                    + COLUMN_SC_DAY_END_TARGET + " INTEGER DEFAULT 0, "
+                    + COLUMN_SC_BMR + " INTEGER DEFAULT 0, "
+                    + COLUMN_SC_STEP_CHALLENGE + " INTEGER DEFAULT 0, "
+                    + COLUMN_SC_CREATED_AT + " TEXT DEFAULT '')");
         } catch (Exception ignore) { /* already exists */ }
         // ─────────────────────────────────────────────────────────────────────
 
@@ -1260,6 +1283,24 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v12: created " + TABLE_HEALTH_BS);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", TABLE_HEALTH_BS + " already exists: " + e.getMessage());
+            }
+        }
+
+        // v13: Steps Challenge Log table
+        if (oldVersion < 13) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_STEPS_CHALLENGE + " ("
+                        + COLUMN_SC_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_SC_DATE + " TEXT UNIQUE, "
+                        + COLUMN_SC_CURRENT_BALANCE + " INTEGER DEFAULT 0, "
+                        + COLUMN_SC_PREV_DAY_END + " INTEGER DEFAULT 0, "
+                        + COLUMN_SC_DAY_END_TARGET + " INTEGER DEFAULT 0, "
+                        + COLUMN_SC_BMR + " INTEGER DEFAULT 0, "
+                        + COLUMN_SC_STEP_CHALLENGE + " INTEGER DEFAULT 0, "
+                        + COLUMN_SC_CREATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v13: created " + TABLE_STEPS_CHALLENGE);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_STEPS_CHALLENGE + " already exists: " + e.getMessage());
             }
         }
 
@@ -3373,6 +3414,42 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Returns all day-end countdown balances from {@code dayend_balance2}, oldest first.
+     * Used to compute average daily reduction for the Estimated Date to Zero feature.
+     * Rows with null or unparseable balance values are silently skipped.
+     *
+     * @return List of integer balances ordered chronologically (oldest → newest).
+     *         Empty list if the table has no data or an error occurs.
+     */
+    public List<Integer> getHistoricalDayEndBalances() {
+        List<Integer> balances = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL
+                            + " FROM " + TABLE_DAYEND_BALANCE2
+                            + " ORDER BY _id ASC", null);
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    String val = cursor.getString(0);
+                    if (val != null && !val.trim().isEmpty()) {
+                        try {
+                            balances.add(Integer.parseInt(val.trim()));
+                        } catch (NumberFormatException ignore) {
+                            // skip non-integer rows
+                        }
+                    }
+                }
+                cursor.close();
+            }
+            android.util.Log.d("HISTORY_DB", "getHistoricalDayEndBalances: count=" + balances.size());
+        } catch (Exception e) {
+            android.util.Log.e("HISTORY_DB", "Error reading historical balances: " + e.getMessage());
+        }
+        return balances;
+    }
+
+    /**
      * Returns the total calories from all non-transferred food notes entered today.
      * "Today" is defined as matching the current date prefix "dd-MM-yyyy".
      */
@@ -4721,12 +4798,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
      * @return List of FoodNoteProcessingItem objects ready for AI enrichment.
      */
     public List<FoodNoteProcessingItem> getPreviousDayFoodNotes() {
-        Calendar yesterday = Calendar.getInstance();
-        yesterday.add(Calendar.DAY_OF_YEAR, -1);
-        String yesterdayPrefix = new java.text.SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-                .format(yesterday.getTime());
+        // Business rule: process notes from yesterday (previous calendar day) and today,
+        // covering the 4PM-to-4PM window. Both date prefixes are queried so that notes
+        // added yesterday are not excluded.
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+        String todayPrefix = sdf.format(new java.util.Date());
 
-        android.util.Log.d("4PM_DB", "Fetching previous day notes with date prefix: " + yesterdayPrefix);
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        String yesterdayPrefix = sdf.format(cal.getTime());
+
+        android.util.Log.d("4PM_DB", "Fetching notes for 4PM window: yesterday=" + yesterdayPrefix + ", today=" + todayPrefix);
 
         List<FoodNoteProcessingItem> notes = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -4739,9 +4821,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                             + COLUMN_QUICK_FOOD_NOTE_CALORIES + ", "
                             + COLUMN_QUICK_FOOD_NOTE_QUANTITY
                             + " FROM " + TABLE_QUICK_FOOD_NOTE
-                            + " WHERE " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?"
-                            + " AND " + COLUMN_IS_4PM_PROCESSED + " = 0",
-                    new String[]{yesterdayPrefix + "%"}
+                            + " WHERE (" + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?"
+                            + " OR " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?)"
+                            + " AND COALESCE(" + COLUMN_IS_4PM_PROCESSED + ", 0) = 0",
+                    new String[]{yesterdayPrefix + "%", todayPrefix + "%"}
             );
 
             if (cursor != null && cursor.moveToFirst()) {
@@ -4755,7 +4838,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 } while (cursor.moveToNext());
                 cursor.close();
             }
-            android.util.Log.d("4PM_DB", "Found " + notes.size() + " previous day notes for processing");
+            android.util.Log.d("4PM_DB", "Found " + notes.size() + " notes for 4PM processing (yesterday + today)");
         } catch (Exception e) {
             android.util.Log.e("4PM_DB", "Error fetching previous day notes: " + e.getMessage());
             e.printStackTrace();
@@ -4972,6 +5055,90 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("4PM_DEBIT_DB", "Error reading last debit challenge: " + e.getMessage());
             return null;
         }
+    }
+
+    // ── Steps Challenge Log (v13) ─────────────────────────────────────────────
+
+    /**
+     * Persist a Steps Challenge calculation result to {@code steps_challenge_log}.
+     * Uses CONFLICT_IGNORE so a duplicate date is silently skipped.
+     *
+     * @return Inserted row ID, or -1 on duplicate or error.
+     */
+    public long saveStepsChallenge(String date, int currentBalance, int previousDayEnd,
+                                   int dayEndTarget, int bmr, int stepChallenge) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_SC_DATE, date);
+            values.put(COLUMN_SC_CURRENT_BALANCE, currentBalance);
+            values.put(COLUMN_SC_PREV_DAY_END, previousDayEnd);
+            values.put(COLUMN_SC_DAY_END_TARGET, dayEndTarget);
+            values.put(COLUMN_SC_BMR, bmr);
+            values.put(COLUMN_SC_STEP_CHALLENGE, stepChallenge);
+            values.put(COLUMN_SC_CREATED_AT,
+                    new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+                            .format(new Date()));
+            id = db.insertWithOnConflict(TABLE_STEPS_CHALLENGE, null, values,
+                    SQLiteDatabase.CONFLICT_IGNORE);
+            android.util.Log.d("STEPS_CHALLENGE_DB", "saveStepsChallenge: date=" + date
+                    + ", steps=" + stepChallenge + ", id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_CHALLENGE_DB", "Error saving steps challenge: " + e.getMessage());
+        }
+        return id;
+    }
+
+    /**
+     * Returns true if a Steps Challenge has already been saved for the given date.
+     *
+     * @param dateStr Date in "dd-MM-yyyy" format.
+     */
+    public boolean isStepsChallengeCalculatedForDate(String dateStr) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_SC_ID + " FROM " + TABLE_STEPS_CHALLENGE
+                            + " WHERE " + COLUMN_SC_DATE + " = ?",
+                    new String[]{dateStr});
+            boolean exists = (cursor != null && cursor.getCount() > 0);
+            if (cursor != null) cursor.close();
+            android.util.Log.d("STEPS_CHALLENGE_DB", "isStepsChallengeCalculatedForDate("
+                    + dateStr + ") = " + exists);
+            return exists;
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_CHALLENGE_DB",
+                    "Error checking steps challenge date: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns the saved step challenge count for the given date, or 0 if not found.
+     *
+     * @param dateStr Date in "dd-MM-yyyy" format.
+     */
+    public int getSavedStepsChallenge(String dateStr) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_SC_STEP_CHALLENGE + " FROM " + TABLE_STEPS_CHALLENGE
+                            + " WHERE " + COLUMN_SC_DATE + " = ?",
+                    new String[]{dateStr});
+            if (cursor != null && cursor.moveToFirst()) {
+                int steps = cursor.getInt(0);
+                cursor.close();
+                android.util.Log.d("STEPS_CHALLENGE_DB", "getSavedStepsChallenge(" + dateStr
+                        + ") = " + steps);
+                return steps;
+            }
+            if (cursor != null) cursor.close();
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_CHALLENGE_DB",
+                    "Error getting saved steps challenge: " + e.getMessage());
+        }
+        return 0;
     }
 }
 
