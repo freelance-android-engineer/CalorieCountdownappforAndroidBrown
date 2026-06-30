@@ -37,6 +37,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ese.com.caloriecountdownappforandroidbrown.ui.debitactivitycif13.PreferencesHelper;
 import smartdevelop.ir.eram.showcaseviewlib.GuideView;
@@ -123,13 +125,16 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     private volatile boolean mKittyDeployed = false;
     private final Handler mKittyHandler = new Handler(Looper.getMainLooper());
 
+    // Background executor for DB operations that must not run on the main thread.
+    private ExecutorService mBgExecutor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ccd__gui__cd__cif1);
 
-
         instance = this;
+        mBgExecutor = Executors.newSingleThreadExecutor();
 
         mCallback = new MyCallBack() {
             @Override
@@ -554,6 +559,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.action_progress_forecast_charts) {
+                startActivity(new Intent(CCD_GUI_CD_CIF1.this, ProgressForecastChartActivity.class));
+                return true;
+            }
+
             if (id == R.id.action_log_it_in_reminder) {
                 Start_Notification_ActivityCIF5();
                 return true;
@@ -699,6 +709,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         if (id == R.id.action_estimated_date_to_zero) {
             Show_Estimated_Date_To_Zero();
+            return true;
+        }
+
+        if (id == R.id.action_progress_forecast_charts) {
+            startActivity(new Intent(CCD_GUI_CD_CIF1.this, ProgressForecastChartActivity.class));
             return true;
         }
 
@@ -1196,17 +1211,18 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     private void Show_Estimated_Date_To_Zero() {
+        final int currentBalance = Get_currentBalanceInt();
+
+        if (currentBalance <= 0) {
+            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+            display_dialog_cif11.Set_mAppContext(this);
+            display_dialog_cif11.Showing("Your Countdown Balance is already at zero or below. Congratulations!");
+            return;
+        }
+
+        mBgExecutor.execute(() -> {
         try {
-            int currentBalance = Get_currentBalanceInt();
-
-            if (currentBalance <= 0) {
-                Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-                display_dialog_cif11.Set_mAppContext(this);
-                display_dialog_cif11.Showing("Your Countdown Balance is already at zero or below. Congratulations!");
-                return;
-            }
-
-            // ── Fetch historical daily balances ──────────────────────────────
+            // ── Fetch historical daily balances on background thread ──────────
             SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
             java.util.List<Integer> history = db.getHistoricalDayEndBalances();
 
@@ -1285,21 +1301,27 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             android.util.Log.d("EstimatedZero", "avg=" + avgDailyReduction + " days=" + daysToZero
                     + " date=" + estimatedDate + " historyCount=" + (history != null ? history.size() : 0));
 
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(this);
-            display_dialog_cif11.Showing(sb.toString());
+            final String result = sb.toString();
+            mKittyHandler.post(() -> {
+                Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                display_dialog_cif11.Showing(result);
+            });
 
         } catch (Exception e) {
             android.util.Log.e("EstimatedZero", "Error: " + e.getMessage(), e);
             // Never crash — fall back to minimal safe display
-            try {
-                int balance = Get_currentBalanceInt();
-                int days = (balance > 0) ? (int) Math.ceil(balance / 250.0) : 0;
-                Display_Dialog_CIF11 fallback = new Display_Dialog_CIF11();
-                fallback.Set_mAppContext(this);
-                fallback.Showing("Estimated Days to Zero: " + days + " days (standard rate)");
-            } catch (Exception ignored) {}
+            mKittyHandler.post(() -> {
+                try {
+                    int balance = Get_currentBalanceInt();
+                    int days = (balance > 0) ? (int) Math.ceil(balance / 250.0) : 0;
+                    Display_Dialog_CIF11 fallback = new Display_Dialog_CIF11();
+                    fallback.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                    fallback.Showing("Estimated Days to Zero: " + days + " days (standard rate)");
+                } catch (Exception ignored) {}
+            });
         }
+        }); // end mBgExecutor.execute
     }
 
     /** Formats a Calendar as "1st January, 2027". Extracted to avoid duplication. */
@@ -2739,82 +2761,90 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      * BMR = 2500 (male) or 2000 (female)
      */
     private void showStepsChallengeFromMain() {
-        try {
-            String todayDate = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
-                    .format(new java.util.Date());
+        final String todayDate = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                .format(new java.util.Date());
+        final int currentBalance = Get_currentBalanceInt();
+        final SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
 
-            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+        mBgExecutor.execute(() -> {
+            try {
+                SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
 
-            // Guard: 4PM food notes processing must be completed first
-            if (!db.isAlreadyProcessedForDate(todayDate)) {
-                new android.app.AlertDialog.Builder(this)
-                        .setTitle("Steps Challenge")
-                        .setMessage("Please complete today's 4PM Food Notes processing before calculating the Steps Challenge.")
-                        .setPositiveButton("OK", (d, w) -> d.dismiss())
-                        .show();
-                return;
+                final boolean alreadyProcessed = db.isAlreadyProcessedForDate(todayDate);
+                final boolean alreadyCalculated = db.isStepsChallengeCalculatedForDate(todayDate);
+                final int savedSteps = alreadyCalculated ? db.getSavedStepsChallenge(todayDate) : 0;
+                final int previousDayEnd = db.GetDayEndBalance();
+
+                mKittyHandler.post(() -> {
+                    if (!alreadyProcessed) {
+                        new android.app.AlertDialog.Builder(CCD_GUI_CD_CIF1.this)
+                                .setTitle("Steps Challenge")
+                                .setMessage("Please complete today's 4PM Food Notes processing before calculating the Steps Challenge.")
+                                .setPositiveButton("OK", (d, w) -> d.dismiss())
+                                .show();
+                        return;
+                    }
+
+                    if (alreadyCalculated) {
+                        String clientNameLoad = "Client";
+                        String nameLoad = prefs.getString("client_name", null);
+                        if (nameLoad != null && !nameLoad.isEmpty()) clientNameLoad = nameLoad;
+                        Display_Dialog_CIF11 savedDialog = new Display_Dialog_CIF11();
+                        savedDialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                        savedDialog.Showing(clientNameLoad + " Step Challenge (already calculated today):\n\n"
+                                + String.format("%,d", savedSteps) + " Steps");
+                        return;
+                    }
+
+                    int dayEndTarget = previousDayEnd - 250;
+                    String gender = prefs.getString("user_gender", "male");
+                    int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+                    double stepsNumerator = 0.089;
+                    double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+                    int stepChallenge = (int) Math.ceil(rawSteps);
+                    if (stepChallenge < 0) stepChallenge = 0;
+
+                    // Save to SQLite (brief background post to avoid blocking UI)
+                    final int finalStepChallenge = stepChallenge;
+                    final int finalDayEndTarget = dayEndTarget;
+                    final int finalBmr = bmr;
+                    mBgExecutor.execute(() ->
+                            new SQLDatabase_Food_Items_CIF6(getApplicationContext())
+                                    .saveStepsChallenge(todayDate, currentBalance, previousDayEnd,
+                                            finalDayEndTarget, finalBmr, finalStepChallenge));
+
+                    String clientName = "Client";
+                    String name = prefs.getString("client_name", null);
+                    if (name != null && !name.isEmpty()) clientName = name;
+
+                    String message = clientName + " Step Challenge Calculation:\n\n"
+                            + "Current Balance: " + String.format("%,d", currentBalance) + " Cr\n"
+                            + "Previous Day End: " + String.format("%,d", previousDayEnd) + " Cr\n"
+                            + "Day End Target (prev - 250): " + String.format("%,d", finalDayEndTarget) + " Cr\n"
+                            + "BMR: " + String.format("%,d", finalBmr) + "\n"
+                            + "Steps Numerator: " + stepsNumerator + "\n\n"
+                            + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", finalDayEndTarget)
+                            + " - " + String.format("%,d", finalBmr) + ") / " + stepsNumerator + "\n\n"
+                            + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps";
+
+                    Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+                    dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                    dialog.Showing(message);
+
+                    android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
+                            + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + finalDayEndTarget
+                            + " bmr=" + finalBmr + " stepChallenge=" + finalStepChallenge);
+                });
+
+            } catch (Exception e) {
+                android.util.Log.e("StepsChallenge", "Error: " + e.getMessage(), e);
+                mKittyHandler.post(() -> {
+                    Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+                    dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                    dialog.Showing("Steps Challenge error: " + e.getMessage());
+                });
             }
-
-            // Idempotent guard: if already calculated today, show the saved result
-            if (db.isStepsChallengeCalculatedForDate(todayDate)) {
-                int savedSteps = db.getSavedStepsChallenge(todayDate);
-                SharedPreferences prefsLoad = getSharedPreferences("Calorie_Countdown", 0);
-                String clientNameLoad = "Client";
-                String nameLoad = prefsLoad.getString("client_name", null);
-                if (nameLoad != null && !nameLoad.isEmpty()) clientNameLoad = nameLoad;
-                Display_Dialog_CIF11 savedDialog = new Display_Dialog_CIF11();
-                savedDialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-                savedDialog.Showing(clientNameLoad + " Step Challenge (already calculated today):\n\n"
-                        + String.format("%,d", savedSteps) + " Steps");
-                return;
-            }
-
-            int currentBalance = Get_currentBalanceInt();
-            int previousDayEnd = db.GetDayEndBalance();
-
-            int dayEndTarget = previousDayEnd - 250;
-
-            SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
-            String gender = prefs.getString("user_gender", "male");
-            int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
-
-            double stepsNumerator = 0.089;
-
-            double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
-            int stepChallenge = (int) Math.ceil(rawSteps);
-            if (stepChallenge < 0) stepChallenge = 0;
-
-            // Save to SQLite
-            db.saveStepsChallenge(todayDate, currentBalance, previousDayEnd, dayEndTarget, bmr, stepChallenge);
-
-            String clientName = "Client";
-            String name = prefs.getString("client_name", null);
-            if (name != null && !name.isEmpty()) clientName = name;
-
-            String message = clientName + " Step Challenge Calculation:\n\n"
-                    + "Current Balance: " + String.format("%,d", currentBalance) + " Cr\n"
-                    + "Previous Day End: " + String.format("%,d", previousDayEnd) + " Cr\n"
-                    + "Day End Target (prev - 250): " + String.format("%,d", dayEndTarget) + " Cr\n"
-                    + "BMR: " + String.format("%,d", bmr) + "\n"
-                    + "Steps Numerator: " + stepsNumerator + "\n\n"
-                    + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", dayEndTarget)
-                    + " - " + String.format("%,d", bmr) + ") / " + stepsNumerator + "\n\n"
-                    + clientName + " Step Challenge = " + String.format("%,d", stepChallenge) + " Steps";
-
-            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
-            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            dialog.Showing(message);
-
-            android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
-                    + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + dayEndTarget
-                    + " bmr=" + bmr + " stepChallenge=" + stepChallenge);
-
-        } catch (Exception e) {
-            android.util.Log.e("StepsChallenge", "Error: " + e.getMessage(), e);
-            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
-            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            dialog.Showing("Steps Challenge error: " + e.getMessage());
-        }
+        });
     }
 
     /**
@@ -2933,6 +2963,17 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
 
         return true; // No previous day found, allow proceeding
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clear static reference so GC can reclaim this Activity after it is destroyed.
+        instance = null;
+        // Shut down background DB executor.
+        if (mBgExecutor != null) {
+            mBgExecutor.shutdownNow();
+        }
     }
 
 }

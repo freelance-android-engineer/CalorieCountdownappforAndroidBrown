@@ -13,7 +13,7 @@ class NutritionalContentsFromWebPage(var countryCode: Intermediate_fragmentedObj
     var brand: String = ""
     var deleted: String
         get() {  //add getter and setters
-            TODO()
+            return ""
         }
         set(value) {
 
@@ -38,10 +38,11 @@ class NutritionalContentsFromWebPage(var countryCode: Intermediate_fragmentedObj
 
 
 
+    private var _idBacking: String = ""
     private var NutritionalContentsFromWebPage._id: String
-        get() = TODO("Not yet implemented")
+        get() = _idBacking
         set(value) {
-            TODO("Not yet implemented")
+            _idBacking = value
         }
 
     fun getNutritional_Content_CiFragmented_Object_001(): Nutritional_Content_CiFragmented_Object001 {

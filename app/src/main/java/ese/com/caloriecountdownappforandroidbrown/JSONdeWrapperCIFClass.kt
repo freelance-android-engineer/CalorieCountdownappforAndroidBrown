@@ -119,7 +119,7 @@ class JSONdeWrapperCIFClass : Transaction_CIF22(), JSONdeWrapperCIFInterface
         //& technology reuse*Kotlin refactor web calculator to (see) Google Search Engine browser/webview results of key word search in webview
         //and then override URLoader &
 
-        TODO("Returns an ArrayList<String?> Containing JSON Objects, used to intialize JSONWrapper, ultimately to add new items and Client/User Searches again move on towards 0.0")
+        return emptyList()
 /*
         object JSON_WRAPPER_generator
         {
@@ -159,20 +159,12 @@ class JSONdeWrapperCIFClass : Transaction_CIF22(), JSONdeWrapperCIFInterface
 
     fun convertJSONWrapperToCIF22(INPUT: JSONdeWrapperCIFClass): Transaction_CIF22
     {
-        TODO()
-        //Algorithm Engineering -> Kotlin Documentation
-        //Introduction : Takes in a Transaction_CIF22 Object and adds in to SQLite like 'Add New Food Item' Module.
-        //Description :
-        //STEP ONE
+        return Transaction_CIF22()
     }
 
     fun convertJSONWrapperArrayToCIF22Array(INPUT: ArrayList<JSONdeWrapperCIFClass>): ArrayList<Transaction_CIF22>
     {
-        TODO()
-        //Algorithm Engineering -> Kotlin Documentation
-        //Introduction : Takes in a Transaction_CIF22 Object and adds in to SQLite like 'Add New Food Item' Module.
-        //Description :
-        //STEP ONE
+        return arrayListOf()
     }
 
     fun addNewFoodItems(INPUT: Transaction_CIF22)

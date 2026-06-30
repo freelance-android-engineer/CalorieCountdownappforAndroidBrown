@@ -6,6 +6,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 class SQLHeavyClientType008(private val context: Context) {
 
@@ -19,7 +20,11 @@ class SQLHeavyClientType008(private val context: Context) {
     }
 
     private val client: OkHttpClient by lazy {
-        OkHttpClient.Builder().build()
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
 
     // -------------------- GENERIC POST REQUEST --------------------

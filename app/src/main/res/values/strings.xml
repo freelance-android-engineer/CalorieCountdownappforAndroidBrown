@@ -104,6 +104,7 @@
     <string name="action_stop_weightloss_title">Stop Weight Loss</string>
     <string name="action_stop_weightloss_titleb">Recalibrate</string>
     <string name="estimated_date_to_zero_title">Estimated Date to Zero</string>
+    <string name="progress_forecast_charts_title">Progress &amp; Forecast Charts</string>
     <string name="action_Client_Guide_title">Using Calorie Countdown app</string>
     <string name="action_log_it_in_reminder_title">Change Notifications times </string>
     <string name="Log_it_in_1">Breakfast Time: (Use HHMM 24 Hour format)</string>

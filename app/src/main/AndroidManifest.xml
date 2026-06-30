@@ -231,6 +231,11 @@
             android:name=".Diet_Plan_Activity_fragment008"
             android:label="@string/title_activity_diet__plan__fragment008"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ProgressForecastChartActivity"
+            android:exported="false"
+            android:label="@string/progress_forecast_charts_title"
+            android:theme="@style/AppTheme.NoActionBar" />
 
         <service
             android:name=".BreakfastBoxService_CIFragement001"

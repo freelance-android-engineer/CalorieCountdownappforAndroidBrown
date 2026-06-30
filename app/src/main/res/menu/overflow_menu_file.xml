@@ -406,6 +406,9 @@
             <item
                 android:id="@+id/action_estimated_date_to_zero"
                 android:title="@string/estimated_date_to_zero_title" />
+            <item
+                android:id="@+id/action_progress_forecast_charts"
+                android:title="@string/progress_forecast_charts_title" />
         </menu>
     </item>
 

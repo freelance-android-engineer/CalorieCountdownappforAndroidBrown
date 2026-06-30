@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 13; // v13: steps_challenge_log table
+    private static final int VERSION = 14; // v14: barcode column added to food_items
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -218,6 +218,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_FOODITEMS_CALCIUM_PERCENT = "calcium_percent";
     private static final String COLUMN_FOODITEMS_IRON_PERCENT = "iron_percent";
     private static final String COLUMN_FOODITEMS_CATEGORY = "category";
+    private static final String COLUMN_FOODITEMS_BARCODE  = "barcode"; // v14
 
 
     private static final String TABLE_HEALTH_PROFILE_TABLE = "health_profile";
@@ -804,7 +805,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 "vitamin_a_percent real," +
                 "vitamin_c_percent real," +
                 "calcium_percent real," +
-                "iron_percent real)");
+                "iron_percent real," +
+                "barcode integer default 0)");  // v14: barcode field
 
 
         try //at launch take all table creations to OnCreate
@@ -1304,6 +1306,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             }
         }
 
+        // v14: barcode column added to food_items table
+        if (oldVersion < 14) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_FOODITEMS
+                        + " ADD COLUMN " + COLUMN_FOODITEMS_BARCODE + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "v14: added barcode column to " + TABLE_FOODITEMS);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "barcode column already exists or error: " + e.getMessage());
+            }
+        }
+
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
     }
 
@@ -1620,7 +1633,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             results.add(errorItem);
         } finally {
             if (cursor != null) cursor.close();
-            if (db != null && db.isOpen()) db.close();
         }
 
         callback.onResult(results);
@@ -2163,6 +2175,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             food_match.Set_fiber(food_cursor.getFloat(food_cursor.getColumnIndex(COLUMN_FOODITEMS_FIBER)));
             food_match.Set_price_sterling(food_cursor.getFloat(food_cursor.getColumnIndex(COLUMN_FOODITEMS_PRICE_STERLING)));
             food_match.Set_category(food_cursor.getString(food_cursor.getColumnIndex(COLUMN_FOODITEMS_CATEGORY)));
+            // v14: read barcode; column may not exist on very old DBs — default to 0 safely
+            int barcodeColIdx = food_cursor.getColumnIndex(COLUMN_FOODITEMS_BARCODE);
+            if (barcodeColIdx >= 0) {
+                food_match.Set_Barcode(food_cursor.getLong(barcodeColIdx));
+            }
 
             relist.add(food_match);
             boolean trash = food_cursor.moveToNext();
@@ -2458,6 +2475,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cv.put(COLUMN_FOODITEMS_VITAMIN_C_PERCENT, food_item.Get_vitamin_c_percent());
         cv.put(COLUMN_FOODITEMS_CALCIUM_PERCENT, food_item.Get_calcium_percent());
         cv.put(COLUMN_FOODITEMS_IRON_PERCENT, food_item.Get_iron_percent());
+        cv.put(COLUMN_FOODITEMS_BARCODE, food_item.Get_Barcode()); // v14
         return getWritableDatabase().insert(TABLE_FOODITEMS, null, cv);
         //Continue for rest of variables.
     }
@@ -2909,7 +2927,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public void Delete_Food_items_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM food_items");
-        db.close();
 
         //String[] args = {"null"};
         //String whereclause = "";
@@ -2946,13 +2963,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public void Delete_Transaction_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM transactions_xp");
-        db.close();
     }
 
     public void Delete_Meal_Box_Table() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM meal_box_items");
-        db.close();
     }
 
     public long Insert_TransactionTable_x(Transactions_CIF22 IN) {
@@ -3450,6 +3465,44 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Returns historical day-end balances paired with their timestamps from {@code dayend_balance2},
+     * ordered oldest first.  Each element is a two-element long array: [timestampMs, balance].
+     * Rows whose balance_date or balance_dayend_actual cannot be parsed are silently skipped.
+     * Used exclusively by ProgressForecastChartActivity — read-only, no side effects.
+     *
+     * @return List of {timestampMs, balance} pairs; empty list on error or no data.
+     */
+    public List<long[]> getHistoricalBalancesWithDates() {
+        List<long[]> result = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DAYEND_BALANCE_DATE2
+                            + ", " + COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL
+                            + " FROM " + TABLE_DAYEND_BALANCE2
+                            + " ORDER BY " + COLUMN_DAYEND_ID2 + " ASC", null);
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    try {
+                        long ts = cursor.getLong(0);
+                        String balStr = cursor.getString(1);
+                        if (balStr == null || balStr.trim().isEmpty()) continue;
+                        int bal = Integer.parseInt(balStr.trim());
+                        result.add(new long[]{ts, bal});
+                    } catch (NumberFormatException ignore) {
+                        // skip unparseable rows
+                    }
+                }
+                cursor.close();
+            }
+            android.util.Log.d("HISTORY_DB", "getHistoricalBalancesWithDates: count=" + result.size());
+        } catch (Exception e) {
+            android.util.Log.e("HISTORY_DB", "Error reading dated balances: " + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
      * Returns the total calories from all non-transferred food notes entered today.
      * "Today" is defined as matching the current date prefix "dd-MM-yyyy".
      */
@@ -3552,7 +3605,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private void deleteTargetWeightTable() {
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM target_weight");
-        db.close();
     }
 
     private boolean isTimeAfter4pm() {
@@ -3608,9 +3660,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("INSERT ALL FOOD NOTES", "Exception during insert: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (db != null) {
-                db.close();
-            }
         }
 
         return insertedId;
@@ -3637,7 +3686,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         android.util.Log.d("UPDATE FOOD NOTE", "Rows updated: " + rowsAffected);
 
-        db.close();
         return rowsAffected;
     }
 
@@ -3668,7 +3716,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + ": " + e.getMessage());
             return 0;
         } finally {
-            db.close();
         }
     }
 
@@ -3686,7 +3733,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         );
 
         android.util.Log.d("UPDATE FOOD NOTE", "Rows updated: " + rows);
-        db.close();
     }
 
     public Cursor getAllFoodNotes() {
@@ -3745,7 +3791,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         );
 
         android.util.Log.d("MARK_SAVED", "Rows updated: " + rowsUpdated);
-        db.close();
         return rowsUpdated;
     }
 
@@ -3767,7 +3812,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             isSaved = cursor.getInt(0) == 1;
         }
         cursor.close();
-        db.close();
         return isSaved;
     }
 
@@ -3782,7 +3826,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     new String[]{String.valueOf(noteId)});
             android.util.Log.d("FoodNoteDB", "markFoodNoteAsSynced: id=" + noteId);
         } finally {
-            db.close();
         }
     }
 
@@ -3815,7 +3858,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             }
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
         return result;
     }
@@ -3840,7 +3882,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("DELETE TRANSFERRED", "Error deleting transferred notes: " + e.getMessage(), e);
         } finally {
-            db.close();
         }
         return deletedCount;
     }
@@ -3931,9 +3972,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
                 if (cursor != null && cursor.moveToFirst()) {
                     int idIndex = cursor.getColumnIndex(COLUMN_QUICK_FOOD_NOTE_ID);
-                    do {
-                        noteIdsToTransfer.add(cursor.getInt(idIndex));
-                    } while (cursor.moveToNext());
+                    if (idIndex >= 0) {
+                        do {
+                            noteIdsToTransfer.add(cursor.getInt(idIndex));
+                        } while (cursor.moveToNext());
+                    }
                     cursor.close();
                 }
 
@@ -3965,7 +4008,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("TRANSFER NOTES", "Error during transfer: " + e.getMessage(), e);
         } finally {
             db.endTransaction();
-            db.close();
         }
     }
 
@@ -4069,7 +4111,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("TRANSFER NOTES BY IDS", "Error during transfer: " + e.getMessage(), e);
         } finally {
             db.endTransaction();
-            db.close();
         }
 
         return transferredCount;
@@ -4086,7 +4127,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
         }
         cursor.close();
-        db.close();
         android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
         return totalCalories;
     }
@@ -4122,8 +4162,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         int rowsDeleted = db.delete(TABLE_QUICK_FOOD_NOTE, whereClause, whereArgs);
 
         android.util.Log.d("DELETE FOOD NOTES", "Deleted " + rowsDeleted + " note(s)");
-
-        db.close();
     }
 
 
@@ -4159,7 +4197,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         db.insert(TABLE_WATER_TRACKER, null, values);
         android.util.Log.d("INSERT WATER DATA", "Data inserted");
-        db.close();
     }
 
 
@@ -4181,7 +4218,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         cursor.close();
-        db.close();
 
         return waterList;
     }
@@ -4206,7 +4242,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         cursor.close();
-        db.close();
 
         android.util.Log.d("WATER TRACKER", "Today's total water: " + totalMl + " ml");
         return totalMl;
@@ -4236,7 +4271,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         long insertedId = db.insert(TABLE_HEART_RATE, null, values);
         android.util.Log.d("INSERT HEART RATE", "Heart rate data inserted with ID: " + insertedId);
-        db.close();
 
         return insertedId;
     }
@@ -4267,7 +4301,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         cursor.close();
-        db.close();
 
         android.util.Log.d("HEART RATE TRACKER", "Retrieved " + heartRateList.size() + " heart rate records");
         return heartRateList;
@@ -4293,7 +4326,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
 
         cursor.close();
-        db.close();
 
         return lastBpm;
     }
@@ -4307,7 +4339,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public boolean deleteHeartRate(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         int rowsDeleted = db.delete(TABLE_HEART_RATE, COLUMN_HEART_RATE_ID + " = ?", new String[]{String.valueOf(id)});
-        db.close();
         return rowsDeleted > 0;
     }
 
@@ -4340,7 +4371,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "insertBloodPressure error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return id;
     }
@@ -4368,7 +4398,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "getAllBloodPressure error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return list;
     }
@@ -4387,7 +4416,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "updateBloodPressure error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4400,7 +4428,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "deleteBloodPressure error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4421,7 +4448,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "insertManualHeartRate error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return id;
     }
@@ -4449,7 +4475,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "getAllManualHeartRates error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return list;
     }
@@ -4467,7 +4492,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "updateManualHeartRate error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4480,7 +4504,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "deleteManualHeartRate error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4501,7 +4524,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "insertBloodSugar error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return id;
     }
@@ -4529,7 +4551,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         } catch (Exception e) {
             android.util.Log.e("HEALTH_DB", "getAllBloodSugar error: " + e.getMessage());
         } finally {
-            db.close();
         }
         return list;
     }
@@ -4547,7 +4568,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "updateBloodSugar error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4560,7 +4580,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("HEALTH_DB", "deleteBloodSugar error: " + e.getMessage());
             return false;
         } finally {
-            db.close();
         }
     }
 
@@ -4650,9 +4669,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("MEMO", "Exception during insert: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (db != null) {
-                db.close();
-            }
         }
 
         return resultId;
@@ -4779,9 +4795,6 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("FOOD_COLLECTION", "Exception during insert: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (db != null) {
-                db.close();
-            }
         }
 
         return insertedId;
