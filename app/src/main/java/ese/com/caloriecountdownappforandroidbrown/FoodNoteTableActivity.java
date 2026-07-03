@@ -868,8 +868,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                     databaseHelper.deleteFoodItemByName(foodName);
                                     databaseHelper.Insert_Food_Item_Row(enriched);
                                     android.util.Log.d("AddToCloud", "Background enrichment done: " + foodName);
+                                    return kotlin.Unit.INSTANCE;
                                 },
-                                err -> android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err));
+                                err -> {
+                                    android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err);
+                                    return kotlin.Unit.INSTANCE;
+                                });
                         })
                         .setNegativeButton("Keep Existing", (dialogInterface, which) -> {
                             Toast.makeText(FoodNoteTableActivity.this, "Kept existing entry for \"" + foodName + "\"", Toast.LENGTH_SHORT).show();
@@ -889,8 +893,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             databaseHelper.deleteFoodItemByName(foodName);
                             databaseHelper.Insert_Food_Item_Row(enriched);
                             android.util.Log.d("AddToCloud", "Background enrichment done: " + foodName);
+                            return kotlin.Unit.INSTANCE;
                         },
-                        err -> android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err));
+                        err -> {
+                            android.util.Log.w("AddToCloud", "Background enrichment skipped: " + err);
+                            return kotlin.Unit.INSTANCE;
+                        });
                 }
             }
         });
