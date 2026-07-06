@@ -616,19 +616,26 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     private void showBMRDialog() {
-        final int BMR_POINTS = 2500;
+        final String[] genderOptions = {"Male", "Female"};
+        // selectedGender[0]: 0 = Male (2000 pts), 1 = Female (2500 pts)
+        final int[] selectedGender = {0};
 
-        // Show confirmation dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("BMR Deduction");
-        builder.setMessage("This will deduct " + BMR_POINTS + " BMR points from your Countdown Balance.\n\nDo you want to proceed?");
-
-        builder.setPositiveButton("Yes, Drop Points", new android.content.DialogInterface.OnClickListener() {
+        builder.setTitle("BMR Deduction - Select Gender");
+        builder.setSingleChoiceItems(genderOptions, 0, new android.content.DialogInterface.OnClickListener() {
             @Override
             public void onClick(android.content.DialogInterface dialog, int which) {
-                // Return BMR debit to parent activity to update balance and show Countdown Report
+                selectedGender[0] = which;
+            }
+        });
+
+        builder.setPositiveButton("Apply", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                // Male → 2000, Female → 2500 (client requirement)
+                int bmrPoints = (selectedGender[0] == 0) ? 2000 : 2500;
                 StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
-                BackToParent(BMR_POINTS);
+                BackToParent(bmrPoints);
             }
         });
 

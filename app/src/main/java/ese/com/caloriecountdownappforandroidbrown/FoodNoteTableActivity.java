@@ -76,6 +76,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private static final int REQUEST_MEMO_GALLERY_PICK = 202;
 
     // Memo panel views
+    private Button btnSelectAll;
+
     private EditText etMemoText;
     private ImageView ivMemoImagePreview;
     private ImageView ivMemoAddImage;
@@ -242,6 +244,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Check Before You Eat button
         Button btnCheckBeforeYouEat = findViewById(R.id.btnCheckBeforeYouEat);
         btnCheckBeforeYouEat.setOnClickListener(v -> showCheckBeforeYouEatDialog());
+
+        // Select All / Deselect All button
+        btnSelectAll = findViewById(R.id.btnSelectAll);
+        btnSelectAll.setOnClickListener(v -> toggleSelectAll());
 
         // Initialize Memo Panel views
         initializeMemoPanel();
@@ -1659,6 +1665,33 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Selects all notes if any are unchecked; deselects all if every note is already checked.
+     * Reuses the same CheckBox-at-index-0 pattern as clearAllCheckboxes().
+     */
+    private void toggleSelectAll() {
+        boolean anyUnchecked = false;
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            View child = tableLayout.getChildAt(i);
+            if (child instanceof TableRow) {
+                View first = ((TableRow) child).getChildAt(0);
+                if (first instanceof CheckBox && !((CheckBox) first).isChecked()) {
+                    anyUnchecked = true;
+                    break;
+                }
+            }
+        }
+        boolean selectAll = anyUnchecked;
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            View child = tableLayout.getChildAt(i);
+            if (child instanceof TableRow) {
+                View first = ((TableRow) child).getChildAt(0);
+                if (first instanceof CheckBox) ((CheckBox) first).setChecked(selectAll);
+            }
+        }
+        btnSelectAll.setText(selectAll ? "Deselect All" : "Select All");
+    }
+
     /** Unchecks all checkboxes in the food note table. */
     private void clearAllCheckboxes() {
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
@@ -1668,6 +1701,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 if (first instanceof CheckBox) ((CheckBox) first).setChecked(false);
             }
         }
+        if (btnSelectAll != null) btnSelectAll.setText("Select All");
     }
 
     /**

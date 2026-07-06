@@ -41,6 +41,13 @@
             android:background="?attr/selectableItemBackgroundBorderless" />
     </RelativeLayout>
 
+    <Button
+        android:id="@+id/btnSelectAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select All"
+        android:layout_marginBottom="4dp" />
+
     <HorizontalScrollView
         android:id="@+id/tableScroll"
         android:layout_width="match_parent"
