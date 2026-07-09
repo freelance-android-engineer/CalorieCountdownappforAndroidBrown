@@ -617,7 +617,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
     private void showBMRDialog() {
         final String[] genderOptions = {"Male", "Female"};
-        // selectedGender[0]: 0 = Male (2000 pts), 1 = Female (2500 pts)
+        // selectedGender[0]: 0 = Male (2500 pts), 1 = Female (2000 pts)
         final int[] selectedGender = {0};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -632,8 +632,8 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         builder.setPositiveButton("Apply", new android.content.DialogInterface.OnClickListener() {
             @Override
             public void onClick(android.content.DialogInterface dialog, int which) {
-                // Male → 2000, Female → 2500 (client requirement)
-                int bmrPoints = (selectedGender[0] == 0) ? 2000 : 2500;
+                // Male → 2500, Female → 2000
+                int bmrPoints = (selectedGender[0] == 0) ? 2500 : 2000;
                 StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
                 BackToParent(bmrPoints);
             }
@@ -662,28 +662,29 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             // 3. Day End Target = Previous Day End Balance - 250
             int dayEndTarget = previousDayEnd - 250;
 
-            // 4. BMR based on gender
-            android.content.SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
-            String gender = prefs.getString("user_gender", "male");
-            int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
-
-            // 5. Steps Numerator
+            // 4. Steps Numerator (1 step burns 0.089 calories)
             double stepsNumerator = 0.089;
 
-            // 6. Calculate: (CurrentBalance - DayEndTarget - BMR) / StepsNumerator
-            double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+            // 5. Calculate steps needed to reach Day End Target from Current Balance
+            // Formula: (CurrentBalance - DayEndTarget) / StepsNumerator
+            //
+            // -- BMR EXTENSION POINT --
+            // When the BMR formula is defined, add it here before the division:
+            //   int bmr = calculateBMR(gender);
+            //   double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+            double rawSteps = (currentBalance - dayEndTarget) / stepsNumerator;
             int stepChallenge = (int) Math.ceil(rawSteps);
             if (stepChallenge < 0) stepChallenge = 0;
 
-            // 7. Display result
+            // 6. Display result
             String message = "Client Step Challenge Calculation:\n\n"
-                    + "Current Balance: " + String.format("%,d", currentBalance) + "\n"
-                    + "Previous Day End: " + String.format("%,d", previousDayEnd) + "\n"
-                    + "Day End Target: " + String.format("%,d", dayEndTarget) + "\n"
-                    + "BMR: " + String.format("%,d", bmr) + "\n"
-                    + "Steps Numerator: " + stepsNumerator + "\n\n"
-                    + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", dayEndTarget)
-                    + " - " + String.format("%,d", bmr) + ") / " + stepsNumerator + "\n\n"
+                    + "Current Balance:        " + String.format("%,d", currentBalance) + "\n"
+                    + "Previous Day End:       " + String.format("%,d", previousDayEnd) + "\n"
+                    + "Day End Target (- 250): " + String.format("%,d", dayEndTarget) + "\n"
+                    + "Steps Numerator:        " + stepsNumerator + "\n\n"
+                    + "(" + String.format("%,d", currentBalance)
+                    + " - " + String.format("%,d", dayEndTarget)
+                    + ") / " + stepsNumerator + "\n\n"
                     + "Client Step Challenge = " + String.format("%,d", stepChallenge) + " Steps";
 
             new AlertDialog.Builder(this)
@@ -694,7 +695,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
 
             android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
                     + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + dayEndTarget
-                    + " bmr=" + bmr + " stepChallenge=" + stepChallenge);
+                    + " stepChallenge=" + stepChallenge);
 
         } catch (Exception e) {
             android.util.Log.e("StepsChallenge", "Error: " + e.getMessage(), e);

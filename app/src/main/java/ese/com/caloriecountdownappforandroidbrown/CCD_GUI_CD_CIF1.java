@@ -1392,16 +1392,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void Countup(int credit) {
         android.util.Log.d("CreditCalc", "[Countup] called with credit=" + credit);
         try {
-            // Check if it's after 4:00 PM (Credit Day End)
-            Calendar now = Calendar.getInstance();
-            int currentHour = now.get(Calendar.HOUR_OF_DAY);
-
-            if (currentHour >= 16) {
-                android.util.Log.d("CreditCalc", "[Countup] After 4pm — routing credit to next day, credit=" + credit);
-                routeCreditToNextDay(credit);
-                return;
-            }
-
             final TextView countdownbalance = (TextView) findViewById(R.id.textView);
             if (countdownbalance == null) {
                 android.util.Log.e("CreditCalc", "[Countup] countdownbalance TextView is null — cannot update UI");
@@ -2771,8 +2761,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
 
                 final boolean alreadyProcessed = db.isAlreadyProcessedForDate(todayDate);
-                final boolean alreadyCalculated = db.isStepsChallengeCalculatedForDate(todayDate);
-                final int savedSteps = alreadyCalculated ? db.getSavedStepsChallenge(todayDate) : 0;
                 final int previousDayEnd = db.GetDayEndBalance();
 
                 mKittyHandler.post(() -> {
@@ -2785,46 +2773,41 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                         return;
                     }
 
-                    if (alreadyCalculated) {
-                        String clientNameLoad = "Client";
-                        String nameLoad = prefs.getString("client_name", null);
-                        if (nameLoad != null && !nameLoad.isEmpty()) clientNameLoad = nameLoad;
-                        Display_Dialog_CIF11 savedDialog = new Display_Dialog_CIF11();
-                        savedDialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-                        savedDialog.Showing(clientNameLoad + " Step Challenge (already calculated today):\n\n"
-                                + String.format("%,d", savedSteps) + " Steps");
-                        return;
-                    }
-
+                    // Day End Target = Previous Day End Balance - 250
                     int dayEndTarget = previousDayEnd - 250;
-                    String gender = prefs.getString("user_gender", "male");
-                    int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
                     double stepsNumerator = 0.089;
-                    double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+
+                    // Steps needed to reach Day End Target from Current Balance
+                    // Formula: (CurrentBalance - DayEndTarget) / StepsNumerator
+                    //
+                    // -- BMR EXTENSION POINT --
+                    // When the BMR formula is defined, add it here before the division:
+                    //   int bmr = calculateBMR(prefs.getString("user_gender", "male"));
+                    //   double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
+                    double rawSteps = (currentBalance - dayEndTarget) / stepsNumerator;
                     int stepChallenge = (int) Math.ceil(rawSteps);
                     if (stepChallenge < 0) stepChallenge = 0;
 
-                    // Save to SQLite (brief background post to avoid blocking UI)
+                    // Save to SQLite — records the latest calculation (fire-and-forget)
                     final int finalStepChallenge = stepChallenge;
                     final int finalDayEndTarget = dayEndTarget;
-                    final int finalBmr = bmr;
                     mBgExecutor.execute(() ->
                             new SQLDatabase_Food_Items_CIF6(getApplicationContext())
                                     .saveStepsChallenge(todayDate, currentBalance, previousDayEnd,
-                                            finalDayEndTarget, finalBmr, finalStepChallenge));
+                                            finalDayEndTarget, 0, finalStepChallenge));
 
                     String clientName = "Client";
                     String name = prefs.getString("client_name", null);
                     if (name != null && !name.isEmpty()) clientName = name;
 
                     String message = clientName + " Step Challenge Calculation:\n\n"
-                            + "Current Balance: " + String.format("%,d", currentBalance) + " Cr\n"
-                            + "Previous Day End: " + String.format("%,d", previousDayEnd) + " Cr\n"
-                            + "Day End Target (prev - 250): " + String.format("%,d", finalDayEndTarget) + " Cr\n"
-                            + "BMR: " + String.format("%,d", finalBmr) + "\n"
-                            + "Steps Numerator: " + stepsNumerator + "\n\n"
-                            + "(" + String.format("%,d", currentBalance) + " - " + String.format("%,d", finalDayEndTarget)
-                            + " - " + String.format("%,d", finalBmr) + ") / " + stepsNumerator + "\n\n"
+                            + "Current Balance:        " + String.format("%,d", currentBalance) + " Cr\n"
+                            + "Previous Day End:       " + String.format("%,d", previousDayEnd) + " Cr\n"
+                            + "Day End Target (- 250): " + String.format("%,d", finalDayEndTarget) + " Cr\n"
+                            + "Steps Numerator:        " + stepsNumerator + "\n\n"
+                            + "(" + String.format("%,d", currentBalance)
+                            + " - " + String.format("%,d", finalDayEndTarget)
+                            + ") / " + stepsNumerator + "\n\n"
                             + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps";
 
                     Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
@@ -2833,7 +2816,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
                     android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
                             + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + finalDayEndTarget
-                            + " bmr=" + finalBmr + " stepChallenge=" + finalStepChallenge);
+                            + " stepChallenge=" + finalStepChallenge);
                 });
 
             } catch (Exception e) {
