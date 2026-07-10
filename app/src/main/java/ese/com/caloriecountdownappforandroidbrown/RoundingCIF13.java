@@ -280,12 +280,12 @@ public class RoundingCIF13
 
     private boolean DoesInputHaveACommaQuestionMark(String INPUT)
     {
-        return false;
+        return INPUT != null && INPUT.contains(",");
     }
 
     private String StripComma(String INPUT, int pos)
     {
-        return INPUT;
+        return INPUT != null ? INPUT.replace(",", "") : INPUT;
     }
 
 

@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 14; // v14: barcode column added to food_items
+    private static final int VERSION = 15; // v15: is_synced column added to food_items
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -219,6 +219,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_FOODITEMS_IRON_PERCENT = "iron_percent";
     private static final String COLUMN_FOODITEMS_CATEGORY = "category";
     private static final String COLUMN_FOODITEMS_BARCODE  = "barcode"; // v14
+    private static final String COLUMN_FOODITEMS_IS_SYNCED = "is_synced"; // v15: 0=pending, 1=synced
 
 
     private static final String TABLE_HEALTH_PROFILE_TABLE = "health_profile";
@@ -806,7 +807,8 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 "vitamin_c_percent real," +
                 "calcium_percent real," +
                 "iron_percent real," +
-                "barcode integer default 0)");  // v14: barcode field
+                "barcode integer default 0," +   // v14: barcode field
+                "is_synced integer default 0)"); // v15: 0=pending backend sync, 1=synced
 
 
         try //at launch take all table creations to OnCreate
@@ -1314,6 +1316,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v14: added barcode column to " + TABLE_FOODITEMS);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", "barcode column already exists or error: " + e.getMessage());
+            }
+        }
+
+        // v15: is_synced column added to food_items for offline sync tracking.
+        // Existing rows are marked synced=1 to prevent duplicate uploads of pre-existing items.
+        if (oldVersion < 15) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_FOODITEMS
+                        + " ADD COLUMN " + COLUMN_FOODITEMS_IS_SYNCED + " INTEGER DEFAULT 0");
+                db.execSQL("UPDATE " + TABLE_FOODITEMS + " SET " + COLUMN_FOODITEMS_IS_SYNCED + " = 1");
+                android.util.Log.d("DB_UPGRADE", "v15: added is_synced to " + TABLE_FOODITEMS + ", marked existing rows as synced");
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", "v15 upgrade error: " + e.getMessage());
             }
         }
 
@@ -1852,6 +1867,31 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
+    /**
+     * Stores the balance captured immediately before a Credit Button update as the
+     * Previous Day End Balance. Replaces any existing row so the table holds exactly
+     * one value at all times. Called by Countup() and AddToBalance() before the new
+     * balance is written, so GetDayEndBalance() returns the correct pre-credit value
+     * for Step Challenge calculations.
+     */
+    public void setPreCreditDayEndBalance(int balance) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete(TABLE_DAYEND_BALANCE, null, null);
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_DAYEND_BALANCE_DATE, System.currentTimeMillis());
+            cv.put(COLUMN_DAYEND_BALANCE_BALANCE, balance);
+            db.insert(TABLE_DAYEND_BALANCE, null, cv);
+            db.setTransactionSuccessful();
+            android.util.Log.d("DayEndBalance", "setPreCreditDayEndBalance: stored balance=" + balance);
+        } catch (Exception e) {
+            android.util.Log.e("DayEndBalance", "setPreCreditDayEndBalance failed: " + e.getMessage());
+        } finally {
+            db.endTransaction();
+        }
+    }
+
     public String GetSex() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_SEX, null);
         cursor.moveToFirst();
@@ -2226,6 +2266,33 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
     }
 
+    /**
+     * Returns the date/time the Main Countdown Balance was last updated,
+     * formatted as "dd MMM yyyy HH:mm", or null if no record exists.
+     */
+    public String getBalanceLastUpdated() {
+        Cursor cursor = null;
+        try {
+            cursor = getReadableDatabase().rawQuery(
+                    "SELECT " + COLUMN_COUNTDOWN_BALANCE_DATE +
+                    " FROM " + TABLE_COUNTDOWN_BALANCE +
+                    " ORDER BY " + COLUMN_COUNTDOWN_BALANCE_DATE + " DESC LIMIT 1", null);
+            if (cursor != null && cursor.moveToFirst()) {
+                long millis = cursor.getLong(0);
+                if (millis > 0) {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                            "dd MMM yyyy HH:mm", java.util.Locale.getDefault());
+                    return sdf.format(new Date(millis));
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("SQLDatabase", "getBalanceLastUpdated error: " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
     public long Insert_Balance(String bal) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMN_COUNTDOWN_BALANCE_DATE, new Date().getTime());
@@ -2476,8 +2543,76 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cv.put(COLUMN_FOODITEMS_CALCIUM_PERCENT, food_item.Get_calcium_percent());
         cv.put(COLUMN_FOODITEMS_IRON_PERCENT, food_item.Get_iron_percent());
         cv.put(COLUMN_FOODITEMS_BARCODE, food_item.Get_Barcode()); // v14
+        // is_synced defaults to 0 (pending) — set to 1 by markFoodItemAsSynced on successful API sync
         return getWritableDatabase().insert(TABLE_FOODITEMS, null, cv);
         //Continue for rest of variables.
+    }
+
+    /** Mark a food_items row as successfully synced to the backend (is_synced = 1). */
+    public void markFoodItemAsSynced(long rowId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_FOODITEMS_IS_SYNCED, 1);
+            db.update(TABLE_FOODITEMS, values, "_id=?", new String[]{String.valueOf(rowId)});
+            android.util.Log.d("SYNC_FOOD_ITEM", "Marked food item rowId=" + rowId + " as synced");
+        } catch (Exception e) {
+            android.util.Log.e("SYNC_FOOD_ITEM", "markFoodItemAsSynced failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns all food_items rows where is_synced = 0 (pending backend sync).
+     * Uses literal column name strings to avoid the trailing-space bug in COLUMN_FOODITEMS_MONOUNSATURATED.
+     */
+    public java.util.List<Food_Item_CIF4> getUnsyncedFoodItems() {
+        java.util.List<Food_Item_CIF4> result = new java.util.ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        android.database.Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT _id, food_item_name, grams_per_serving_portion, calories_per_100g,"
+                            + " fat_per_100g, saturated_fat, trans_fat, protein_per_100g,"
+                            + " carbs_per_100g, sugar_per_100g, salt_per_100g, fiber,"
+                            + " price_sterling, category, polyunsaturated, monounsaturated,"
+                            + " cholesterol_mg, sodium_mg, potassium_mg,"
+                            + " vitamin_a_percent, vitamin_c_percent, calcium_percent, iron_percent"
+                            + " FROM " + TABLE_FOODITEMS
+                            + " WHERE " + COLUMN_FOODITEMS_IS_SYNCED + " = 0",
+                    null);
+            while (cursor.moveToNext()) {
+                Food_Item_CIF4 item = new Food_Item_CIF4();
+                item.Set_id(cursor.getLong(cursor.getColumnIndexOrThrow("_id")));
+                item.Set_food_item_name(cursor.getString(cursor.getColumnIndexOrThrow("food_item_name")));
+                item.Set_grams_per_serving_portion(cursor.getFloat(cursor.getColumnIndexOrThrow("grams_per_serving_portion")));
+                item.Set_calories_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("calories_per_100g")));
+                item.Set_fat_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("fat_per_100g")));
+                item.Set_saturated_fat(cursor.getFloat(cursor.getColumnIndexOrThrow("saturated_fat")));
+                item.Set_trans_fat(cursor.getFloat(cursor.getColumnIndexOrThrow("trans_fat")));
+                item.Set_protein_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("protein_per_100g")));
+                item.Set_carbs_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("carbs_per_100g")));
+                item.Set_sugar_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("sugar_per_100g")));
+                item.Set_salt_per_100g(cursor.getFloat(cursor.getColumnIndexOrThrow("salt_per_100g")));
+                item.Set_fiber(cursor.getFloat(cursor.getColumnIndexOrThrow("fiber")));
+                item.Set_price_sterling(cursor.getFloat(cursor.getColumnIndexOrThrow("price_sterling")));
+                item.Set_category(cursor.getString(cursor.getColumnIndexOrThrow("category")));
+                item.Set_polyunsaturated(cursor.getFloat(cursor.getColumnIndexOrThrow("polyunsaturated")));
+                item.Set_monounsaturated(cursor.getFloat(cursor.getColumnIndexOrThrow("monounsaturated")));
+                item.Set_cholesterol_mg(cursor.getFloat(cursor.getColumnIndexOrThrow("cholesterol_mg")));
+                item.Set_sodium_mg(cursor.getFloat(cursor.getColumnIndexOrThrow("sodium_mg")));
+                item.Set_potassium_mg(cursor.getFloat(cursor.getColumnIndexOrThrow("potassium_mg")));
+                item.Set_vitamin_a_percent(cursor.getFloat(cursor.getColumnIndexOrThrow("vitamin_a_percent")));
+                item.Set_vitamin_c_percent(cursor.getFloat(cursor.getColumnIndexOrThrow("vitamin_c_percent")));
+                item.Set_calcium_percent(cursor.getFloat(cursor.getColumnIndexOrThrow("calcium_percent")));
+                item.Set_iron_percent(cursor.getFloat(cursor.getColumnIndexOrThrow("iron_percent")));
+                result.add(item);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("SYNC_FOOD_ITEM", "getUnsyncedFoodItems failed: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return result;
     }
 
     public void Insert_Food_Item_Row(JSONWrapperCIFClass INPUT) {

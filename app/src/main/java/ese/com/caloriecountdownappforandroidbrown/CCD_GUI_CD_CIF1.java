@@ -636,6 +636,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.variables_balance_last_updated) {
+                showBalanceLastUpdatedDialog();
+                return true;
+            }
+
             return true;
 
         });
@@ -1412,11 +1417,23 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             int newBalance = currentBalance + credit;
             android.util.Log.d("CreditCalc", "[Countup] currentBalance=" + currentBalance + ", credit=" + credit + ", newBalance=" + newBalance);
 
-            CountdownFigure = new RoundingCIF13().IntToString(newBalance);
+            String plainFigure = new RoundingCIF13().IntToString(newBalance);
+            String numberFormat = getSharedPreferences("Calorie_Countdown", 0)
+                    .getString(AppCustomization.KEY_NUMBER_FORMAT, AppCustomization.FORMAT_PLAIN);
+            CountdownFigure = AppCustomization.formatBalance(plainFigure, numberFormat);
             countdownbalance.setText(CountdownFigure);
             // Also update mBalance_text so it stays in sync
             mBalance_text = CountdownFigure;
-            long storeResult = StoreCountdownBalance(CountdownFigure);
+            // Store the pre-credit balance before the balance is updated.
+            // DB: used by GetDayEndBalance() for Step Challenge calculations.
+            // SharedPreferences: available to any component without a DB query.
+            new SQLDatabase_Food_Items_CIF6(getApplicationContext()).setPreCreditDayEndBalance(currentBalance);
+            getSharedPreferences("Calorie_Countdown", 0)
+                    .edit()
+                    .putInt("pre_credit_balance", currentBalance)
+                    .apply();
+            android.util.Log.d("CreditCalc", "[Countup] Stored pre-credit balance=" + currentBalance);
+            long storeResult = StoreCountdownBalance(plainFigure);
             android.util.Log.d("CreditCalc", "[Countup] Balance stored, storeResult=" + storeResult + ", newBalanceText=" + CountdownFigure);
             // Step 3/3: All credit steps confirmed (food logged, balance updated, DB stored)
             // → trigger Kitty deployment exactly once via the guarded dispatcher.
@@ -2010,7 +2027,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public String Get_currentBalance() {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
-        return new String(countdownbalance.getText().toString());
+        return AppCustomization.stripCommas(countdownbalance.getText().toString());
     }
 
     private void Set_currentBalance() {
@@ -2184,9 +2201,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             int newBalance = currentBalance - debit;
             android.util.Log.d("DebitCalc", "[Countdown] currentBalance=" + currentBalance + ", debit=" + debit + ", newBalance=" + newBalance);
 
-            CountdownFigure = new RoundingCIF13().IntToString(newBalance);
-            countdownbalance.setText((mBalance_text = CountdownFigure));
-            long storeResult = StoreCountdownBalance((mBalance_text = CountdownFigure));
+            String plainFigure = new RoundingCIF13().IntToString(newBalance);
+            String numberFormat = getSharedPreferences("Calorie_Countdown", 0)
+                    .getString(AppCustomization.KEY_NUMBER_FORMAT, AppCustomization.FORMAT_PLAIN);
+            CountdownFigure = AppCustomization.formatBalance(plainFigure, numberFormat);
+            mBalance_text = CountdownFigure;
+            countdownbalance.setText(CountdownFigure);
+            long storeResult = StoreCountdownBalance(plainFigure);
             android.util.Log.d("DebitCalc", "[Countdown] Balance updated to " + CountdownFigure + ", storeResult=" + storeResult);
             Kitty();
         } catch (NumberFormatException e) {
@@ -2347,15 +2368,27 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             // Activity (e.g. FoodNoteTableActivity) while this Activity is in the background,
             // AlertDialog.show() throws WindowManager$BadTokenException → crash.
             // The Kitty check fires naturally the next time this Activity resumes.
-            String newBalanceStr = String.valueOf(newBalance);
-            mBalance_text = newBalanceStr;
+            String plainBalanceStr = String.valueOf(newBalance);
+            String numberFormat = getSharedPreferences("Calorie_Countdown", 0)
+                    .getString(AppCustomization.KEY_NUMBER_FORMAT, AppCustomization.FORMAT_PLAIN);
+            String displayBalanceStr = AppCustomization.formatBalance(plainBalanceStr, numberFormat);
+            mBalance_text = displayBalanceStr;
             final TextView countdownbalance = (TextView) findViewById(R.id.textView);
             if (countdownbalance != null) {
-                countdownbalance.setText(newBalanceStr);
+                countdownbalance.setText(displayBalanceStr);
             } else {
                 android.util.Log.w("AddToBalance", "[AddToBalance] countdownbalance TextView is null");
             }
-            StoreCountdownBalance(newBalanceStr);
+            // Store the pre-credit balance before the balance is updated.
+            // DB: used by GetDayEndBalance() for Step Challenge calculations.
+            // SharedPreferences: available to any component without a DB query.
+            new SQLDatabase_Food_Items_CIF6(getApplicationContext()).setPreCreditDayEndBalance(currentBalance);
+            getSharedPreferences("Calorie_Countdown", 0)
+                    .edit()
+                    .putInt("pre_credit_balance", currentBalance)
+                    .apply();
+            android.util.Log.d("AddToBalance", "[AddToBalance] Stored pre-credit balance=" + currentBalance);
+            StoreCountdownBalance(plainBalanceStr);
             android.util.Log.d("AddToBalance", "[AddToBalance] Balance successfully updated to " + newBalance);
         } catch (NumberFormatException e) {
             android.util.Log.e("AddToBalance", "[AddToBalance] NFE: input='" + input + "', " + e.getMessage(), e);
@@ -2773,40 +2806,41 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                         return;
                     }
 
-                    // Day End Target = Previous Day End Balance - 250
-                    int dayEndTarget = previousDayEnd - 250;
+                    // BMR: gender-based daily calorie budget (2500 male / 2000 female)
+                    String gender = prefs.getString("user_gender", "male");
+                    int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
                     double stepsNumerator = 0.089;
 
-                    // Steps needed to reach Day End Target from Current Balance
-                    // Formula: (CurrentBalance - DayEndTarget) / StepsNumerator
-                    //
-                    // -- BMR EXTENSION POINT --
-                    // When the BMR formula is defined, add it here before the division:
-                    //   int bmr = calculateBMR(prefs.getString("user_gender", "male"));
-                    //   double rawSteps = (currentBalance - dayEndTarget - bmr) / stepsNumerator;
-                    double rawSteps = (currentBalance - dayEndTarget) / stepsNumerator;
+                    // Today's Countdown = Current Balance - Previous Day End Balance - 250 - BMR
+                    int todayCountdown = currentBalance - previousDayEnd - 250 - bmr;
+
+                    // Steps = Today's Countdown / Steps Numerator (conversion constant unchanged)
+                    double rawSteps = todayCountdown / stepsNumerator;
                     int stepChallenge = (int) Math.ceil(rawSteps);
                     if (stepChallenge < 0) stepChallenge = 0;
 
                     // Save to SQLite — records the latest calculation (fire-and-forget)
                     final int finalStepChallenge = stepChallenge;
-                    final int finalDayEndTarget = dayEndTarget;
+                    final int finalTodayCountdown = todayCountdown;
+                    final int finalBmr = bmr;
                     mBgExecutor.execute(() ->
                             new SQLDatabase_Food_Items_CIF6(getApplicationContext())
                                     .saveStepsChallenge(todayDate, currentBalance, previousDayEnd,
-                                            finalDayEndTarget, 0, finalStepChallenge));
+                                            finalTodayCountdown, finalBmr, finalStepChallenge));
 
                     String clientName = "Client";
                     String name = prefs.getString("client_name", null);
                     if (name != null && !name.isEmpty()) clientName = name;
 
                     String message = clientName + " Step Challenge Calculation:\n\n"
-                            + "Current Balance:        " + String.format("%,d", currentBalance) + " Cr\n"
-                            + "Previous Day End:       " + String.format("%,d", previousDayEnd) + " Cr\n"
-                            + "Day End Target (- 250): " + String.format("%,d", finalDayEndTarget) + " Cr\n"
-                            + "Steps Numerator:        " + stepsNumerator + "\n\n"
+                            + "Current Balance:    " + String.format("%,d", currentBalance) + " Cr\n"
+                            + "Previous Day End:   " + String.format("%,d", previousDayEnd) + " Cr\n"
+                            + "BMR (" + gender + "):      " + String.format("%,d", bmr) + " cal\n"
+                            + "Today's Countdown:  " + String.format("%,d", finalTodayCountdown) + " Cr\n"
+                            + "Steps Numerator:    " + stepsNumerator + "\n\n"
                             + "(" + String.format("%,d", currentBalance)
-                            + " - " + String.format("%,d", finalDayEndTarget)
+                            + " - " + String.format("%,d", previousDayEnd)
+                            + " - 250 - " + String.format("%,d", bmr)
                             + ") / " + stepsNumerator + "\n\n"
                             + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps";
 
@@ -2815,7 +2849,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     dialog.Showing(message);
 
                     android.util.Log.d("StepsChallenge", "currentBalance=" + currentBalance
-                            + " previousDayEnd=" + previousDayEnd + " dayEndTarget=" + finalDayEndTarget
+                            + " previousDayEnd=" + previousDayEnd + " bmr=" + finalBmr
+                            + " todayCountdown=" + finalTodayCountdown
                             + " stepChallenge=" + finalStepChallenge);
                 });
 
@@ -2915,6 +2950,29 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
         dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
         dialog.Showing(report.toString());
+    }
+
+    // ── Variables Menu handlers ────────────────────────────────────────────────
+    // Add new variable dialogs below this comment as the menu grows.
+
+    private void showBalanceLastUpdatedDialog() {
+        String lastUpdated;
+        try {
+            lastUpdated = new SQLDatabase_Food_Items_CIF6(this).getBalanceLastUpdated();
+        } catch (Exception e) {
+            android.util.Log.e("Variables", "getBalanceLastUpdated error: " + e.getMessage(), e);
+            lastUpdated = null;
+        }
+
+        String message = (lastUpdated != null)
+                ? "Main Countdown Balance was last updated on:\n\n" + lastUpdated
+                : "No balance record found.\n\nThe balance has not been updated yet.";
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Balance Last Updated")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     /**

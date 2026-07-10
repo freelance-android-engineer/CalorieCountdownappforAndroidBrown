@@ -45,6 +45,63 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
         return v;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        retrySyncPendingFoodItems();
+    }
+
+    private void retrySyncPendingFoodItems() {
+        if (getActivity() == null || !NetworkUtil.isInternetAvailable(getActivity())) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (getActivity() == null) return;
+                SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getActivity());
+                java.util.List<Food_Item_CIF4> pending = db.getUnsyncedFoodItems();
+                if (pending.isEmpty()) return;
+                Log.d("SYNC_FOOD_ITEM", "Retrying sync for " + pending.size() + " pending food item(s)");
+                SQLHeavyClientType008 apiClient = new SQLHeavyClientType008(getActivity());
+                for (Food_Item_CIF4 item : pending) {
+                    final long rowId = item.Get_id();
+                    Map<String, Object> foodData = new HashMap<>();
+                    foodData.put("food_item_name", item.Get_food_item_name());
+                    foodData.put("grams_per_serving", item.Get_grams_per_serving_portion());
+                    foodData.put("calories_per_100g", item.Get_calories_per_100g());
+                    foodData.put("fat_per_100g", item.Get_fat_per_100g());
+                    foodData.put("saturated_fat", item.Get_saturated_fat());
+                    foodData.put("trans_fat", item.Get_trans_fat());
+                    foodData.put("protein_per_100g", item.Get_protein_per_100g());
+                    foodData.put("carbs_per_100g", item.Get_carbs_per_100g());
+                    foodData.put("sugar_per_100g", item.Get_sugar_per_100g());
+                    foodData.put("salt_per_100g", item.Get_salt_per_100g());
+                    foodData.put("fiber", item.Get_fiber());
+                    foodData.put("price_sterling", item.Get_price_sterling());
+                    foodData.put("category", item.Get_category());
+                    foodData.put("polyunsaturated", item.Get_polyunsaturated());
+                    foodData.put("monounsaturated", item.Get_monounsaturated());
+                    foodData.put("cholesterol_mg", item.Get_cholesterol_mg());
+                    foodData.put("sodium_mg", item.Get_sodium_mg());
+                    foodData.put("potassium_mg", item.Get_potassium_mg());
+                    foodData.put("vitamin_a_percent", item.Get_vitamin_a_percent());
+                    foodData.put("vitamin_c_percent", item.Get_vitamin_c_percent());
+                    foodData.put("calcium_percent", item.Get_calcium_percent());
+                    foodData.put("iron_percent", item.Get_iron_percent());
+                    apiClient.addFoodItem(foodData, new ApiResultCallback() {
+                        @Override
+                        public void onSuccess(@Nullable String response) {
+                            db.markFoodItemAsSynced(rowId);
+                            Log.d("SYNC_FOOD_ITEM", "Retry sync succeeded for rowId=" + rowId);
+                        }
+                        @Override
+                        public void onFailure() {
+                            Log.w("SYNC_FOOD_ITEM", "Retry sync failed for rowId=" + rowId + "; will retry on next resume");
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
 
     private long Adding_New_Item_pressed() {
 
@@ -200,6 +257,7 @@ public class Add_New_Item_Activity_CIF2Fragment extends Fragment {
 
                 @Override
                 public void onSuccess(@Nullable String response) {
+                    database.markFoodItemAsSynced(localRowId);
                     if (getActivity() != null) {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override

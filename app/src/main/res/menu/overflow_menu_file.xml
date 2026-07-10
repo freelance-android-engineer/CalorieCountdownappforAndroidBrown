@@ -440,5 +440,15 @@
         android:id="@+id/action_customize"
         android:title="@string/action_customize_title" />
 
+    <item
+        android:id="@+id/action_variables"
+        android:title="Variables">
+        <menu>
+            <item
+                android:id="@+id/variables_balance_last_updated"
+                android:title="Balance Last Updated" />
+        </menu>
+    </item>
+
 
 </menu>

@@ -39,6 +39,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mBMR;
     private Button mMidnightScrape;
     private Button mStepsChallenge;
+    private Button mAddNewDebitItem;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -191,6 +192,15 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             }
         });
 
+        // Add New Debit Item button - shows category selection then item input form
+        mAddNewDebitItem = (Button) findViewById(R.id.btnAddNewDebitItem);
+        mAddNewDebitItem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAddNewDebitItemDialog();
+            }
+        });
+
         android.util.Log.d("STEPS", "Above Sensor Manager");
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         android.util.Log.d("STEPS", "Below Sensor Manager");
@@ -278,6 +288,92 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         BackToParent(fizz.getmCalorie_Debit_Value());
     }
 
+    // ── Add New Debit Item ────────────────────────────────────────────────────
+
+    /** Step 1: show the category selection dialog. */
+    private void showAddNewDebitItemDialog() {
+        String[] options = {"New Cardio Item", "New Activity Item", "New Strength Training Item"};
+        new AlertDialog.Builder(this)
+                .setTitle("Add New Debit Item")
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: showNewExerciseItemForm(ExerciseItem.CATEGORY_CARDIO,    "New Cardio Item");           break;
+                        case 1: showNewExerciseItemForm(ExerciseItem.CATEGORY_ACTIVITY,  "New Activity Item");         break;
+                        case 2: showNewExerciseItemForm(ExerciseItem.CATEGORY_STRENGTH,  "New Strength Training Item"); break;
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /**
+     * Step 2: show the input form for the selected category.
+     * Cardio / Activity: collects Name + Duration (min) + Calories per minute.
+     * Strength Training: collects Name + Reps + Calories per rep.
+     */
+    private void showNewExerciseItemForm(String category, String title) {
+        boolean isStrength = ExerciseItem.CATEGORY_STRENGTH.equals(category);
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad, pad, 0);
+
+        android.widget.EditText etName = new android.widget.EditText(this);
+        etName.setHint("Item name");
+        layout.addView(etName);
+
+        android.widget.EditText etDuration = new android.widget.EditText(this);
+        etDuration.setHint(isStrength ? "Number of reps" : "Duration (minutes)");
+        etDuration.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        layout.addView(etDuration);
+
+        android.widget.EditText etCalPerUnit = new android.widget.EditText(this);
+        etCalPerUnit.setHint(isStrength ? "Calories per rep" : "Calories per minute");
+        etCalPerUnit.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        layout.addView(etCalPerUnit);
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(layout)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String name        = etName.getText().toString().trim();
+                    String durationStr = etDuration.getText().toString().trim();
+                    String calStr      = etCalPerUnit.getText().toString().trim();
+
+                    if (name.isEmpty() || durationStr.isEmpty() || calStr.isEmpty()) {
+                        Toast.makeText(this, "Please fill in all fields.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    try {
+                        float durationOrReps = Float.parseFloat(durationStr);
+                        float calPerUnit     = Float.parseFloat(calStr);
+                        int   reps           = isStrength ? (int) durationOrReps : 0;
+                        float durationMin    = isStrength ? 0f : durationOrReps;
+
+                        SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(this);
+                        long rowId = db.insertExerciseItem(category, name, durationMin, reps, calPerUnit);
+
+                        if (rowId == -1L) {
+                            Toast.makeText(this,
+                                    "\"" + name + "\" already exists in this category.",
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this,
+                                    "\"" + name + "\" saved successfully.",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, "Invalid number entered. Please check your values.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void BackToParent(int debit) {
         //return intent call with intent packed with value of Debit or Credit and Summary String as well as summarybox ready
         Intent i2 = new Intent();
@@ -355,7 +451,25 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         if (requestCode == REQUEST_CODE_DEBIT_MAN && resultCode == RESULT_OK && data != null) {
             int debitValue = data.getIntExtra(TOTAL_DEBIT_VALUE, 0);
             if (debitValue > 0) {
-                StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                int balanceBeforeDebit = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt();
+                StoreDayEnd2(balanceBeforeDebit);
+
+                // After 4 PM: persist the pre-debit balance as the Day End Balance.
+                // GetDayEndBalance() reads from dayend_balance for Step Challenge calculations.
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                if (cal.get(java.util.Calendar.HOUR_OF_DAY) >= 16) {
+                    try {
+                        String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                                .format(cal.getTime());
+                        new SQLDatabase_Food_Items_CIF6(getApplicationContext())
+                                .setPreCreditDayEndBalance(balanceBeforeDebit);
+                        android.util.Log.d("DebitSteps", "[onActivityResult] Stored Day End Balance for Step Challenge: "
+                                + balanceBeforeDebit + " date=" + today);
+                    } catch (Exception ex) {
+                        android.util.Log.e("DebitSteps", "[onActivityResult] Failed to store Day End Balance: " + ex.getMessage(), ex);
+                    }
+                }
+
                 BackToParent(debitValue);
             }
         }

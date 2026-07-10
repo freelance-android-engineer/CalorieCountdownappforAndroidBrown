@@ -9,6 +9,7 @@ package ese.com.caloriecountdownappforandroidbrown;
 public class ExerciseItem {
 
     public static final String CATEGORY_CARDIO    = "CARDIO";
+    public static final String CATEGORY_ACTIVITY  = "ACTIVITY";
     public static final String CATEGORY_STRENGTH  = "STRENGTH_TRAINING";
 
     private long   id;

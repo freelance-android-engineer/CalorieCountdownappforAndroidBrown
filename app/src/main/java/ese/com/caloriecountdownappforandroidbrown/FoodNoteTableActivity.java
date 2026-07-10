@@ -1630,6 +1630,23 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                         }
                     }
 
+                    // Step 1b: if the AI TOTAL (totalCalories) exceeds the sum of per-item values
+                    // stored above, insert a reconciliation note so the DB sum matches what is
+                    // credited to the balance. getTotalFoodNoteCaloriesToday() then returns the
+                    // correct Food Consumed figure for the Kitty Report.
+                    int storedSum = 0;
+                    for (int cal : parsedCalories.subList(0, count)) storedSum += cal;
+                    int remainder = totalCalories - storedSum;
+                    if (remainder > 0) {
+                        String now = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm",
+                                java.util.Locale.getDefault()).format(new java.util.Date());
+                        databaseHelper.insertFoodNote(now, "AI Credit Adjustment",
+                                String.valueOf(remainder), "");
+                        android.util.Log.d("FoodNoteAI", "Reconciliation note inserted: "
+                                + remainder + " cal (credited=" + totalCalories
+                                + ", perItemSum=" + storedSum + ")");
+                    }
+
                     // Step 2: credit total calories to countdown balance (via home screen instance)
                     if (totalCalories > 0) {
                         if (CCD_GUI_CD_CIF1.instance != null) {
@@ -1760,7 +1777,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     private void handleKittyButtonClick() {
-        int totalCalories = databaseHelper.getTotalCalories();
+        int totalCalories = databaseHelper.getTotalFoodNoteCaloriesToday();
         SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
         String userGender = pref.getString("user_gender", null);
         if (userGender == null) {
