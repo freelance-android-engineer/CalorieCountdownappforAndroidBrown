@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 15; // v15: is_synced column added to food_items
+    private static final int VERSION = 16; // v16: daily_countdown_history table for progress graph
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -521,6 +521,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_SC_BMR              = "bmr";
     private static final String COLUMN_SC_STEP_CHALLENGE   = "step_challenge";
     private static final String COLUMN_SC_CREATED_AT       = "sc_created_at";
+
+    // ── Daily Countdown History (v16) — one row per day for progress graph ───
+    private static final String TABLE_DAILY_HISTORY          = "daily_countdown_history";
+    private static final String COLUMN_HIST_ID               = "history_id";
+    private static final String COLUMN_HIST_DATE             = "history_date";       // "yyyy-MM-dd" UNIQUE
+    private static final String COLUMN_HIST_BALANCE          = "history_balance";
+    private static final String COLUMN_HIST_CREATED_AT       = "history_created_at";
+    private static final String COLUMN_HIST_UPDATED_AT       = "history_updated_at";
 
     private Context mContext;
     private Boolean time_is_After_Four_Thirty_PM = false;
@@ -1064,6 +1072,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.w("Table creation", TABLE_RECORDED_STEPS + " creation: " + e.getMessage());
         }
 
+        // Create daily_countdown_history table (v16) — one row per day for progress graph
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DAILY_HISTORY + " ("
+                    + COLUMN_HIST_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_HIST_DATE       + " TEXT UNIQUE, "
+                    + COLUMN_HIST_BALANCE    + " INTEGER DEFAULT 0, "
+                    + COLUMN_HIST_CREATED_AT + " TEXT DEFAULT '', "
+                    + COLUMN_HIST_UPDATED_AT + " TEXT DEFAULT '')");
+            android.util.Log.d("Table creation", "created " + TABLE_DAILY_HISTORY);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_DAILY_HISTORY + " creation: " + e.getMessage());
+        }
+
     }
 
     @Override
@@ -1329,6 +1350,21 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v15: added is_synced to " + TABLE_FOODITEMS + ", marked existing rows as synced");
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", "v15 upgrade error: " + e.getMessage());
+            }
+        }
+
+        // v16: daily_countdown_history table — stores one balance per day for progress graph
+        if (oldVersion < 16) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DAILY_HISTORY + " ("
+                        + COLUMN_HIST_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_HIST_DATE       + " TEXT UNIQUE, "
+                        + COLUMN_HIST_BALANCE    + " INTEGER DEFAULT 0, "
+                        + COLUMN_HIST_CREATED_AT + " TEXT DEFAULT '', "
+                        + COLUMN_HIST_UPDATED_AT + " TEXT DEFAULT '')");
+                android.util.Log.d("DB_UPGRADE", "v16: created " + TABLE_DAILY_HISTORY);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_DAILY_HISTORY + " already exists: " + e.getMessage());
             }
         }
 
@@ -3633,6 +3669,82 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.d("HISTORY_DB", "getHistoricalBalancesWithDates: count=" + result.size());
         } catch (Exception e) {
             android.util.Log.e("HISTORY_DB", "Error reading dated balances: " + e.getMessage());
+        }
+        return result;
+    }
+
+    // ── Daily Countdown History (v16) — progress graph support ───────────────
+
+    /**
+     * Upserts today's countdown balance into {@code daily_countdown_history}.
+     * If a row for today already exists, only the balance and updated_at are overwritten.
+     * Rows for previous dates are never modified, preserving immutable history.
+     *
+     * Called from StoreCountdownBalance() on every balance change so the table
+     * always holds the latest balance for the current day.
+     *
+     * @param balance the current countdown balance as an integer
+     */
+    public void upsertDailyHistory(int balance) {
+        try {
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    .format(new Date());
+            String now = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    .format(new Date());
+
+            SQLiteDatabase db = this.getWritableDatabase();
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_HIST_DATE, today);
+            cv.put(COLUMN_HIST_BALANCE, balance);
+            cv.put(COLUMN_HIST_UPDATED_AT, now);
+
+            // Try UPDATE first — only touches today's row
+            int updated = db.update(TABLE_DAILY_HISTORY, cv,
+                    COLUMN_HIST_DATE + " = ?", new String[]{today});
+
+            if (updated == 0) {
+                // First balance change of the day — INSERT new row
+                cv.put(COLUMN_HIST_CREATED_AT, now);
+                long rowId = db.insert(TABLE_DAILY_HISTORY, null, cv);
+                android.util.Log.d("DailyHistory", "[upsertDailyHistory] INSERT date=" + today
+                        + " balance=" + balance + " rowId=" + rowId);
+            } else {
+                android.util.Log.d("DailyHistory", "[upsertDailyHistory] UPDATE date=" + today
+                        + " balance=" + balance);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("DailyHistory", "[upsertDailyHistory] " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Returns daily countdown balance history ordered chronologically (oldest first).
+     * Each element is a two-element String array: [date "yyyy-MM-dd", balance].
+     * Designed for direct consumption by a Bar Chart / Graph screen.
+     *
+     * @return List of {date, balance} pairs; empty list on error or no data.
+     */
+    public List<String[]> getDailyCountdownHistory() {
+        List<String[]> result = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            cursor = db.rawQuery(
+                    "SELECT " + COLUMN_HIST_DATE + ", " + COLUMN_HIST_BALANCE
+                            + " FROM " + TABLE_DAILY_HISTORY
+                            + " ORDER BY " + COLUMN_HIST_DATE + " ASC", null);
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    String date = cursor.getString(0);
+                    String balance = String.valueOf(cursor.getInt(1));
+                    result.add(new String[]{date, balance});
+                }
+            }
+            android.util.Log.d("DailyHistory", "[getDailyCountdownHistory] count=" + result.size());
+        } catch (Exception e) {
+            android.util.Log.e("DailyHistory", "[getDailyCountdownHistory] " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
         }
         return result;
     }

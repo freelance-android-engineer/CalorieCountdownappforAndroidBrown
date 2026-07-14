@@ -258,9 +258,7 @@ public class SummaryBoxCIF12
 
         if(mFoodItems == null)
         {
-            total = "Not Avaliable";
-
-            return total;
+            return null;
         }
         else
         {
@@ -275,32 +273,43 @@ public class SummaryBoxCIF12
 
     public String GetNewBalance()
     {
-        if(mCurrentBalance == "N/A")
+        if("N/A".equals(mCurrentBalance))
         {
             return mCurrentBalance;
         }
         else
         {
-            int med = new RoundingCIF13().StringToInt(mCurrentBalance);
-            med = med + (new RoundingCIF13().StringToInt(GetListingsTotalCaloriesIN()));
-            mNewBalance = med;
-            return new RoundingCIF13().IntToString(med);
+            try {
+                String caloriesIn = GetListingsTotalCaloriesIN();
+                int balance = new RoundingCIF13().StringToInt(mCurrentBalance);
+                int calories = (caloriesIn != null) ? new RoundingCIF13().StringToInt(caloriesIn) : 0;
+                mNewBalance = balance + calories;
+                return new RoundingCIF13().IntToString(mNewBalance);
+            } catch (NumberFormatException e) {
+                android.util.Log.e("SummaryBox", "GetNewBalance NFE: mCurrentBalance='" + mCurrentBalance + "': " + e.getMessage());
+                return mCurrentBalance;
+            }
         }
 
     }
 
     public String GetNewBalance2()
     {
-        if(mCurrentBalance == "N/A")
+        if("N/A".equals(mCurrentBalance))
         {
             return mCurrentBalance;
         }
         else
         {
-            int med = new RoundingCIF13().StringToInt(mCurrentBalance);
-            med = med - (new RoundingCIF13().StringToInt(GetListingsTotalCaloriesOUT()));
-            mNewBalance = med;
-            return new RoundingCIF13().IntToString(med);
+            try {
+                int med = new RoundingCIF13().StringToInt(mCurrentBalance);
+                med = med - (new RoundingCIF13().StringToInt(GetListingsTotalCaloriesOUT()));
+                mNewBalance = med;
+                return new RoundingCIF13().IntToString(med);
+            } catch (NumberFormatException e) {
+                android.util.Log.e("SummaryBox", "GetNewBalance2 NFE: mCurrentBalance='" + mCurrentBalance + "': " + e.getMessage());
+                return mCurrentBalance;
+            }
         }
 
     }

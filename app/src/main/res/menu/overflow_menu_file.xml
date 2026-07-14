@@ -10,6 +10,9 @@
         app:showAsAction="never">
         <menu>
             <item
+                android:id="@+id/action_customize"
+                android:title="@string/action_customize_title" />
+            <item
                 android:id="@+id/settings_countdown_mode"
                 android:title="Countdown mode" />
             <item
@@ -435,10 +438,6 @@
     <item
         android:id="@+id/action_Client_Guide"
         android:title="@string/action_Client_Guide_title" />
-
-    <item
-        android:id="@+id/action_customize"
-        android:title="@string/action_customize_title" />
 
     <item
         android:id="@+id/action_variables"

@@ -19,6 +19,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import java.util.concurrent.TimeUnit
 
 
 object GeminiApiService {
@@ -124,6 +125,9 @@ Salt:
                     onResult(item)
                 }
 
+                // Background: check backend for duplicates and upload if new
+                syncAiResultToBackendIfNew(context, item)
+
             } catch (e: Exception) {
                 val errorDetails =
                     StringWriter().also { e.printStackTrace(PrintWriter(it)) }.toString()
@@ -136,7 +140,11 @@ Salt:
     }
 
 
-    private val client = OkHttpClient()
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
 
     @JvmStatic
     fun calculateCalories(context: Context, prompt: String, callback: CalorieCallback) {
@@ -173,19 +181,19 @@ Salt:
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e("GeminiApiService", "Request failed: ${e.message}", e)
+                Log.e("GeminiCalc", "[calculateCalories] Request failed: ${e::class.java.simpleName}: ${e.message}", e)
                 (context as? Activity)?.runOnUiThread {
                     callback.onResult(null)
                 }
             }
 
             override fun onResponse(call: Call, response: Response) {
-                Log.d("GeminiApiService", "Response received, status=${response.code}")
+                Log.d("GeminiCalc", "[calculateCalories] Response received, status=${response.code}")
 
                 response.use {
                     if (!response.isSuccessful) {
                         val errorBody = response.body?.string() ?: "No error body"
-                        Log.e("GeminiApiService", "Unsuccessful response: ${response.code}, body: $errorBody")
+                        Log.e("GeminiCalc", "[calculateCalories] HTTP ${response.code}: $errorBody")
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(null)
                         }
@@ -193,7 +201,15 @@ Salt:
                     }
 
                     val responseData = response.body?.string()
-                    Log.d("GeminiApiService", "Raw response: $responseData")
+                    if (responseData.isNullOrEmpty()) {
+                        Log.e("GeminiCalc", "[calculateCalories] Response body is null/empty")
+                        (context as? Activity)?.runOnUiThread {
+                            callback.onResult(null)
+                        }
+                        return
+                    }
+
+                    Log.d("GeminiCalc", "[calculateCalories] Raw response: $responseData")
 
                     try {
                         val jsonResponse = JSONObject(responseData)
@@ -228,13 +244,13 @@ Salt:
                             }
                         }
 
-                        Log.d("GeminiApiService", "Parsed text: $contentText")
+                        Log.d("GeminiCalc", "[calculateCalories] Parsed text: $contentText")
 
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(contentText)
                         }
                     } catch (ex: Exception) {
-                        Log.e("GeminiApiService", "Exception parsing response", ex)
+                        Log.e("GeminiCalc", "[calculateCalories] Parse exception: ${ex.message}", ex)
                         (context as? Activity)?.runOnUiThread {
                             callback.onResult(null)
                         }
@@ -350,6 +366,64 @@ Salt:
         fun onResult(result: String?)
     }
 
+    /**
+     * Checks the backend for an existing food item matching [item]'s name.
+     * If no match is found, uploads the AI result to the backend.
+     * If a match exists, does nothing (prevents duplicates).
+     * Runs entirely in the background — does not affect the user-facing AI response.
+     */
+    private fun syncAiResultToBackendIfNew(context: Context, item: Food_Item_CIF4) {
+        val foodName = item.Get_food_item_name()
+        if (foodName.isNullOrBlank()) {
+            Log.d("AiBackendSync", "Skipping sync: food name is empty")
+            return
+        }
+        if (item.Get_calories_per_100g() <= 0) {
+            Log.d("AiBackendSync", "Skipping sync: calories <= 0 for $foodName")
+            return
+        }
+        if (!NetworkUtil.isInternetAvailable(context)) {
+            Log.d("AiBackendSync", "Skipping sync: no network for $foodName")
+            return
+        }
+
+        val apiClient = SQLHeavyClientType008(context)
+
+        // Step 1: Search backend for existing entry
+        apiClient.searchFoodParsed(foodName, object : FoodSearchCallback {
+            override fun onResult(results: ArrayList<Food_Item_CIF4>) {
+                if (results.isNotEmpty()) {
+                    Log.d("AiBackendSync", "Food already exists in backend: $foodName (${results.size} match(es))")
+                    return
+                }
+
+                // Step 2: No match found — format and upload
+                Log.d("AiBackendSync", "No match in backend, uploading: $foodName")
+                val foodData = HashMap<String, Any>()
+                foodData["food_item_name"] = foodName.trim()
+                foodData["calories_per_100g"] = item.Get_calories_per_100g().toDouble()
+                foodData["fat_per_100g"] = item.Get_fat_per_100g().toDouble()
+                foodData["saturated_fat"] = item.Get_saturated_fat().toDouble()
+                foodData["trans_fat"] = item.Get_trans_fat().toDouble()
+                foodData["protein_per_100g"] = item.Get_protein_per_100g().toDouble()
+                foodData["carbs_per_100g"] = item.Get_carbs_per_100g().toDouble()
+                foodData["sugar_per_100g"] = item.Get_sugar_per_100g().toDouble()
+                foodData["salt_per_100g"] = item.Get_salt_per_100g().toDouble()
+                foodData["fiber"] = item.Get_fiber().toDouble()
+                foodData["quantity"] = "100g"
+
+                apiClient.addFoodItem(foodData, object : ApiResultCallback {
+                    override fun onSuccess(response: String?) {
+                        Log.d("AiBackendSync", "AI result uploaded to backend: $foodName")
+                    }
+
+                    override fun onFailure() {
+                        Log.w("AiBackendSync", "Failed to upload AI result to backend: $foodName")
+                    }
+                })
+            }
+        })
+    }
 
 }
 

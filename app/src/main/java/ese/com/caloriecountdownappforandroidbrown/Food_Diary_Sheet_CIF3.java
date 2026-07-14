@@ -764,18 +764,34 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
 
         //return intent call with intent packed with value of Debit or Credit and Summary String as well as summarybox ready
         Intent i2 = new Intent();
-        if (summary_box.GetListingsTotalCaloriesIN() == null) {
-            i2.putExtra(TOTAL_CREDIT_VALUE, 0);
-            Log.d(TAG, "Calories In is null Baby!");
+
+        // Resolve credit value once, with defensive parsing
+        int creditValue = 0;
+        String caloriesIn = summary_box.GetListingsTotalCaloriesIN();
+        if (caloriesIn != null) {
+            try {
+                creditValue = new RoundingCIF13().StringToInt(caloriesIn);
+                Log.d(TAG, "Everything is Cool Baby! " + summary_box.GetDebitSummaryString());
+            } catch (NumberFormatException e) {
+                android.util.Log.e(TAG, "BackToParentActivity NFE parsing caloriesIn='" + caloriesIn + "': " + e.getMessage());
+            }
         } else {
-            i2.putExtra(TOTAL_CREDIT_VALUE, new RoundingCIF13().StringToInt(summary_box.GetListingsTotalCaloriesIN()));
-            Log.d(TAG, "Everything is Cool Baby! " + summary_box.GetDebitSummaryString());
+            Log.d(TAG, "Calories In is null Baby!");
         }
-        if (summary_box.GetSummaryString() == null) {
+        i2.putExtra(TOTAL_CREDIT_VALUE, creditValue);
+        android.util.Log.d(TAG, "BackToParentActivity creditValue=" + creditValue);
+
+        String summaryString = null;
+        try {
+            summaryString = summary_box.GetSummaryString();
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "BackToParentActivity GetSummaryString exception: " + e.getMessage());
+        }
+        if (summaryString == null) {
             i2.putExtra(SUMMATION_TEXT, "ese-edet.eu");
             Log.d(TAG, "Summation is null Baby!");
         } else {
-            i2.putExtra(SUMMATION_TEXT, summary_box.GetSummaryString());
+            i2.putExtra(SUMMATION_TEXT, summaryString);
         }
         setResult(RESULT_OK, i2);
         finish();

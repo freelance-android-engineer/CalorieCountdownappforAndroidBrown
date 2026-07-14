@@ -16,6 +16,7 @@ class SQLHeavyClientType008(private val context: Context) {
         private const val ENDPOINT_ADD_FOOD = "$BASE_URL/food"
         private const val ENDPOINT_BALANCE_SYNC = "$BASE_URL/balance/sync"
         private const val ENDPOINT_DAYEND_SYNC = "$BASE_URL/balance/dayend"
+        private const val ENDPOINT_ADD_EXERCISE = "$BASE_URL/exercise"
         private const val CONTENT_TYPE_JSON = "application/json"
     }
 
@@ -121,6 +122,37 @@ class SQLHeavyClientType008(private val context: Context) {
         val json = JSONObject(foodData)
         println("🍴 Adding food item: ${foodData["food_item_name"]}")
         postRequestAsync(ENDPOINT_ADD_FOOD, json, callback)
+    }
+
+    // -------------------- EXERCISE ITEM API --------------------
+
+    /**
+     * Add a new exercise item (Cardio, Activity, or Strength Training) to the backend.
+     *
+     * @param clientName        client identifier from SharedPreferences "client_name"
+     * @param exerciseCategory  one of "CARDIO", "ACTIVITY", or "STRENGTH_TRAINING"
+     * @param exerciseName      name of the exercise
+     * @param caloriesPerMinute standard calories burnt per minute (for a 250 lbs person)
+     * @param callback          result callback
+     */
+    fun addExerciseItem(
+        clientName: String,
+        exerciseCategory: String,
+        exerciseName: String,
+        caloriesPerMinute: Float,
+        callback: ApiResultCallback
+    ) {
+        val json = JSONObject().apply {
+            put("@context", "https://schema.org")
+            put("@type", "ExerciseAction")
+            put("client_name", clientName)
+            put("exercise_category", exerciseCategory)
+            put("exercise_name", exerciseName)
+            put("calories_per_minute", caloriesPerMinute.toDouble())
+            put("reference_weight_lbs", 250)
+        }
+        println("🏋️ Adding exercise item: category=$exerciseCategory name=$exerciseName ($caloriesPerMinute cal/min) client=$clientName")
+        postRequestAsync(ENDPOINT_ADD_EXERCISE, json, callback)
     }
 
     // -------------------- BALANCE SYNC APIs --------------------

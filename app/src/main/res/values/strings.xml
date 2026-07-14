@@ -2616,6 +2616,57 @@
     <string name="btn_add_new_debit_item">Add New Debit Item</string>
     <string name="btn_ai_debit">AI</string>
 
+    <!-- New Cardio Item Screen -->
+    <string name="new_cardio_item_title">New Cardio Item</string>
+    <string name="new_cardio_item_name_label">Cardio Item Name</string>
+    <string name="new_cardio_item_name_hint">e.g. Running, Cycling, Swimming</string>
+    <string name="new_cardio_cal_per_min_label">Standard Calories Burnt Per Minute</string>
+    <string name="new_cardio_cal_per_min_hint">e.g. 8.0</string>
+    <string name="new_cardio_cal_per_min_note">For a 250 lbs person</string>
+    <string name="new_cardio_btn_save">Save</string>
+    <string name="new_cardio_saving">Saving cardio item…</string>
+    <string name="new_cardio_success">Cardio item added successfully</string>
+    <string name="new_cardio_success_offline">Cardio item added locally (offline)</string>
+    <string name="new_cardio_error_name_empty">Name cannot be empty</string>
+    <string name="new_cardio_error_cal_empty">Calories per minute is required</string>
+    <string name="new_cardio_error_cal_invalid">Invalid number</string>
+    <string name="new_cardio_error_cal_positive">Must be greater than zero</string>
+    <string name="new_cardio_error_save_failed">Failed to save cardio item. Please try again.</string>
+
+    <!-- New Activity Item Screen -->
+    <string name="new_activity_item_title">New Activity Item</string>
+    <string name="new_activity_item_name_label">Activity Name</string>
+    <string name="new_activity_item_name_hint">e.g. Walking, Gardening, Cleaning</string>
+    <string name="new_activity_cal_per_min_label">Standard Calories Burnt Per Minute</string>
+    <string name="new_activity_cal_per_min_hint">e.g. 4.0</string>
+    <string name="new_activity_cal_per_min_note">For a 250 lbs person</string>
+    <string name="new_activity_btn_save">Save</string>
+    <string name="new_activity_saving">Saving activity item…</string>
+    <string name="new_activity_success">Activity item added successfully</string>
+    <string name="new_activity_success_offline">Activity item added locally (offline)</string>
+    <string name="new_activity_error_name_empty">Name cannot be empty</string>
+    <string name="new_activity_error_cal_empty">Calories per minute is required</string>
+    <string name="new_activity_error_cal_invalid">Invalid number</string>
+    <string name="new_activity_error_cal_positive">Must be greater than zero</string>
+    <string name="new_activity_error_save_failed">Failed to save activity item. Please try again.</string>
+
+    <!-- New Strength Training Item Screen -->
+    <string name="new_strength_item_title">New Strength Training Item</string>
+    <string name="new_strength_item_name_label">Strength Training Name</string>
+    <string name="new_strength_item_name_hint">e.g. Bench Press, Deadlift, Squats</string>
+    <string name="new_strength_cal_per_min_label">Standard Calories Burnt Per Minute</string>
+    <string name="new_strength_cal_per_min_hint">e.g. 6.0</string>
+    <string name="new_strength_cal_per_min_note">For a 250 lbs person</string>
+    <string name="new_strength_btn_save">Save</string>
+    <string name="new_strength_saving">Saving strength training item…</string>
+    <string name="new_strength_success">Strength training item added successfully</string>
+    <string name="new_strength_success_offline">Strength training item added locally (offline)</string>
+    <string name="new_strength_error_name_empty">Name cannot be empty</string>
+    <string name="new_strength_error_cal_empty">Calories per minute is required</string>
+    <string name="new_strength_error_cal_invalid">Invalid number</string>
+    <string name="new_strength_error_cal_positive">Must be greater than zero</string>
+    <string name="new_strength_error_save_failed">Failed to save strength training item. Please try again.</string>
+
     <!-- Customization Settings -->
     <string name="action_customize_title">Customize Appearance</string>
     <string name="title_activity_customization_settings">Customize Appearance</string>

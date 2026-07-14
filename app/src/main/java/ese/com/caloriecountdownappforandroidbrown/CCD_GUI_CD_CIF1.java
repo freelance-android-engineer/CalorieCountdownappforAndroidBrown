@@ -1586,6 +1586,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             android.util.Log.d("BalanceStore", "[StoreCountdownBalance] stored balance=" + cleanBalance
                     + ", dayEnd=" + (balanceInt - 100) + ", storeResult=" + storeResult + ", dayEndResult=" + dayEndResult);
 
+            // Record today's balance in daily_countdown_history for the progress graph.
+            // UPSERT: updates today's row if it exists, inserts if first change of the day.
+            // Previous days are never modified.
+            new SQLDatabase_Food_Items_CIF6(getApplicationContext()).upsertDailyHistory(balanceInt);
+
             // Azure backend sync — fire-and-forget, never blocks UI, failures logged only
             final int finalBalanceInt = balanceInt;
             final String finalBalance = cleanBalance;
@@ -2027,6 +2032,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
     public String Get_currentBalance() {
         final TextView countdownbalance = (TextView) findViewById(R.id.textView);
+        if (countdownbalance == null) {
+            android.util.Log.e("BalanceRead", "[Get_currentBalance] countdownbalance TextView is null, returning 0");
+            return "0";
+        }
         return AppCustomization.stripCommas(countdownbalance.getText().toString());
     }
 
