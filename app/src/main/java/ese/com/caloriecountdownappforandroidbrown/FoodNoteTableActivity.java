@@ -208,6 +208,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
         });
 
+        Button btnCreateAiPrompt = findViewById(R.id.btnCreateAiPrompt);
+        btnCreateAiPrompt.setOnClickListener(v -> handleCreateAiPromptButtonClick());
+
         btnDeleteFoodNote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -3168,6 +3171,88 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+
+    // ========== CREATE AI PROMPT ==========
+
+    private void handleCreateAiPromptButtonClick() {
+        ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
+
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            TextView foodText = (TextView) row.getChildAt(2);
+            TextView quantityText = (TextView) row.getChildAt(4);
+
+            if (checkBox.isChecked()) {
+                Map<String, String> foodMap = new HashMap<>();
+                foodMap.put("food", foodText.getText().toString());
+                foodMap.put("quantity", quantityText.getText().toString());
+                selectedFoods.add(foodMap);
+            }
+        }
+
+        if (selectedFoods.isEmpty()) {
+            Toast.makeText(this, "Please select at least one food item.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String prompt = buildAiPromptSentence(selectedFoods);
+        showAiPromptDialog(prompt);
+    }
+
+    private String buildAiPromptSentence(List<Map<String, String>> foods) {
+        StringBuilder sb = new StringBuilder("How many Calories are in ");
+        for (int i = 0; i < foods.size(); i++) {
+            String food = foods.get(i).get("food");
+            String qty = foods.get(i).get("quantity");
+            if (qty != null && !qty.trim().isEmpty() && !qty.trim().equals("0")) {
+                sb.append(qty.trim()).append(" ").append(food);
+            } else {
+                sb.append(food);
+            }
+            if (i < foods.size() - 2) {
+                sb.append(", ");
+            } else if (i == foods.size() - 2) {
+                sb.append(" and ");
+            }
+        }
+        sb.append("?");
+        return sb.toString();
+    }
+
+    private void showAiPromptDialog(String prompt) {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 16);
+
+        TextView tvPrompt = new TextView(this);
+        tvPrompt.setText(prompt);
+        tvPrompt.setTextIsSelectable(true);
+        tvPrompt.setTextSize(16f);
+        tvPrompt.setPadding(16, 16, 16, 16);
+        tvPrompt.setBackgroundResource(android.R.drawable.edit_text);
+        tvPrompt.setMinLines(3);
+        layout.addView(tvPrompt);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Generated AI Prompt")
+                .setView(layout)
+                .setPositiveButton("Copy then Paste", null)
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
+                .create();
+
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            android.content.ClipData clip =
+                    android.content.ClipData.newPlainText("AI Prompt", prompt);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(this, "Prompt copied to clipboard.", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
     }
 
 }
