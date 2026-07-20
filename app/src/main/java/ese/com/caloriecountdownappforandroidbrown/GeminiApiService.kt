@@ -10,6 +10,7 @@ import java.io.StringWriter
 import java.util.*
 import java.util.regex.*
 import java.io.IOException
+import java.net.UnknownHostException
 
 import okhttp3.Call
 import okhttp3.Callback
@@ -181,7 +182,11 @@ Salt:
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e("GeminiCalc", "[calculateCalories] Request failed: ${e::class.java.simpleName}: ${e.message}", e)
+                if (e is UnknownHostException) {
+                    Log.e("GeminiCalc", "[calculateCalories] Network/DNS failure — device cannot reach ${BACKEND_URL.substringAfter("//").substringBefore("/")}. Check internet connection.", e)
+                } else {
+                    Log.e("GeminiCalc", "[calculateCalories] Request failed: ${e::class.java.simpleName}: ${e.message}", e)
+                }
                 (context as? Activity)?.runOnUiThread {
                     callback.onResult(null)
                 }

@@ -1940,10 +1940,43 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             // burnt and Debitted. Go ahead and give Step Challange and amount of Steps needed, considering current
             //value of Steps done.
         {
+            final int finalCurrentBalance = currentbalance;
+            mBgExecutor.execute(() -> {
+                try {
+                    SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+                    int previousDayEnd = db.GetDayEndBalance();
+                    int dayEndTarget = previousDayEnd - 250;
+                    double stepsNumerator = 0.089;
+                    double rawSteps = (finalCurrentBalance - dayEndTarget) / stepsNumerator;
+                    int stepChallenge = (int) Math.ceil(rawSteps);
+                    if (stepChallenge < 0) stepChallenge = 0;
 
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            display_dialog_cif11.Showing(KittyMinus(kit));
+                    StringBuilder msg = new StringBuilder("Client Step Challenge Calculation:\n\n");
+                    msg.append("Current Balance:        ").append(String.format("%,d", finalCurrentBalance)).append("\n");
+                    msg.append("Previous Day End:       ").append(String.format("%,d", previousDayEnd)).append("\n");
+                    msg.append("Day End Target (- 250): ").append(String.format("%,d", dayEndTarget)).append("\n");
+                    msg.append("Steps Numerator:        ").append(stepsNumerator).append("\n\n");
+                    msg.append("(").append(String.format("%,d", finalCurrentBalance))
+                       .append(" - ").append(String.format("%,d", dayEndTarget))
+                       .append(") / ").append(stepsNumerator).append("\n\n");
+                    msg.append("Client Step Challenge = ").append(String.format("%,d", stepChallenge)).append(" Steps");
+
+                    if (stepChallenge >= 30_000) {
+                        msg.append("\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.");
+                    }
+
+                    msg.append("\n\nOnly dispose of the Dialog once you have performed it.");
+
+                    final String message = msg.toString();
+                    mKittyHandler.post(() -> {
+                        Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                        display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                        display_dialog_cif11.Showing(message);
+                    });
+                } catch (Exception e) {
+                    android.util.Log.e("KittyFlow", "Error building Steps Challenge message: " + e.getMessage(), e);
+                }
+            });
         }
 
         if (kit == 0) {

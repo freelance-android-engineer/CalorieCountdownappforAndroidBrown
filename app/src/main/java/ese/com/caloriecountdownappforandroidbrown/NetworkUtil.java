@@ -19,12 +19,22 @@ public class NetworkUtil {
                 if (network == null) return false;
 
                 NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
-                return capabilities != null && (
+                if (capabilities == null) return false;
+
+                // Must have a transport layer (Wi-Fi, cellular, etc.)
+                boolean hasTransport =
                         capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH)
-                );
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH);
+
+                // Must also be configured for internet (not just a local transport link)
+                // NET_CAPABILITY_INTERNET: network has internet routing
+                // NET_CAPABILITY_VALIDATED: OS has confirmed actual internet reachability
+                boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                boolean isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+
+                return hasTransport && hasInternet && isValidated;
             }
             // ✅ For Android 9 (API 28) and below
             else {

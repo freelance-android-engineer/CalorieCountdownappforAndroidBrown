@@ -974,8 +974,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                     Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
-                                android.util.Log.e("FoodNoteAI", "AI returned null or empty for food: " + etFood.getText().toString());
-                                Toast.makeText(FoodNoteTableActivity.this, "AI estimation failed. Please try again.", Toast.LENGTH_LONG).show();
+                                android.util.Log.e("FoodNoteAI", "AI returned null or empty for food: " + etFood.getText().toString() + " (possible network/DNS failure)");
+                                Toast.makeText(FoodNoteTableActivity.this, "AI estimation failed. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
                             }
                         });
                     }
