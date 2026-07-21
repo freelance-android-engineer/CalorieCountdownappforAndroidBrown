@@ -62,6 +62,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     // Intent extra: when set to true in the launching intent, auto-start the 4PM workflow
     private static final String EXTRA_START_4PM_PROCESSING = "start_4pm_processing";
 
+    // Tag used on TableRows that are recalibrate separators (not food items)
+    private static final String SEPARATOR_TAG = "SEPARATOR";
+
     private TextView tvDateRangeTitle;
 
     // Camera and Gallery constants
@@ -247,6 +250,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Check Before You Eat button
         Button btnCheckBeforeYouEat = findViewById(R.id.btnCheckBeforeYouEat);
         btnCheckBeforeYouEat.setOnClickListener(v -> showCheckBeforeYouEatDialog());
+
+        // Recalibrate button — inserts a separator; only food items after the separator are counted
+        Button btnRecalibrate = findViewById(R.id.btnRecalibrate);
+        btnRecalibrate.setOnClickListener(v -> handleRecalibrateButtonClick());
 
         // Select All / Deselect All button
         btnSelectAll = findViewById(R.id.btnSelectAll);
@@ -1140,6 +1147,66 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         return textView;
     }
 
+    // ========== RECALIBRATE FEATURE ==========
+
+    /**
+     * Handles the Recalibrate button click.
+     * Inserts a separator row into the DB and renders it visually in the food list.
+     * All food items above the most recent separator are ignored for calculations.
+     */
+    private void handleRecalibrateButtonClick() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Recalibrate")
+                .setMessage("Insert a Recalibrate marker here?\n\nAll food items above this marker will be ignored for calorie calculations, AI processing, and food summaries. Only items below the latest marker will count.")
+                .setPositiveButton("Yes, Recalibrate", (dialog, which) -> {
+                    String currentDateTime = new java.text.SimpleDateFormat(
+                            "dd-MM-yyyy HH:mm", java.util.Locale.getDefault())
+                            .format(new java.util.Date());
+                    long separatorId = databaseHelper.insertRecalibrateSeparator(currentDateTime);
+                    if (separatorId > 0) {
+                        addSeparatorRowToTable((int) separatorId);
+                        Toast.makeText(this,
+                                "Recalibrated. Only food items below this point will be counted.",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "Failed to insert recalibrate marker.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /**
+     * Adds a visually distinct separator row into the TableLayout for the Recalibrate feature.
+     * The row spans all columns, has a blue background, and is tagged with SEPARATOR_TAG.
+     *
+     * @param separatorNoteId The DB note_id of the separator (used for tag identification).
+     */
+    private void addSeparatorRowToTable(int separatorNoteId) {
+        TableRow row = new TableRow(this);
+        row.setTag(SEPARATOR_TAG);
+        row.setBackgroundColor(android.graphics.Color.parseColor("#1976D2"));
+        row.setPadding(0, 4, 0, 4);
+
+        TextView label = new TextView(this);
+        label.setText("=== Recalibrated ===");
+        label.setGravity(Gravity.CENTER);
+        label.setPadding(16, 12, 16, 12);
+        label.setTextSize(15);
+        label.setTextColor(android.graphics.Color.WHITE);
+        label.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        // Span all 6 columns (Select, S.No, Food, Calories, Quantity, DateTime)
+        TableRow.LayoutParams params = new TableRow.LayoutParams(
+                TableRow.LayoutParams.MATCH_PARENT,
+                TableRow.LayoutParams.WRAP_CONTENT);
+        params.span = 6;
+        label.setLayoutParams(params);
+
+        row.addView(label);
+        tableLayout.addView(row);
+    }
+
     private void loadFoodNotesFromDatabase() {
         android.util.Log.d("FOOD NOTES", "Loading food notes from database...");
         Cursor cursor = databaseHelper.getAllFoodNotes();
@@ -1151,6 +1218,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             int caloriesIndex = cursor.getColumnIndex("note_calories");
             int quantityIndex = cursor.getColumnIndex("note_quantity");
             int transferredIndex = cursor.getColumnIndex("isTransferred");
+            // note_type: 0 = normal food, 1 = recalibrate separator (column may be absent on old DBs)
+            int noteTypeIndex = cursor.getColumnIndex("note_type");
 
             if (dateIndex == -1 || foodIndex == -1 || caloriesIndex == -1 ||
                     quantityIndex == -1 || transferredIndex == -1) {
@@ -1166,12 +1235,20 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
                 if (isTransferred == 0) {
                     long id = cursor.getLong(noteId);
-                    String dateTime = cursor.getString(dateIndex);
-                    String food = cursor.getString(foodIndex);
-                    String calories = cursor.getString(caloriesIndex);
-                    String quantity = cursor.getString(quantityIndex);
-                    android.util.Log.d("FOOD NOTES", "Loading row: ID=" + id + ", Food=" + food + ", Calories=" + calories + ", Quantity=" + quantity);
-                    addRowToTable((int) id, food, quantity, calories, dateTime);
+                    int noteType = (noteTypeIndex != -1) ? cursor.getInt(noteTypeIndex) : 0;
+
+                    if (noteType == 1) {
+                        // Recalibrate separator — render as a visual divider
+                        android.util.Log.d("FOOD NOTES", "Loading separator row: ID=" + id);
+                        addSeparatorRowToTable((int) id);
+                    } else {
+                        String dateTime = cursor.getString(dateIndex);
+                        String food = cursor.getString(foodIndex);
+                        String calories = cursor.getString(caloriesIndex);
+                        String quantity = cursor.getString(quantityIndex);
+                        android.util.Log.d("FOOD NOTES", "Loading row: ID=" + id + ", Food=" + food + ", Calories=" + calories + ", Quantity=" + quantity);
+                        addRowToTable((int) id, food, quantity, calories, dateTime);
+                    }
                     loadedCount++;
                 }
             } while (cursor.moveToNext());
@@ -1299,7 +1376,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         for (int i = 1; i < tableLayout.getChildCount(); i++) { // Skip header row
             TableRow row = (TableRow) tableLayout.getChildAt(i);
-            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+
+            // Skip recalibrate separator rows — they are not transferable food notes
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
+
+            View firstChild = row.getChildAt(0);
+            if (!(firstChild instanceof CheckBox)) continue;
+            CheckBox checkBox = (CheckBox) firstChild;
 
             if (checkBox.isChecked()) {
                 Object tag = row.getTag();
@@ -1362,7 +1445,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
             TableRow row = (TableRow) tableLayout.getChildAt(i);
 
-            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+            // Skip recalibrate separator rows — they have no food data or checkbox
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
+
+            View firstChild = row.getChildAt(0);
+            if (!(firstChild instanceof CheckBox)) continue;
+
+            CheckBox checkBox = (CheckBox) firstChild;
             TextView foodText = (TextView) row.getChildAt(2);     // food column
             TextView caloriesText = (TextView) row.getChildAt(3); // calories column
             TextView quantityText = (TextView) row.getChildAt(4); // quantity column
@@ -1772,6 +1861,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void renumberTableRows() {
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
             TableRow row = (TableRow) tableLayout.getChildAt(i);
+            // Separator rows have no S.No. column — skip them
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
             TextView snoTextView = (TextView) row.getChildAt(1);
             if (snoTextView != null) {
                 snoTextView.setText(String.valueOf(i));
@@ -2090,20 +2181,39 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
     /**
-     * Calculates the sum of calories for only the selected food notes (checked checkboxes)
+     * Calculates the sum of calories for only the selected food notes (checked checkboxes).
+     * Separator rows are skipped. Only rows below the most recent recalibrate separator are counted.
+     *
      * @return total calories of selected notes, or -1 if no notes are selected
      */
     private int sumSelectedNotes() {
         int totalCalories = 0;
         boolean hasSelection = false;
 
-        // Iterate through table rows (skip header at index 0)
+        // Find the index of the last recalibrate separator row so we only count rows below it
+        int lastSeparatorIndex = 0; // default: count from the start (no separator)
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
-            TableRow row = (TableRow) tableLayout.getChildAt(i);
+            View child = tableLayout.getChildAt(i);
+            if (child instanceof TableRow && SEPARATOR_TAG.equals(((TableRow) child).getTag())) {
+                lastSeparatorIndex = i;
+            }
+        }
 
-            // Get checkbox (index 0) and calories (index 3)
-            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+        // Count only selected rows that appear after the last separator
+        for (int i = lastSeparatorIndex + 1; i < tableLayout.getChildCount(); i++) {
+            View child = tableLayout.getChildAt(i);
+            if (!(child instanceof TableRow)) continue;
+            TableRow row = (TableRow) child;
+
+            // Skip separator rows (they have no checkbox)
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
+
+            View firstChild = row.getChildAt(0);
+            if (!(firstChild instanceof CheckBox)) continue;
+
+            CheckBox checkBox = (CheckBox) firstChild;
             TextView caloriesText = (TextView) row.getChildAt(3);
+            if (caloriesText == null) continue;
 
             if (checkBox.isChecked()) {
                 hasSelection = true;

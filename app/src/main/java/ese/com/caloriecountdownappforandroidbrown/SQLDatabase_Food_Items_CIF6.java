@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 16; // v16: daily_countdown_history table for progress graph
+    private static final int VERSION = 17; // v17: note_type column for recalibrate separator feature
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -283,6 +283,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_AI_UPDATED_FIELDS = "ai_updated_fields";
     private static final String COLUMN_FINAL_CALORIES = "final_calories";
     private static final String COLUMN_FINAL_POINTS = "final_points";
+
+    // Recalibrate feature (added in DB version 17)
+    // 0 = normal food note, 1 = recalibrate separator
+    private static final String COLUMN_NOTE_TYPE = "note_type";
 
     // 4PM Processing Log Table (added in DB version 7)
     private static final String TABLE_FOURPM_LOG = "fourpm_processing_log";
@@ -711,6 +715,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_AI_UPDATED_FIELDS + " TEXT DEFAULT ''"); } catch (Exception ignore4pm3) { /* column already exists */ }
         try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_CALORIES + " INTEGER DEFAULT 0"); } catch (Exception ignore4pm4) { /* column already exists */ }
         try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_FINAL_POINTS + " INTEGER DEFAULT 0"); } catch (Exception ignore4pm5) { /* column already exists */ }
+        try { db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE + " ADD COLUMN " + COLUMN_NOTE_TYPE + " INTEGER DEFAULT 0"); } catch (Exception ignoreNoteType) { /* column already exists */ }
 
         // Create 4PM processing log table
         try {
@@ -1365,6 +1370,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v16: created " + TABLE_DAILY_HISTORY);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", TABLE_DAILY_HISTORY + " already exists: " + e.getMessage());
+            }
+        }
+
+        // v17: note_type column on quick_food_note — 0=normal food, 1=recalibrate separator
+        if (oldVersion < 17) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_QUICK_FOOD_NOTE
+                        + " ADD COLUMN " + COLUMN_NOTE_TYPE + " INTEGER DEFAULT 0");
+                android.util.Log.d("DB_UPGRADE", "v17: added " + COLUMN_NOTE_TYPE + " to " + TABLE_QUICK_FOOD_NOTE);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", COLUMN_NOTE_TYPE + " column already exists: " + e.getMessage());
             }
         }
 
@@ -4363,15 +4379,61 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return transferredCount;
     }
 
+    /**
+     * Returns the note_id of the most recent recalibrate separator row, or -1 if none exists.
+     * Only non-transferred rows are considered so a transferred separator doesn't affect new entries.
+     */
+    public int getLastRecalibrateSeparatorId() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT MAX(" + COLUMN_QUICK_FOOD_NOTE_ID + ") FROM " + TABLE_QUICK_FOOD_NOTE
+                + " WHERE COALESCE(" + COLUMN_NOTE_TYPE + ", 0) = 1"
+                + " AND " + COLUMN_IS_TRANSFERRED + " = 0";
+        Cursor cursor = db.rawQuery(query, null);
+        int lastId = -1;
+        if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+            lastId = cursor.getInt(0);
+        }
+        if (cursor != null) cursor.close();
+        android.util.Log.d("RECALIBRATE", "getLastRecalibrateSeparatorId: " + lastId);
+        return lastId;
+    }
+
+    /**
+     * Inserts a recalibrate separator row into quick_food_note.
+     * note_type=1 marks this as a separator; calories and quantity are empty.
+     *
+     * @param date The timestamp string for the separator (same format as food notes).
+     * @return The row ID of the inserted separator, or -1 on failure.
+     */
+    public long insertRecalibrateSeparator(String date) {
+        android.util.Log.d("RECALIBRATE", "insertRecalibrateSeparator called for date: " + date);
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_QUICK_FOOD_NOTE_DATE, date);
+        values.put(COLUMN_QUICK_FOOD_NOTE_FOOD, "=== Recalibrated ===");
+        values.put(COLUMN_QUICK_FOOD_NOTE_CALORIES, "0");
+        values.put(COLUMN_QUICK_FOOD_NOTE_QUANTITY, "");
+        values.put(COLUMN_IS_TRANSFERRED, 0);
+        values.put(COLUMN_NOTE_TYPE, 1);
+        long insertedId = db.insert(TABLE_QUICK_FOOD_NOTE, null, values);
+        android.util.Log.d("RECALIBRATE", "Separator inserted with ID: " + insertedId);
+        return insertedId;
+    }
+
     public int getTotalCalories() {
         int totalCalories = 0;
         SQLiteDatabase db = this.getReadableDatabase();
+        // Only sum calories from food notes AFTER the most recent recalibrate separator
+        int lastSeparatorId = getLastRecalibrateSeparatorId();
         String query = "SELECT SUM(" + COLUMN_QUICK_FOOD_NOTE_CALORIES + ") FROM "
-                + TABLE_QUICK_FOOD_NOTE + " WHERE " + COLUMN_IS_TRANSFERRED + " = 0";
+                + TABLE_QUICK_FOOD_NOTE
+                + " WHERE " + COLUMN_IS_TRANSFERRED + " = 0"
+                + " AND COALESCE(" + COLUMN_NOTE_TYPE + ", 0) = 0"
+                + " AND " + COLUMN_QUICK_FOOD_NOTE_ID + " > " + lastSeparatorId;
         Cursor cursor = db.rawQuery(query, null);
         if (cursor.moveToFirst()) {
             totalCalories = cursor.getInt(0);
-            android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
+            android.util.Log.d("GET TOTAL CALORIES", "totalCalories (after separator " + lastSeparatorId + "): " + totalCalories);
         }
         cursor.close();
         android.util.Log.d("GET TOTAL CALORIES", "totalCalories" + totalCalories);
@@ -5070,6 +5132,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         android.util.Log.d("4PM_DB", "Fetching notes for 4PM window: yesterday=" + yesterdayPrefix + ", today=" + todayPrefix);
 
+        // Respect recalibrate separator: only process notes after the last separator
+        int lastSeparatorId = getLastRecalibrateSeparatorId();
+        android.util.Log.d("4PM_DB", "Last recalibrate separator ID: " + lastSeparatorId);
+
         List<FoodNoteProcessingItem> notes = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
@@ -5083,7 +5149,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                             + " FROM " + TABLE_QUICK_FOOD_NOTE
                             + " WHERE (" + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?"
                             + " OR " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?)"
-                            + " AND COALESCE(" + COLUMN_IS_4PM_PROCESSED + ", 0) = 0",
+                            + " AND COALESCE(" + COLUMN_IS_4PM_PROCESSED + ", 0) = 0"
+                            + " AND COALESCE(" + COLUMN_NOTE_TYPE + ", 0) = 0"
+                            + " AND " + COLUMN_QUICK_FOOD_NOTE_ID + " > " + lastSeparatorId,
                     new String[]{yesterdayPrefix + "%", todayPrefix + "%"}
             );
 

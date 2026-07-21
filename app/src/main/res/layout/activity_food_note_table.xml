@@ -354,6 +354,15 @@
                 android:backgroundTint="#FF6F00"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnRecalibrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recalibrate"
+                android:textStyle="bold"
+                android:backgroundTint="#1976D2"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
 
