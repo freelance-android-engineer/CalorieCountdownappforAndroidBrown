@@ -363,6 +363,24 @@
                 android:backgroundTint="#1976D2"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnAccrual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Accrual"
+                android:textStyle="bold"
+                android:backgroundTint="#388E3C"
+                android:textColor="@android:color/white" />
+
+            <Button
+                android:id="@+id/btnCountdownTo4PM"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Countdown to 4PM"
+                android:textStyle="bold"
+                android:backgroundTint="#6A1B9A"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
 

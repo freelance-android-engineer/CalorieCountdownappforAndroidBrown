@@ -13,7 +13,7 @@ public class TargetWeightCursor extends CursorWrapper {
 
     private static final String TABLE_TARGET_WEIGHT = "target_weight";
     private static final String COLUMUM_TARGET_WEIGHT_ID = "target_weight_id";
-    private static final String COLUMUM_TARGET_WEIGHT_TARGETWEIGHT = "targetweight_targetweight";
+    private static final String COLUMUM_TARGET_WEIGHT_TARGETWEIGHT = "target_weight";
 
 
     public TargetWeightCursor(Cursor c)

@@ -255,6 +255,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnRecalibrate = findViewById(R.id.btnRecalibrate);
         btnRecalibrate.setOnClickListener(v -> handleRecalibrateButtonClick());
 
+        // Accrual button — borrow calories from tomorrow, deduct from today's balance
+        Button btnAccrual = findViewById(R.id.btnAccrual);
+        btnAccrual.setOnClickListener(v -> handleAccrualButtonClick());
+
+        // Countdown to 4PM button — launches system timer preset to time remaining until 4 PM
+        Button btnCountdownTo4PM = findViewById(R.id.btnCountdownTo4PM);
+        btnCountdownTo4PM.setOnClickListener(v -> handleCountdownTo4PMButtonClick());
+
         // Select All / Deselect All button
         btnSelectAll = findViewById(R.id.btnSelectAll);
         btnSelectAll.setOnClickListener(v -> toggleSelectAll());
@@ -3283,6 +3291,89 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         return true;
     }
 
+    // ========== ACCRUAL FEATURE ==========
+
+    /**
+     * Accrual: borrow Calories/Points from tomorrow and apply them today.
+     * Deducts from the Countdown Balance and creates a Food Note entry immediately.
+     */
+    private void handleAccrualButtonClick() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Accrual – Borrow from Tomorrow");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 16);
+
+        final EditText etAmount = new EditText(this);
+        etAmount.setHint("Calories/Points to borrow");
+        etAmount.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        layout.addView(etAmount);
+
+        builder.setView(layout);
+        builder.setPositiveButton("Borrow", null); // null prevents auto-dismiss on invalid input
+        builder.setNegativeButton("Cancel", (d, w) -> d.dismiss());
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String input = etAmount.getText().toString().trim();
+
+            if (input.isEmpty()) {
+                Toast.makeText(this, "Please enter an amount.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int amount;
+            try {
+                amount = Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Please enter a valid whole number.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (amount <= 0) {
+                Toast.makeText(this, "Amount must be greater than zero.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            dialog.dismiss();
+
+            // Step 1: Deduct from Countdown Balance
+            if (CCD_GUI_CD_CIF1.instance != null) {
+                CCD_GUI_CD_CIF1.instance.Countdown(amount);
+            } else {
+                android.util.Log.w("Accrual", "CCD_GUI_CD_CIF1.instance is null — balance not updated in UI");
+                Toast.makeText(this,
+                        "Balance UI unavailable. Return to the main screen to see the updated balance.",
+                        Toast.LENGTH_LONG).show();
+            }
+
+            // Step 2: Insert Accrual food note into DB and show it in the list immediately
+            String currentDateTime = new java.text.SimpleDateFormat(
+                    "dd-MM-yyyy HH:mm", java.util.Locale.getDefault())
+                    .format(new java.util.Date());
+            String amountStr = String.valueOf(amount);
+            long insertedId = databaseHelper.insertFoodNote(
+                    currentDateTime,
+                    "ACCRUAL Journal/Balance Debit",
+                    amountStr,
+                    amountStr
+            );
+
+            if (insertedId > 0) {
+                addRowToTable((int) insertedId,
+                        "ACCRUAL Journal/Balance Debit", amountStr, amountStr, currentDateTime);
+                Toast.makeText(this,
+                        "Accrual: " + amount + " calories borrowed from tomorrow.",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Failed to save accrual entry. Please try again.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     // ========== CREATE AI PROMPT ==========
 
     private void handleCreateAiPromptButtonClick() {
@@ -3290,14 +3381,20 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         for (int i = 1; i < tableLayout.getChildCount(); i++) {
             TableRow row = (TableRow) tableLayout.getChildAt(i);
-            CheckBox checkBox = (CheckBox) row.getChildAt(0);
+
+            // Skip recalibrate separator rows — they have no checkbox or food data
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
+            View firstChild = row.getChildAt(0);
+            if (!(firstChild instanceof CheckBox)) continue;
+
+            CheckBox checkBox = (CheckBox) firstChild;
             TextView foodText = (TextView) row.getChildAt(2);
             TextView quantityText = (TextView) row.getChildAt(4);
 
             if (checkBox.isChecked()) {
                 Map<String, String> foodMap = new HashMap<>();
-                foodMap.put("food", foodText.getText().toString());
-                foodMap.put("quantity", quantityText.getText().toString());
+                foodMap.put("food", foodText != null ? foodText.getText().toString() : "");
+                foodMap.put("quantity", quantityText != null ? quantityText.getText().toString() : "");
                 selectedFoods.add(foodMap);
             }
         }
@@ -3363,6 +3460,67 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             Toast.makeText(this, "Prompt copied to clipboard.", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
+    }
+
+    // ========== COUNTDOWN TO 4PM ==========
+
+    /**
+     * Calculates seconds remaining until 4:00 PM today and launches the system
+     * Clock/Timer app pre-set to that duration. If it is already past 4 PM,
+     * shows a friendly message. Falls back gracefully on unsupported devices.
+     */
+    private void handleCountdownTo4PMButtonClick() {
+        try {
+            Calendar now = Calendar.getInstance();
+            Calendar fourPM = Calendar.getInstance();
+            fourPM.set(Calendar.HOUR_OF_DAY, 16);
+            fourPM.set(Calendar.MINUTE, 0);
+            fourPM.set(Calendar.SECOND, 0);
+            fourPM.set(Calendar.MILLISECOND, 0);
+
+            long diffMillis = fourPM.getTimeInMillis() - now.getTimeInMillis();
+
+            if (diffMillis <= 0) {
+                Toast.makeText(this, "It is already past 4:00 PM.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            int totalSeconds = (int) (diffMillis / 1000);
+            int hours   = totalSeconds / 3600;
+            int minutes = (totalSeconds % 3600) / 60;
+            int seconds = totalSeconds % 60;
+
+            // Try launching the system Clock app with a pre-set countdown timer
+            Intent timerIntent = new Intent(android.provider.AlarmClock.ACTION_SET_TIMER);
+            timerIntent.putExtra(android.provider.AlarmClock.EXTRA_LENGTH, totalSeconds);
+            timerIntent.putExtra(android.provider.AlarmClock.EXTRA_MESSAGE, "4PM Countdown");
+            timerIntent.putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, false);
+
+            if (timerIntent.resolveActivity(getPackageManager()) != null) {
+                startActivity(timerIntent);
+            } else {
+                // Fallback: open the Clock app without a preset duration
+                Intent clockIntent = new Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS);
+                if (clockIntent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(clockIntent);
+                    Toast.makeText(this,
+                            String.format(java.util.Locale.getDefault(),
+                                    "%dh %dm %ds until 4:00 PM — please set the timer manually.",
+                                    hours, minutes, seconds),
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    // No clock app at all — just show the remaining time
+                    Toast.makeText(this,
+                            String.format(java.util.Locale.getDefault(),
+                                    "Time until 4:00 PM: %dh %dm %ds",
+                                    hours, minutes, seconds),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("CountdownTo4PM", "Error launching timer: " + e.getMessage(), e);
+            Toast.makeText(this, "Could not open timer app. Please set it manually.", Toast.LENGTH_LONG).show();
+        }
     }
 
 }

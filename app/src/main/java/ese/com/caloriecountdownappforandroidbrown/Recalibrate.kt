@@ -47,7 +47,6 @@ class Recalibrate : AppCompatActivity()
 
 
 
-
     private fun recalibratedBalance(Input1: String) : String
     {
         val mass = findViewById<EditText>(R.id.editTextTextPersonName2).text.toString()
@@ -77,7 +76,6 @@ class Recalibrate : AppCompatActivity()
 
 
 
-
     private fun checkWhichUnitisChecked():String
     {
         if(findViewById<RadioButton>(R.id.radioButton).isChecked == true && findViewById<RadioButton>(R.id.radioButton2).isChecked == false)
@@ -101,24 +99,16 @@ class Recalibrate : AppCompatActivity()
 
 
 
-
-
-
-
-
-
-
-
-
     private fun recalibrateKilo(Input1: String):String
     {
-
-        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("112.9")
+        val target = getLatestTargetWeight()
+        if (target == null) {
+            Toast.makeText(this, "Target weight not set. Please complete Start Weight Loss first.", Toast.LENGTH_LONG).show()
+            return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
+        }
 
         //Make sure mass is converted to Pounds! Safely and that it is Kilograms.
         val mass:Float = Input1.toFloat()
-        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()
-
 
         android.util.Log.d("RETRIEVE TARGET WEIGHT", target.toString())
 
@@ -130,19 +120,38 @@ class Recalibrate : AppCompatActivity()
 
 
 
-
-
     private fun recalibratePounds(Input1: String):String
     {
-        CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds("249")
+        val target = getLatestTargetWeight()
+        if (target == null) {
+            Toast.makeText(this, "Target weight not set. Please complete Start Weight Loss first.", Toast.LENGTH_LONG).show()
+            return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
+        }
 
         val mass:Float = Input1.toFloat()
-        val target = CCD_GUI_CD_CIF1.instance.RetrieveTargetWeightPounds().toFloat()//MIF4_Data_Model_Adapter(this).RetrieveTargetWeight().toFloat()
         val output = ((mass - target) ) * 3500
 
         return output.toInt().toString()
     }
 
+    /**
+     * Reads the latest target weight from SQLite (authoritative source, written by Start Weight Loss).
+     * Falls back to SharedPreferences if SQLite has no valid user-entered value.
+     * Returns null if no valid target weight has been saved yet.
+     */
+    private fun getLatestTargetWeight(): Float? {
+        // Primary: SQLite target_weight table (written by Start Weight Loss)
+        val dbValue = SQLDatabase_Food_Items_CIF6(this).GetTargetWeight()
+        if (!dbValue.isNullOrEmpty() && dbValue != "0" && dbValue != "1") {
+            return try { dbValue.toFloat() } catch (e: NumberFormatException) { null }
+        }
+        // Fallback: SharedPreferences (also written by Start Weight Loss)
+        val prefValue = CCD_GUI_CD_CIF1.instance?.RetrieveTargetWeightPounds()
+        if (!prefValue.isNullOrEmpty()) {
+            return try { prefValue.toFloat() } catch (e: NumberFormatException) { null }
+        }
+        return null
+    }
 
 
     private fun checkTableDayEND2()
