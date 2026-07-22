@@ -338,6 +338,26 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
             data_model_adapter.StoreStartWeightLoss(IN); //Initmforecast here and
             android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: StoreStartWeightLoss completed");
 
+            // Calculate and persist weight-based steps numerator (calories burned per step).
+            // Formula: stepsNumerator = startWeightPounds × 0.000446
+            // For a 200 lb person this yields ~0.089 (matching the previous hardcoded constant).
+            try {
+                String currentWeightStr = IN.getCurrentWeight();
+                String weightUnits = IN.getWeightUnits();
+                if (currentWeightStr != null && !currentWeightStr.isEmpty()) {
+                    double startWeight = Double.parseDouble(currentWeightStr);
+                    double startWeightPounds = "kilograms".equalsIgnoreCase(weightUnits)
+                            ? startWeight * 2.20462
+                            : startWeight;
+                    double stepsNumerator = startWeightPounds * 0.000446;
+                    new SQLDatabase_Food_Items_CIF6(getActivity()).saveStepsNumerator(stepsNumerator);
+                    android.util.Log.d("SWL_DEBUG", "Steps numerator calculated and saved: " + stepsNumerator
+                            + " (startWeight=" + startWeight + " " + weightUnits + ")");
+                }
+            } catch (Exception e) {
+                android.util.Log.e("SWL_DEBUG", "Error calculating steps numerator: " + e.getMessage());
+            }
+
 
             android.util.Log.d("SWL_DEBUG", "BackToParentWithOpeningBalance: Calling StartNotificationCycle");
             ObjectWithAllTheTimesCIF10 objectWithAllTimes = StartNotificationCycle(mAccount);

@@ -1946,7 +1946,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
                     int previousDayEnd = db.GetDayEndBalance();
                     int dayEndTarget = previousDayEnd - 250;
-                    double stepsNumerator = 0.089;
+                    double stepsNumerator = db.getStepsNumerator(); // weight-based, falls back to 0.089
                     double rawSteps = (finalCurrentBalance - dayEndTarget) / stepsNumerator;
                     int stepChallenge = (int) Math.ceil(rawSteps);
                     if (stepChallenge < 0) stepChallenge = 0;
@@ -2822,7 +2822,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      * Steps Challenge — calculates the step target based on:
      *   (Current Balance - Day End Target - BMR) / Steps Numerator
      * where Day End Target = Previous Day End Balance - 250
-     * Steps Numerator = 0.089 (for 265 lbs client)
+     * Steps Numerator = personalised from start weight (startWeightPounds × 0.000446), falls back to 0.089
      * BMR = 2500 (male) or 2000 (female)
      */
     private void showStepsChallengeFromMain() {
@@ -2837,6 +2837,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
                 final boolean alreadyProcessed = db.isAlreadyProcessedForDate(todayDate);
                 final int previousDayEnd = db.GetDayEndBalance();
+                // Read weight-based steps numerator on background thread; falls back to 0.089
+                final double stepsNumerator = db.getStepsNumerator();
 
                 mKittyHandler.post(() -> {
                     if (!alreadyProcessed) {
@@ -2851,7 +2853,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     // BMR: gender-based daily calorie budget (2500 male / 2000 female)
                     String gender = prefs.getString("user_gender", "male");
                     int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
-                    double stepsNumerator = 0.089;
 
                     // Today's Countdown = Current Balance - Previous Day End Balance - 250 - BMR
                     int todayCountdown = currentBalance - previousDayEnd - 250 - bmr;

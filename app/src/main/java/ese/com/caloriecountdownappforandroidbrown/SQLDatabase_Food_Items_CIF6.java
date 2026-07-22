@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 17; // v17: note_type column for recalibrate separator feature
+    private static final int VERSION = 18; // v18: steps_numerator table for weight-based step conversion
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -287,6 +287,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     // Recalibrate feature (added in DB version 17)
     // 0 = normal food note, 1 = recalibrate separator
     private static final String COLUMN_NOTE_TYPE = "note_type";
+
+    // Steps Numerator table (added in DB version 18)
+    // Stores the weight-based calories-per-step conversion factor derived at Start Weight Loss
+    private static final String TABLE_STEPS_NUMERATOR = "steps_numerator";
+    private static final String COLUMN_SN_ID          = "sn_id";
+    private static final String COLUMN_SN_VALUE        = "sn_value"; // REAL, e.g. 0.089
 
     // 4PM Processing Log Table (added in DB version 7)
     private static final String TABLE_FOURPM_LOG = "fourpm_processing_log";
@@ -1090,6 +1096,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.w("Table creation", TABLE_DAILY_HISTORY + " creation: " + e.getMessage());
         }
 
+        // Create steps_numerator table (v18) — stores weight-derived calories-per-step factor
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_STEPS_NUMERATOR + " ("
+                    + COLUMN_SN_ID    + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_SN_VALUE + " REAL NOT NULL)");
+            android.util.Log.d("Table creation", "created " + TABLE_STEPS_NUMERATOR);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_STEPS_NUMERATOR + " creation: " + e.getMessage());
+        }
+
     }
 
     @Override
@@ -1381,6 +1397,18 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.d("DB_UPGRADE", "v17: added " + COLUMN_NOTE_TYPE + " to " + TABLE_QUICK_FOOD_NOTE);
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", COLUMN_NOTE_TYPE + " column already exists: " + e.getMessage());
+            }
+        }
+
+        // v18: steps_numerator table — weight-derived calories-per-step conversion factor
+        if (oldVersion < 18) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_STEPS_NUMERATOR + " ("
+                        + COLUMN_SN_ID    + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_SN_VALUE + " REAL NOT NULL)");
+                android.util.Log.d("DB_UPGRADE", "v18: created " + TABLE_STEPS_NUMERATOR);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", TABLE_STEPS_NUMERATOR + " already exists: " + e.getMessage());
             }
         }
 
@@ -5416,6 +5444,55 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("STEPS_CHALLENGE_DB", "Error saving steps challenge: " + e.getMessage());
         }
         return id;
+    }
+
+    // ── Steps Numerator (v18) ─────────────────────────────────────────────────
+
+    /**
+     * Saves (or replaces) the weight-based steps numerator (calories burned per step).
+     * Clears any previously stored value so only the latest is kept.
+     *
+     * <p>Formula used at call site:
+     * {@code stepsNumerator = startWeightPounds × 0.000446}</p>
+     *
+     * @param value Calories per step derived from the subscriber's start weight (e.g. 0.0892).
+     */
+    public void saveStepsNumerator(double value) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            db.delete(TABLE_STEPS_NUMERATOR, null, null); // keep exactly one row
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_SN_VALUE, value);
+            long id = db.insert(TABLE_STEPS_NUMERATOR, null, cv);
+            android.util.Log.d("STEPS_NUMERATOR_DB", "saveStepsNumerator: value=" + value + ", id=" + id);
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_NUMERATOR_DB", "Error saving steps numerator: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the stored steps numerator (calories per step).
+     * Falls back to the legacy constant {@code 0.089} if no value has been saved yet.
+     *
+     * @return Calories burned per step (personalised to subscriber start weight, or 0.089 default).
+     */
+    public double getStepsNumerator() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        try {
+            Cursor cursor = db.rawQuery("SELECT " + COLUMN_SN_VALUE + " FROM " + TABLE_STEPS_NUMERATOR
+                    + " ORDER BY " + COLUMN_SN_ID + " DESC LIMIT 1", null);
+            if (cursor != null && cursor.moveToFirst()) {
+                double value = cursor.getDouble(0);
+                cursor.close();
+                android.util.Log.d("STEPS_NUMERATOR_DB", "getStepsNumerator: " + value);
+                return value;
+            }
+            if (cursor != null) cursor.close();
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_NUMERATOR_DB", "Error reading steps numerator: " + e.getMessage());
+        }
+        android.util.Log.d("STEPS_NUMERATOR_DB", "getStepsNumerator: no stored value, using default 0.089");
+        return 0.089; // legacy constant fallback
     }
 
     /**
