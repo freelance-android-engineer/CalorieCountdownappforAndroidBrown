@@ -124,6 +124,11 @@
             android:name=".FoodNoteTableActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".BarcodeScannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
 
         <!--
              You can find your app ID in the AdMob UI. For android:value,

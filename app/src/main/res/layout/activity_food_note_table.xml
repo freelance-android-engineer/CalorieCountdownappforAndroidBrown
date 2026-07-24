@@ -271,6 +271,15 @@
                 android:text="Add Row with Image" />
 
             <Button
+                android:id="@+id/btnBarcode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Barcode"
+                android:textStyle="bold"
+                android:backgroundTint="#E65100"
+                android:textColor="@android:color/white" />
+
+            <Button
                 android:id="@+id/btnEditRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

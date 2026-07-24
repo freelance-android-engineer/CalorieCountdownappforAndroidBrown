@@ -78,6 +78,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private static final int REQUEST_MEMO_CAMERA_CAPTURE = 201;
     private static final int REQUEST_MEMO_GALLERY_PICK = 202;
 
+    // Barcode scanner request code
+    private static final int REQUEST_BARCODE_SCAN = 300;
+
+    // Loading dialog shown while AI looks up barcode nutrition
+    private android.app.ProgressDialog barcodeLoadingDialog;
+
     // Memo panel views
     private Button btnSelectAll;
 
@@ -152,6 +158,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 if (checkPreviousDayDebitUpdate()) {
                     showAddRowWithImageDialog();
                 }
+            }
+        });
+
+        Button btnBarcode = findViewById(R.id.btnBarcode);
+        btnBarcode.setOnClickListener(v -> {
+            if (checkPreviousDayDebitUpdate()) {
+                launchBarcodeScanner();
             }
         });
 
@@ -2467,6 +2480,102 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
     }
 
+    // ========== BARCODE SCANNING LOGIC ==========
+
+    /**
+     * Launch BarcodeScannerActivity to capture a barcode via the device camera.
+     * The result is handled in {@link #onActivityResult} with {@link #REQUEST_BARCODE_SCAN}.
+     */
+    private void launchBarcodeScanner() {
+        Intent intent = new Intent(this, BarcodeScannerActivity.class);
+        startActivityForResult(intent, REQUEST_BARCODE_SCAN);
+    }
+
+    /**
+     * Called after a successful barcode scan.
+     * Shows a loading dialog, calls the AI with the barcode value, then pre-populates
+     * the food input dialog with the returned nutrition data.
+     */
+    private void fetchNutritionForBarcode(String barcodeValue) {
+        if (!NetworkUtil.isInternetAvailable(this)) {
+            Toast.makeText(this,
+                    "No internet connection. Please check your network and try again.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        barcodeLoadingDialog = new android.app.ProgressDialog(this);
+        barcodeLoadingDialog.setMessage("Looking up product for barcode " + barcodeValue + "…");
+        barcodeLoadingDialog.setCancelable(false);
+        barcodeLoadingDialog.show();
+
+        String prompt = "This is the barcode number of a food or beverage product: " + barcodeValue + ". "
+                + "Identify the product and return its nutritional information per serving in the following "
+                + "JSON format only, with no other text, explanation, or code block markers:\n"
+                + "{\"product_name\": \"\", \"serving_size\": \"\", \"calories\": 0, \"protein\": 0, "
+                + "\"carbohydrates\": 0, \"fat\": 0, \"sugar\": 0, \"fiber\": 0, \"sodium\": 0}";
+
+        GeminiApiService.INSTANCE.calculateCalories(this, prompt, result -> {
+            if (barcodeLoadingDialog != null && barcodeLoadingDialog.isShowing()) {
+                barcodeLoadingDialog.dismiss();
+            }
+            if (result == null || result.trim().isEmpty()) {
+                Toast.makeText(FoodNoteTableActivity.this,
+                        "Could not identify product. Please enter details manually.",
+                        Toast.LENGTH_LONG).show();
+                showFoodInputDialog(null, "", "", "");
+                return;
+            }
+            parseBarcodeNutritionResponse(result, barcodeValue);
+        });
+    }
+
+    /**
+     * Parses the AI JSON response for a barcode lookup and pre-populates the food input dialog.
+     * Handles malformed JSON and missing product names without crashing.
+     */
+    private void parseBarcodeNutritionResponse(String responseText, String barcodeValue) {
+        try {
+            // Strip any markdown code fences (```json … ```) the AI may add
+            String json = responseText.trim();
+            int jsonStart = json.indexOf('{');
+            int jsonEnd = json.lastIndexOf('}');
+            if (jsonStart < 0 || jsonEnd <= jsonStart) {
+                android.util.Log.w("BarcodeNutrition", "No JSON object in response: " + json);
+                Toast.makeText(this,
+                        "Product not found for barcode " + barcodeValue + ". Please enter details manually.",
+                        Toast.LENGTH_LONG).show();
+                showFoodInputDialog(null, "", "", "");
+                return;
+            }
+            json = json.substring(jsonStart, jsonEnd + 1);
+
+            org.json.JSONObject obj = new org.json.JSONObject(json);
+            String productName = obj.optString("product_name", "").trim();
+            String servingSize = obj.optString("serving_size", "").trim();
+            int calories = obj.optInt("calories", 0);
+
+            if (productName.isEmpty()) {
+                Toast.makeText(this,
+                        "Product not identified for barcode " + barcodeValue + ". Please enter details manually.",
+                        Toast.LENGTH_LONG).show();
+                showFoodInputDialog(null, "", "", "");
+                return;
+            }
+
+            String caloriesStr = calories > 0 ? String.valueOf(calories) : "";
+            Toast.makeText(this, "Product found: " + productName, Toast.LENGTH_SHORT).show();
+            showFoodInputDialog(null, productName, servingSize, caloriesStr);
+
+        } catch (Exception e) {
+            android.util.Log.e("BarcodeNutrition", "JSON parse error: " + e.getMessage(), e);
+            Toast.makeText(this,
+                    "Could not parse product data. Please enter details manually.",
+                    Toast.LENGTH_LONG).show();
+            showFoodInputDialog(null, "", "", "");
+        }
+    }
+
     // ========== ADD ROW WITH IMAGE LOGIC ==========
 
     /**
@@ -2652,6 +2761,20 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
+
+            // Handle barcode scanner result
+            if (requestCode == REQUEST_BARCODE_SCAN) {
+                if (data != null) {
+                    String barcodeValue = data.getStringExtra(BarcodeScannerActivity.EXTRA_BARCODE_VALUE);
+                    if (barcodeValue != null && !barcodeValue.trim().isEmpty()) {
+                        fetchNutritionForBarcode(barcodeValue.trim());
+                    } else {
+                        Toast.makeText(this, "No barcode detected. Please try again.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                return;
+            }
+
             try {
                 Bitmap bitmap = null;
 
