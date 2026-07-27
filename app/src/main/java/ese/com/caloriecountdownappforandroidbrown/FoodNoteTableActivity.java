@@ -289,6 +289,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnVoiceNotes = findViewById(R.id.btnVoiceNotes);
         btnVoiceNotes.setOnClickListener(v -> handleVoiceNotesButtonClick());
 
+        // View Recordings & Memos — opens in-app library of saved voice notes and memo pictures
+        Button btnViewRecordingsAndMemos = findViewById(R.id.btnViewRecordingsAndMemos);
+        btnViewRecordingsAndMemos.setOnClickListener(v ->
+                startActivity(new Intent(FoodNoteTableActivity.this, MediaLibraryActivity.class)));
+
         // Select All / Deselect All button
         btnSelectAll = findViewById(R.id.btnSelectAll);
         btnSelectAll.setOnClickListener(v -> toggleSelectAll());

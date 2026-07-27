@@ -126,6 +126,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".MediaLibraryActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".BarcodeScannerActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

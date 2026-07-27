@@ -399,6 +399,15 @@
                 android:backgroundTint="#0277BD"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnViewRecordingsAndMemos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="View Recordings &amp; Memos"
+                android:textStyle="bold"
+                android:backgroundTint="#37474F"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
 
