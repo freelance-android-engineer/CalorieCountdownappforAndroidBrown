@@ -2,8 +2,10 @@ package ese.com.caloriecountdownappforandroidbrown;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.speech.RecognizerIntent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -80,6 +82,13 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
     // Barcode scanner request code
     private static final int REQUEST_BARCODE_SCAN = 300;
+
+    // Voice Notes request codes
+    private static final int REQUEST_MICROPHONE_PERMISSION = 400;
+    private static final int REQUEST_VOICE_RECOGNITION     = 500;
+
+    // Voice Notes manager — created fresh per dialog session
+    private VoiceNoteManager voiceNoteManager;
 
     // Loading dialog shown while AI looks up barcode nutrition
     private android.app.ProgressDialog barcodeLoadingDialog;
@@ -275,6 +284,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Countdown to 4PM button — launches system timer preset to time remaining until 4 PM
         Button btnCountdownTo4PM = findViewById(R.id.btnCountdownTo4PM);
         btnCountdownTo4PM.setOnClickListener(v -> handleCountdownTo4PMButtonClick());
+
+        // Voice Notes button — record voice, replay, and send to AI for calorie analysis
+        Button btnVoiceNotes = findViewById(R.id.btnVoiceNotes);
+        btnVoiceNotes.setOnClickListener(v -> handleVoiceNotesButtonClick());
 
         // Select All / Deselect All button
         btnSelectAll = findViewById(R.id.btnSelectAll);
@@ -1455,6 +1468,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Shutdown the executor when the activity is destroyed to avoid memory leaks
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
+        }
+        // Release voice note resources if still active
+        if (voiceNoteManager != null) {
+            voiceNoteManager.release();
+            voiceNoteManager = null;
         }
     }
 
@@ -2760,6 +2778,31 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        // Handle voice recognition result for AI calorie analysis
+        if (requestCode == REQUEST_VOICE_RECOGNITION) {
+            if (resultCode == RESULT_OK && data != null) {
+                ArrayList<String> results =
+                        data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                if (results != null && !results.isEmpty()) {
+                    String transcribedText = results.get(0).trim();
+                    if (!transcribedText.isEmpty()) {
+                        processVoiceNoteAi(transcribedText);
+                    } else {
+                        Toast.makeText(this,
+                                "Could not recognise speech. Please try again.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this,
+                            "No speech detected. Please try again.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            } else if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(this, "Voice recognition cancelled.", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
         if (resultCode == RESULT_OK) {
 
             // Handle barcode scanner result
@@ -2847,11 +2890,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 openGallery();
             } else if (requestCode == REQUEST_MEMO_CAMERA_PERMISSION) {
                 openMemoCamera();
+            } else if (requestCode == REQUEST_MICROPHONE_PERMISSION) {
+                showVoiceNotesDialog();
             }
         } else {
             String source = "camera";
             if (requestCode == REQUEST_STORAGE_PERMISSION) {
                 source = "gallery";
+            } else if (requestCode == REQUEST_MICROPHONE_PERMISSION) {
+                source = "microphone";
+                Toast.makeText(this,
+                        "Microphone permission is required for Voice Notes.",
+                        Toast.LENGTH_LONG).show();
+                return;
             }
             Toast.makeText(this, "Permission denied. Cannot access " + source, Toast.LENGTH_SHORT).show();
         }
@@ -3412,6 +3463,269 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+
+    // ========== VOICE NOTES FEATURE ==========
+
+    /**
+     * Entry point for Voice Notes — checks RECORD_AUDIO permission before opening the dialog.
+     */
+    private void handleVoiceNotesButtonClick() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    REQUEST_MICROPHONE_PERMISSION);
+            return;
+        }
+        showVoiceNotesDialog();
+    }
+
+    /**
+     * Shows the Voice Notes dialog.
+     *
+     * <p>The dialog allows the user to:
+     * <ul>
+     *   <li>Record voice (saved locally via {@link VoiceNoteManager})</li>
+     *   <li>Stop recording</li>
+     *   <li>Play back the saved recording</li>
+     *   <li>Re-record</li>
+     *   <li>Send to AI — triggers Google Speech Recognition, then calls
+     *       {@link GeminiApiService#calculateCalories} with the required prefix</li>
+     * </ul>
+     */
+    private void showVoiceNotesDialog() {
+        // Release any previous session
+        if (voiceNoteManager != null) {
+            voiceNoteManager.release();
+        }
+        voiceNoteManager = new VoiceNoteManager(this);
+
+        // ---- Build dialog view ----
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(48, 32, 48, 24);
+
+        // Status label
+        TextView tvStatus = new TextView(this);
+        tvStatus.setText("Tap Record to start.");
+        tvStatus.setTextSize(15f);
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusParams.bottomMargin = 20;
+        tvStatus.setLayoutParams(statusParams);
+        dialogLayout.addView(tvStatus);
+
+        // Record / Stop row
+        LinearLayout recordRow = new LinearLayout(this);
+        recordRow.setOrientation(LinearLayout.HORIZONTAL);
+        recordRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        Button btnRecord = new Button(this);
+        btnRecord.setText("● Record");
+        btnRecord.setTextSize(14f);
+        btnRecord.setTextColor(android.graphics.Color.WHITE);
+        androidx.core.view.ViewCompat.setBackgroundTintList(btnRecord,
+                android.content.res.ColorStateList.valueOf(
+                        android.graphics.Color.parseColor("#D32F2F")));
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        rp.setMarginEnd(8);
+        btnRecord.setLayoutParams(rp);
+
+        Button btnStop = new Button(this);
+        btnStop.setText("■ Stop");
+        btnStop.setTextSize(14f);
+        btnStop.setEnabled(false);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        btnStop.setLayoutParams(sp);
+
+        recordRow.addView(btnRecord);
+        recordRow.addView(btnStop);
+        dialogLayout.addView(recordRow);
+
+        // Play button
+        Button btnPlay = new Button(this);
+        btnPlay.setText("▶ Play Recording");
+        btnPlay.setTextSize(14f);
+        btnPlay.setEnabled(false);
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        playParams.topMargin = 8;
+        btnPlay.setLayoutParams(playParams);
+        dialogLayout.addView(btnPlay);
+
+        // Send to AI button
+        Button btnSendToAi = new Button(this);
+        btnSendToAi.setText("Send to AI");
+        btnSendToAi.setTextSize(14f);
+        btnSendToAi.setTextColor(android.graphics.Color.WHITE);
+        androidx.core.view.ViewCompat.setBackgroundTintList(btnSendToAi,
+                android.content.res.ColorStateList.valueOf(
+                        android.graphics.Color.parseColor("#0277BD")));
+        btnSendToAi.setEnabled(false);
+        LinearLayout.LayoutParams aiParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        aiParams.topMargin = 8;
+        btnSendToAi.setLayoutParams(aiParams);
+        dialogLayout.addView(btnSendToAi);
+
+        // ---- Build and show the dialog ----
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Voice Notes")
+                .setView(dialogLayout)
+                .setNegativeButton("Close", (d, w) -> d.dismiss())
+                .create();
+
+        dialog.setOnDismissListener(d -> {
+            if (voiceNoteManager != null) {
+                voiceNoteManager.release();
+            }
+        });
+
+        // ---- Button logic ----
+
+        // Helper: restore "has recording" button states
+        Runnable restoreHasRecordingState = () -> {
+            tvStatus.setText("Recording saved. Play it back or send to AI.");
+            btnRecord.setText("● Re-record");
+            btnRecord.setEnabled(true);
+            btnStop.setEnabled(false);
+            btnPlay.setEnabled(true);
+            btnSendToAi.setEnabled(true);
+        };
+
+        btnRecord.setOnClickListener(v -> {
+            boolean started = voiceNoteManager.startRecording();
+            if (started) {
+                tvStatus.setText("Recording… Tap Stop when done.");
+                btnRecord.setEnabled(false);
+                btnStop.setEnabled(true);
+                btnPlay.setEnabled(false);
+                btnSendToAi.setEnabled(false);
+            } else {
+                Toast.makeText(this,
+                        "Failed to start recording. Please try again.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        btnStop.setOnClickListener(v -> {
+            if (voiceNoteManager.isRecording()) {
+                voiceNoteManager.stopRecording();
+                if (voiceNoteManager.hasRecording()) {
+                    restoreHasRecordingState.run();
+                } else {
+                    tvStatus.setText("Recording failed. Please try again.");
+                    btnRecord.setEnabled(true);
+                    btnRecord.setText("● Record");
+                    btnStop.setEnabled(false);
+                }
+            } else if (voiceNoteManager.isPlaying()) {
+                voiceNoteManager.stopPlayback();
+                tvStatus.setText("Playback stopped.");
+                btnRecord.setEnabled(true);
+                btnStop.setEnabled(false);
+                btnPlay.setEnabled(true);
+                btnSendToAi.setEnabled(true);
+            }
+        });
+
+        btnPlay.setOnClickListener(v -> {
+            tvStatus.setText("Playing… Tap Stop to stop.");
+            btnRecord.setEnabled(false);
+            btnStop.setEnabled(true);
+            btnPlay.setEnabled(false);
+            btnSendToAi.setEnabled(false);
+
+            voiceNoteManager.startPlayback(
+                    () -> runOnUiThread(restoreHasRecordingState::run),
+                    errorMsg -> runOnUiThread(() -> {
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
+                        restoreHasRecordingState.run();
+                    })
+            );
+        });
+
+        btnSendToAi.setOnClickListener(v -> {
+            if (!NetworkUtil.isInternetAvailable(this)) {
+                Toast.makeText(this,
+                        "No internet connection. Please check your network and try again.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            // Dismiss first so RecognizerIntent has full focus
+            dialog.dismiss();
+            launchVoiceRecognitionForAi();
+        });
+
+        dialog.show();
+    }
+
+    /**
+     * Launches Google Speech Recognition so the user can speak the food/drink
+     * they want analysed for calories. The result is handled in
+     * {@link #onActivityResult} → {@link #processVoiceNoteAi}.
+     */
+    private void launchVoiceRecognitionForAi() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+                "Say what food or drink you had for calorie analysis");
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        try {
+            startActivityForResult(intent, REQUEST_VOICE_RECOGNITION);
+        } catch (ActivityNotFoundException e) {
+            android.util.Log.e("VoiceNotes", "Speech recognition not available: " + e.getMessage());
+            Toast.makeText(this,
+                    "Speech recognition is not available on this device.",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Builds the required AI prompt and calls {@link GeminiApiService#calculateCalories}.
+     *
+     * <p>Prompt always begins with "How many calories are in this:" as required.</p>
+     *
+     * @param transcribedText text returned by the speech recogniser.
+     */
+    private void processVoiceNoteAi(String transcribedText) {
+        final String prompt = "How many calories are in this:\n" + transcribedText;
+
+        android.util.Log.d("VoiceNoteAI", "Sending prompt to AI: " + prompt);
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Calculating calories with AI…");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        GeminiApiService.calculateCalories(this, prompt, new GeminiApiService.CalorieCallback() {
+            @Override
+            public void onResult(String result) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    if (result != null && !result.trim().isEmpty()) {
+                        new AlertDialog.Builder(FoodNoteTableActivity.this)
+                                .setTitle("AI Calorie Estimate")
+                                .setMessage("You said: \"" + transcribedText + "\"\n\n"
+                                        + result.trim())
+                                .setPositiveButton("OK", (d, w) -> d.dismiss())
+                                .show();
+                    } else {
+                        Toast.makeText(FoodNoteTableActivity.this,
+                                "AI analysis failed. Please check your internet connection and try again.",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
     }
 
     // ========== ACCRUAL FEATURE ==========

@@ -2708,8 +2708,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         if (currentSteps >= 30_000) {
             message += " (CAPPED at 30,000!)";
         }
-        message += "\n\nEnter the number of calories you want to borrow from today and move to tomorrow. " +
-                "This will reduce your Step Challenge for today but you must plan tomorrow's meals carefully.";
+        message += "\n\nBorrow Calories from tomorrow, and reduce your challenge.";
         builder.setMessage(message);
 
         builder.setPositiveButton("Accrue", (dialog, which) -> {

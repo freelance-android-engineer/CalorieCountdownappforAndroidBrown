@@ -390,6 +390,15 @@
                 android:backgroundTint="#6A1B9A"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnVoiceNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Voice Notes"
+                android:textStyle="bold"
+                android:backgroundTint="#0277BD"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
 
