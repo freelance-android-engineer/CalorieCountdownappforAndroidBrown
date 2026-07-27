@@ -28,14 +28,14 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * In-app library for viewing saved Voice Notes and Memo Pictures.
+ * In-app library for viewing and deleting saved Voice Notes and Memo Pictures.
  *
  * <p>Voice notes are read from the app's private cache directory
  * (files matching {@code voice_note_*.m4a}).</p>
  *
  * <p>Memo pictures are read from the {@code memo} table in the local SQLite database.</p>
  *
- * <p>No files are moved, exposed to external storage, or altered in any way.</p>
+ * <p>All files remain in private storage — nothing is exposed externally.</p>
  */
 public class MediaLibraryActivity extends AppCompatActivity {
 
@@ -52,13 +52,13 @@ public class MediaLibraryActivity extends AppCompatActivity {
     private MediaPlayer currentPlayer    = null;
     private Button      activePlayButton = null;
     private Button      activeStopButton = null;
+    // File currently loaded into the player (to detect if it is deleted mid-play)
+    private File        activeFile       = null;
 
-    // ── Date formatter for voice-note filenames ────────────────────────────────
+    // ── Date formatters ───────────────────────────────────────────────────────
     private final SimpleDateFormat displayFmt =
             new SimpleDateFormat("dd MMM yyyy  HH:mm", Locale.getDefault());
-
-    // ── Date formatter for memo dates stored in DB ─────────────────────────────
-    private final SimpleDateFormat dbDateFmt =
+    private final SimpleDateFormat dbDateFmt  =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
     // ==========================================================================
@@ -70,11 +70,11 @@ public class MediaLibraryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_media_library);
 
-        databaseHelper       = new SQLDatabase_Food_Items_CIF6(this);
-        voiceNotesContainer  = findViewById(R.id.voiceNotesContainer);
+        databaseHelper        = new SQLDatabase_Food_Items_CIF6(this);
+        voiceNotesContainer   = findViewById(R.id.voiceNotesContainer);
         memoPicturesContainer = findViewById(R.id.memoPicturesContainer);
-        tvNoVoiceNotes       = findViewById(R.id.tvNoVoiceNotes);
-        tvNoMemoPictures     = findViewById(R.id.tvNoMemoPictures);
+        tvNoVoiceNotes        = findViewById(R.id.tvNoVoiceNotes);
+        tvNoMemoPictures      = findViewById(R.id.tvNoMemoPictures);
 
         ImageButton btnBack = findViewById(R.id.btnBack);
         btnBack.setOnClickListener(v -> finish());
@@ -90,16 +90,12 @@ public class MediaLibraryActivity extends AppCompatActivity {
     }
 
     // ==========================================================================
-    // Voice Notes
+    // Voice Notes — load
     // ==========================================================================
 
-    /**
-     * Reads all {@code voice_note_*.m4a} files from the app's cache directory
-     * and builds a row for each, sorted newest-first.
-     */
     private void loadVoiceNotes() {
-        File cacheDir = getCacheDir();
-        File[] files  = cacheDir.listFiles(
+        File   cacheDir = getCacheDir();
+        File[] files    = cacheDir.listFiles(
                 (dir, name) -> name.startsWith("voice_note_") && name.endsWith(".m4a"));
 
         if (files == null || files.length == 0) {
@@ -107,7 +103,7 @@ public class MediaLibraryActivity extends AppCompatActivity {
             return;
         }
 
-        // Newest first (by last-modified timestamp)
+        // Newest first
         Arrays.sort(files, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
 
         for (File file : files) {
@@ -115,77 +111,87 @@ public class MediaLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Adds one voice-note row to {@link #voiceNotesContainer}.
-     */
     private void addVoiceNoteRow(File file) {
         String label = "Recording  —  "
                 + displayFmt.format(new Date(file.lastModified()));
 
-        // ── Row container ──────────────────────────────────────────────────────
+        // ── Row wrapper (stored as tag on itself so we can remove it) ──────────
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(8, 14, 8, 14);
         row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setTag(file.getAbsolutePath());   // used to find divider for removal
 
         // Label
         TextView tvLabel = new TextView(this);
         tvLabel.setText(label);
         tvLabel.setTextSize(13f);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        tvLabel.setLayoutParams(lp);
+        tvLabel.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(tvLabel);
 
         // Play button
         Button btnPlay = new Button(this);
-        btnPlay.setText("▶ Play");
+        btnPlay.setText("▶");
         btnPlay.setTextSize(12f);
-        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        playLp.setMarginStart(6);
-        btnPlay.setLayoutParams(playLp);
+        btnLp.setMarginStart(4);
+        btnPlay.setLayoutParams(btnLp);
 
-        // Stop button (starts disabled)
+        // Stop button
         Button btnStop = new Button(this);
-        btnStop.setText("■ Stop");
+        btnStop.setText("■");
         btnStop.setTextSize(12f);
         btnStop.setEnabled(false);
         LinearLayout.LayoutParams stopLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        stopLp.setMarginStart(6);
+        stopLp.setMarginStart(4);
         btnStop.setLayoutParams(stopLp);
+
+        // Delete button
+        Button btnDelete = new Button(this);
+        btnDelete.setText("🗑");
+        btnDelete.setTextSize(14f);
+        LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        delLp.setMarginStart(4);
+        btnDelete.setLayoutParams(delLp);
 
         row.addView(btnPlay);
         row.addView(btnStop);
+        row.addView(btnDelete);
 
-        // Click handlers
-        btnPlay.setOnClickListener(v -> startPlayback(file, btnPlay, btnStop));
-        btnStop.setOnClickListener(v -> releaseCurrentPlayer());
+        btnPlay.setOnClickListener(v   -> startPlayback(file, btnPlay, btnStop));
+        btnStop.setOnClickListener(v   -> releaseCurrentPlayer());
+        btnDelete.setOnClickListener(v -> confirmDeleteVoiceNote(file, row));
 
         voiceNotesContainer.addView(row);
 
-        // Thin divider
+        // Thin divider (tag = "divider_<path>" so we can remove it together with the row)
         View divider = new View(this);
         divider.setBackgroundColor(0xFFE0E0E0);
         divider.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 1));
+        divider.setTag("divider_" + file.getAbsolutePath());
         voiceNotesContainer.addView(divider);
     }
 
-    /**
-     * Starts playing the given file. Any previously playing note is stopped first.
-     */
+    // ==========================================================================
+    // Voice Notes — playback
+    // ==========================================================================
+
     private void startPlayback(File file, Button btnPlay, Button btnStop) {
-        // Stop whatever is currently playing
         releaseCurrentPlayer();
 
         try {
             currentPlayer = new MediaPlayer();
             currentPlayer.setDataSource(file.getAbsolutePath());
-            currentPlayer.setOnCompletionListener(mp -> runOnUiThread(this::releaseCurrentPlayer));
+            currentPlayer.setOnCompletionListener(mp ->
+                    runOnUiThread(this::releaseCurrentPlayer));
             currentPlayer.setOnErrorListener((mp, what, extra) -> {
                 Log.e(TAG, "Playback error: what=" + what + " extra=" + extra);
                 runOnUiThread(() -> {
@@ -197,9 +203,9 @@ public class MediaLibraryActivity extends AppCompatActivity {
             currentPlayer.prepare();
             currentPlayer.start();
 
-            // Track the buttons that belong to the active row
             activePlayButton = btnPlay;
             activeStopButton = btnStop;
+            activeFile       = file;
 
             btnPlay.setEnabled(false);
             btnStop.setEnabled(true);
@@ -211,9 +217,6 @@ public class MediaLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Stops and releases the active {@link MediaPlayer} and restores button states.
-     */
     private void releaseCurrentPlayer() {
         if (currentPlayer != null) {
             try {
@@ -224,24 +227,55 @@ public class MediaLibraryActivity extends AppCompatActivity {
             }
             currentPlayer = null;
         }
-        if (activePlayButton != null) {
-            activePlayButton.setEnabled(true);
-            activePlayButton = null;
+        if (activePlayButton != null) { activePlayButton.setEnabled(true);  activePlayButton = null; }
+        if (activeStopButton != null) { activeStopButton.setEnabled(false); activeStopButton = null; }
+        activeFile = null;
+    }
+
+    // ==========================================================================
+    // Voice Notes — delete
+    // ==========================================================================
+
+    private void confirmDeleteVoiceNote(File file, LinearLayout row) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Recording")
+                .setMessage("Delete this voice note?\n\n"
+                        + displayFmt.format(new Date(file.lastModified()))
+                        + "\n\nThis cannot be undone.")
+                .setPositiveButton("Delete", (d, w) -> deleteVoiceNote(file, row))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteVoiceNote(File file, LinearLayout row) {
+        // Stop playback if this file is currently playing
+        if (file.equals(activeFile)) {
+            releaseCurrentPlayer();
         }
-        if (activeStopButton != null) {
-            activeStopButton.setEnabled(false);
-            activeStopButton = null;
+
+        boolean deleted = file.delete();
+        if (deleted) {
+            // Remove row and its divider from the container
+            voiceNotesContainer.removeView(row);
+            View divider = voiceNotesContainer.findViewWithTag(
+                    "divider_" + file.getAbsolutePath());
+            if (divider != null) voiceNotesContainer.removeView(divider);
+
+            // Show "empty" label if no rows remain
+            if (voiceNotesContainer.getChildCount() == 0) {
+                tvNoVoiceNotes.setVisibility(View.VISIBLE);
+            }
+            Toast.makeText(this, "Recording deleted.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Could not delete recording. Please try again.",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
     // ==========================================================================
-    // Memo Pictures
+    // Memo Pictures — load
     // ==========================================================================
 
-    /**
-     * Reads all memo records from the database and displays those that have
-     * a saved image.
-     */
     private void loadMemoPictures() {
         Cursor cursor = null;
         try {
@@ -251,28 +285,27 @@ public class MediaLibraryActivity extends AppCompatActivity {
                 return;
             }
 
-            boolean anyImageFound = false;
-
+            boolean anyImage = false;
             do {
+                int idxId    = cursor.getColumnIndex("memo_id");
                 int idxImage = cursor.getColumnIndex("memo_image");
                 int idxDate  = cursor.getColumnIndex("memo_date");
                 int idxTitle = cursor.getColumnIndex("memo_title");
                 int idxText  = cursor.getColumnIndex("memo_text");
 
+                int    memoId      = (idxId    >= 0) ? cursor.getInt(idxId)       : -1;
                 String imageBase64 = (idxImage >= 0) ? cursor.getString(idxImage) : null;
                 String date        = (idxDate  >= 0) ? cursor.getString(idxDate)  : "";
                 String title       = (idxTitle >= 0) ? cursor.getString(idxTitle) : "";
                 String text        = (idxText  >= 0) ? cursor.getString(idxText)  : "";
 
                 if (imageBase64 != null && !imageBase64.trim().isEmpty()) {
-                    addMemoPictureRow(imageBase64, date, title, text);
-                    anyImageFound = true;
+                    addMemoPictureRow(memoId, imageBase64, date, title, text);
+                    anyImage = true;
                 }
             } while (cursor.moveToNext());
 
-            if (!anyImageFound) {
-                tvNoMemoPictures.setVisibility(View.VISIBLE);
-            }
+            if (!anyImage) tvNoMemoPictures.setVisibility(View.VISIBLE);
 
         } catch (Exception e) {
             Log.e(TAG, "Error loading memo pictures: " + e.getMessage(), e);
@@ -282,34 +315,28 @@ public class MediaLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Adds one memo-picture row (thumbnail + date/title + tap-to-fullscreen).
-     */
-    private void addMemoPictureRow(String imageBase64, String date,
-                                   String title, String text) {
-        // Decode a small thumbnail (inSampleSize=4 keeps memory low)
+    private void addMemoPictureRow(int memoId, String imageBase64,
+                                   String date, String title, String text) {
         Bitmap thumbnail = decodeBase64Bitmap(imageBase64, 4);
-        if (thumbnail == null) return;          // skip rows with corrupted data
+        if (thumbnail == null) return;
 
-        // ── Row container ──────────────────────────────────────────────────────
+        // ── Row ───────────────────────────────────────────────────────────────
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(8, 12, 8, 12);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setClickable(true);
-        row.setFocusable(true);
 
         // Thumbnail
         ImageView ivThumb = new ImageView(this);
-        int thumbSizePx = dpToPx(72);
-        LinearLayout.LayoutParams thumbLp = new LinearLayout.LayoutParams(thumbSizePx, thumbSizePx);
+        int sz = dpToPx(72);
+        LinearLayout.LayoutParams thumbLp = new LinearLayout.LayoutParams(sz, sz);
         thumbLp.setMarginEnd(12);
         ivThumb.setLayoutParams(thumbLp);
         ivThumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
         ivThumb.setImageBitmap(thumbnail);
         row.addView(ivThumb);
 
-        // Meta (date + title/text snippet)
+        // Meta text
         LinearLayout meta = new LinearLayout(this);
         meta.setOrientation(LinearLayout.VERTICAL);
         meta.setLayoutParams(new LinearLayout.LayoutParams(
@@ -341,23 +368,42 @@ public class MediaLibraryActivity extends AppCompatActivity {
 
         row.addView(meta);
 
-        // Tap → full-screen
-        final String base64Copy = imageBase64;
-        row.setOnClickListener(v -> showFullScreenImage(base64Copy, title));
+        // Delete button
+        Button btnDelete = new Button(this);
+        btnDelete.setText("🗑");
+        btnDelete.setTextSize(14f);
+        LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        delLp.setMarginStart(4);
+        btnDelete.setLayoutParams(delLp);
+        row.addView(btnDelete);
 
+        // Tap row (excluding delete btn) → full-screen
+        final String base64Copy = imageBase64;
+        ivThumb.setOnClickListener(v -> showFullScreenImage(base64Copy, title));
+        meta.setOnClickListener(v   -> showFullScreenImage(base64Copy, title));
+
+        // Delete
+        btnDelete.setOnClickListener(v -> confirmDeleteMemoPicture(memoId, row, title));
+
+        // Tag row for removal
+        row.setTag("memorow_" + memoId);
         memoPicturesContainer.addView(row);
 
-        // Thin divider
+        // Divider
         View divider = new View(this);
         divider.setBackgroundColor(0xFFE0E0E0);
         divider.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 1));
+        divider.setTag("memodiv_" + memoId);
         memoPicturesContainer.addView(divider);
     }
 
-    /**
-     * Opens a full-screen AlertDialog showing the memo image.
-     */
+    // ==========================================================================
+    // Memo Pictures — full screen
+    // ==========================================================================
+
     private void showFullScreenImage(String imageBase64, String title) {
         Bitmap full = decodeBase64Bitmap(imageBase64, 1);
         if (full == null) {
@@ -370,15 +416,8 @@ public class MediaLibraryActivity extends AppCompatActivity {
         imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         imageView.setAdjustViewBounds(true);
 
-        LinearLayout.LayoutParams ivLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        ivLp.setMargins(0, 0, 0, 0);
-        imageView.setLayoutParams(ivLp);
-
         String dialogTitle = (title != null && !title.trim().isEmpty())
-                ? title.trim()
-                : "Memo Picture";
+                ? title.trim() : "Memo Picture";
 
         new AlertDialog.Builder(this)
                 .setTitle(dialogTitle)
@@ -388,17 +427,43 @@ public class MediaLibraryActivity extends AppCompatActivity {
     }
 
     // ==========================================================================
+    // Memo Pictures — delete
+    // ==========================================================================
+
+    private void confirmDeleteMemoPicture(int memoId, LinearLayout row, String title) {
+        String label = (title != null && !title.trim().isEmpty())
+                ? "\"" + title.trim() + "\""
+                : "this memo picture";
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Memo Picture")
+                .setMessage("Delete " + label + "?\n\nThis cannot be undone.")
+                .setPositiveButton("Delete", (d, w) -> deleteMemoPicture(memoId, row))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteMemoPicture(int memoId, LinearLayout row) {
+        int rows = databaseHelper.deleteMemoById(memoId);
+        if (rows > 0) {
+            memoPicturesContainer.removeView(row);
+            View divider = memoPicturesContainer.findViewWithTag("memodiv_" + memoId);
+            if (divider != null) memoPicturesContainer.removeView(divider);
+
+            if (memoPicturesContainer.getChildCount() == 0) {
+                tvNoMemoPictures.setVisibility(View.VISIBLE);
+            }
+            Toast.makeText(this, "Memo picture deleted.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Could not delete memo picture. Please try again.",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // ==========================================================================
     // Helpers
     // ==========================================================================
 
-    /**
-     * Decodes a Base64 string to a {@link Bitmap}.
-     *
-     * @param base64     the encoded image string.
-     * @param sampleSize {@code BitmapFactory.Options.inSampleSize} (1 = full quality,
-     *                   4 = quarter resolution thumbnail).
-     * @return decoded bitmap, or {@code null} on failure.
-     */
     private Bitmap decodeBase64Bitmap(String base64, int sampleSize) {
         try {
             byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
@@ -411,10 +476,6 @@ public class MediaLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Parses the DB date string ({@code yyyy-MM-dd HH:mm:ss}) and returns a
-     * human-friendly label, e.g. {@code "27 Jul 2026  14:30"}.
-     */
     private String formatMemoDate(String rawDate) {
         if (rawDate == null || rawDate.trim().isEmpty()) return "";
         try {
@@ -425,9 +486,7 @@ public class MediaLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /** Converts dp to pixels using the current display density. */
     private int dpToPx(int dp) {
-        float density = getResources().getDisplayMetrics().density;
-        return Math.round(dp * density);
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 }

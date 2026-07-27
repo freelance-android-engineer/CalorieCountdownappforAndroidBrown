@@ -5062,6 +5062,19 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Deletes a single memo record by its primary key.
+     *
+     * @param memoId the {@code memo_id} of the record to delete.
+     * @return number of rows deleted (1 on success, 0 if not found).
+     */
+    public int deleteMemoById(int memoId) {
+        android.util.Log.d("MEMO", "deleteMemoById called: id=" + memoId);
+        SQLiteDatabase db = this.getWritableDatabase();
+        return db.delete(TABLE_MEMO, COLUMN_MEMO_ID + " = ?",
+                new String[]{String.valueOf(memoId)});
+    }
+
+    /**
      * Get memo by food note title.
      * Returns the memo associated with the given title.
      *
