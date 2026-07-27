@@ -721,7 +721,7 @@ public class HealthProfileCiF3
             return currentWeight;
         }
         public String getStartWeight() { return startWeight;}
-        public void setStartWeight(String IN){IN = startWeight;}
+        public void setStartWeight(String IN){startWeight = IN;}
         public String getWeightUnits()
         {
             return weightUnits;

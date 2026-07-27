@@ -13,7 +13,7 @@ public class CurrentWeightCursor extends CursorWrapper {
 
     private static final String TABLE_CURRENT_WEIGHT = "current_weight";
     private static final String COLUMUM_CURRENT_WEIGHT_ID = "current_weight_id";
-    private static final String COLUMUM_CURRENT_WEIGHT_CURRENTWEIGHT = "currentweight_currentweight";
+    private static final String COLUMUM_CURRENT_WEIGHT_CURRENTWEIGHT = "current_weight";
 
 
     public CurrentWeightCursor(Cursor c)

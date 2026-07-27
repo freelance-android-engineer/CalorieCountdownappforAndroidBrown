@@ -2086,7 +2086,6 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             android.util.Log.w("BalanceLoad", "[Set_currentBalance] DB balance null/empty, defaulting to 0");
         }
 
-        model_adapter.StoreTargetWeightLossPounds("249");
         countdownbalance.setText(mBalance_text);
         android.util.Log.d("BalanceLoad", "[Set_currentBalance] UI balance set to: " + mBalance_text);
     }
