@@ -1917,10 +1917,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void handleKittyButtonClick() {
         int totalCalories = databaseHelper.getTotalFoodNoteCaloriesToday();
         SharedPreferences pref = getApplicationContext().getSharedPreferences("Calorie_Countdown", 0);
-        String userGender = pref.getString("user_gender", null);
+        String userGender = pref.getString("Gender_Type", null);
         if (userGender == null) {
             SharedPreferences.Editor editor = pref.edit();
-            editor.putString("user_gender", "female");
+            editor.putString("Gender_Type", "female");
             editor.apply();
             userGender = "female";
         }
@@ -3300,7 +3300,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         // Read gender-based daily budget from SharedPreferences
         android.content.SharedPreferences pref =
                 getSharedPreferences("Calorie_Countdown", MODE_PRIVATE);
-        String gender = pref.getString("user_gender", "female");
+        String gender = pref.getString("Gender_Type", "female");
         int dailyBudget = FourPMDebitStepsProcessor.resolveDailyBudget(gender);
 
         android.util.Log.d("4PM_DEBIT", "gender=" + gender + ", budget=" + dailyBudget

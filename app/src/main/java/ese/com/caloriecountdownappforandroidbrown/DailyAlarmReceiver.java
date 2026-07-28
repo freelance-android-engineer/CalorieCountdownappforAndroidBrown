@@ -203,7 +203,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
             try { balance = Integer.parseInt(balanceStr.replace(",", "").trim()); }
             catch (NumberFormatException ignored) {}
 
-            String gender = prefs.getString("user_gender", "male");
+            String gender = prefs.getString("Gender_Type", "male");
             int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
             int todayFood = db.getTotalFoodNoteCaloriesToday();
             int kitty = dailyBudget - todayFood;

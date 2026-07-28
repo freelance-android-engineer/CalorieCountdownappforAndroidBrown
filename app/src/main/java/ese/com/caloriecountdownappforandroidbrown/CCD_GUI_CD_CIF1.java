@@ -1102,7 +1102,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
             // Gender-based daily calorie budget
             SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
-            String gender = prefs.getString("user_gender", "male");
+            String gender = prefs.getString("Gender_Type", "male");
             int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
 
             // Today's food note calories (non-transferred)
@@ -1897,7 +1897,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
         //int dayend = data_model_adapter.RetriveDayEnd();
-        int dayend = 100;
+        int dayend = 0; // 0 = no valid forecast yet; resolved by fallback guard below
         if(mDaysToZero == null)
         {
             mDaysToZero = data_model_adapter.RetrievemForecast();
@@ -1921,8 +1921,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             }
             else
             {
-                dayend = 101;
-                android.util.Log.d("assigning int dayend","dayend equals 101");
+                dayend = 0; // today not in forecast; fallback guard below handles this
+                android.util.Log.d("assigning int dayend","dayend: today not in forecast, using fallback");
             }
         }
         else
@@ -1934,6 +1934,14 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
 
         int currentbalance = Get_currentBalanceInt();
 
+        // Fix Issues 1 & 3: if dayend is 0 (no valid forecast data loaded), fall back to the
+        // last stored day-end balance.  If that is also 0 (first launch, no history), match
+        // dayend to currentbalance so kit = 0 and no spurious step-challenge dialog is shown.
+        if (dayend <= 0) {
+            int fallback = data_model_adapter.RetriveDayEnd();
+            dayend = (fallback > 0) ? fallback : currentbalance;
+            android.util.Log.d("KittyFlow", "[Kitty] dayend was 0 — fallback applied: RetriveDayEnd=" + fallback + " dayend=" + dayend);
+        }
 
         int kit = currentbalance - dayend; //See i from Food Note and Complete
         if(kit > 0) //positive value for kit mean the about of live calories/points that need to be
@@ -1960,6 +1968,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                        .append(" - ").append(String.format("%,d", dayEndTarget))
                        .append(") / ").append(stepsNumerator).append("\n\n");
                     msg.append("Client Step Challenge = ").append(String.format("%,d", stepChallenge)).append(" Steps");
+                    msg.append("\n\nClient Step Challenge = 15,000 Steps or equivalent Activity.");
 
                     if (stepChallenge >= 30_000) {
                         msg.append("\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.");
@@ -2849,7 +2858,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     }
 
                     // BMR: gender-based daily calorie budget (2500 male / 2000 female)
-                    String gender = prefs.getString("user_gender", "male");
+                    String gender = prefs.getString("Gender_Type", "male");
                     int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
 
                     // Today's Countdown = Current Balance - Previous Day End Balance - 250 - BMR
@@ -2883,7 +2892,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                             + " - " + String.format("%,d", previousDayEnd)
                             + " - 250 - " + String.format("%,d", bmr)
                             + ") / " + stepsNumerator + "\n\n"
-                            + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps";
+                            + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps"
+                            + "\n\nClient Step Challenge = 15,000 Steps or equivalent Activity.";
 
                     Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
                     dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
@@ -2931,7 +2941,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 " " + now.getYear();
 
         // Kitty value: gender-based budget - food calories consumed today
-        String gender = pref.getString("user_gender", "male");
+        String gender = pref.getString("Gender_Type", "male");
         int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
         int todayFoodCals = 0;
         try {

@@ -508,7 +508,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             }
 
             android.content.SharedPreferences prefs = app.getSharedPreferences("Calorie_Countdown", 0);
-            String gender = prefs.getString("user_gender", "male");
+            String gender = prefs.getString("Gender_Type", "male");
             int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
             int todayFoodCals = db.getTotalFoodNoteCaloriesToday();
             int kittyValue = dailyBudget - todayFoodCals;
