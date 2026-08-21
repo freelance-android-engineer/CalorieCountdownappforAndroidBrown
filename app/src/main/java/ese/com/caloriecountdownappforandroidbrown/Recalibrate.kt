@@ -166,7 +166,7 @@ class Recalibrate : AppCompatActivity()
         val modelAdapter: MIF4_Data_Model_Adapter = MIF4_Data_Model_Adapter(baseContext)
 
 
-        if(CCD_GUI_CD_CIF1.mDaysToZero != null)
+        if(CCD_GUI_CD_CIF1.mDaysToZero == null)
         {
             CCD_GUI_CD_CIF1.mDaysToZero = modelAdapter.RetrievemForecast()
 
