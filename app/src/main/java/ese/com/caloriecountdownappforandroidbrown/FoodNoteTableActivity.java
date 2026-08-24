@@ -1936,7 +1936,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         } else {
             int stepChallenge = StepChallengeFun(Math.abs(result));
             message = "You have 0 Calories left in your Kitty and have the additional challenge of doing "
-                    + stepChallenge + " steps by 9:59 PM.";
+                    + stepChallenge + " steps by 8:00 PM.";
             if (stepChallenge >= 30_000) {
                 message += "\n\nStep Challenge capped at 30,000! Consider using Accrual to lighten the load.";
             }

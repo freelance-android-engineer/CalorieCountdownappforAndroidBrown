@@ -3610,7 +3610,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
-     * Store a complete 9:59 PM day-end snapshot in dayend_balance2.
+     * Store a complete 8:00 PM day-end snapshot in dayend_balance2.
      * Captures balance, daily budget, food calories consumed, kitty value, and estimated zero date.
      * The date is stored as the primary "balance_dayend_budget" composite key to remain
      * compatible with the existing 3-column table schema.

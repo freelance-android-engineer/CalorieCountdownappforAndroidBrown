@@ -14,7 +14,7 @@ import androidx.core.app.NotificationCompat;
 /**
  * BroadcastReceiver that handles the two daily alarms:
  * - 3:30 PM (Credit Day End) - Prompts user to generate Step Challenge
- * - 9:59 PM (Debit Day End) - Prompts user to update debit activity (steps/exercise)
+ * - 8:00 PM (Debit Day End) - Prompts user to update debit activity (steps/exercise)
  */
 public class DailyAlarmReceiver extends BroadcastReceiver {
 
@@ -81,7 +81,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 .setContentTitle("Credit Day End - 3:30 PM")
                 .setContentText("Your day is up! Generate your Step Challenge now.")
                 .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText("Your Credit Day has ended. Check your remaining calories and generate your Steps or Physical Activity Challenge to countdown your balance by 9:59 PM tonight."))
+                        .bigText("Your Credit Day has ended. Check your remaining calories and generate your Steps or Physical Activity Challenge to countdown your balance by 8:00 PM tonight."))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
@@ -94,14 +94,14 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
     }
 
     /**
-     * 9:59 PM Notification - Debit Day End
+     * 8:00 PM Notification - Debit Day End
      * Tells user to update the app with their steps/exercise for the day
      */
     private void showDebitDayEndNotification(Context context) {
-        Log.d(TAG, "Showing Debit Day End notification (9:59 PM)");
+        Log.d(TAG, "Showing Debit Day End notification (8:00 PM)");
 
         createNotificationChannel(context, CHANNEL_ID_DEBIT,
-                "Debit Day End", "Daily 9:59 PM reminder to update debit activity");
+                "Debit Day End", "Daily 8:00 PM reminder to update debit activity");
 
         // Open main activity when tapped
         Intent openIntent = new Intent(context, CCD_GUI_CD_CIF1.class);
@@ -111,7 +111,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_DEBIT)
                 .setSmallIcon(R.drawable.ic_launcher2)
-                .setContentTitle("Debit Day End - 9:59 PM")
+                .setContentTitle("Debit Day End - 8:00 PM")
                 .setContentText("Update your Steps and Exercise activity now!")
                 .setStyle(new NotificationCompat.BigTextStyle()
                         .bigText("Time to update your Debit activity! Enter your Steps, Exercise, and Physical Activity performed today to see your Countdown Report."))

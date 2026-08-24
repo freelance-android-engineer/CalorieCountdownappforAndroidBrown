@@ -289,7 +289,7 @@
             android:enabled="true"
             android:exported="true" />
 
-        <!-- Daily Alarm Receiver for 3:30 PM, 4:00 PM, and 9:59 PM notifications -->
+        <!-- Daily Alarm Receiver for 3:30 PM, 4:00 PM, and 8:00 PM notifications -->
         <receiver
             android:name=".DailyAlarmReceiver"
             android:exported="false">

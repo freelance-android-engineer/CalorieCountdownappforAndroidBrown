@@ -160,7 +160,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             }
         }
 
-        // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 9:59 PM (Debit Day End)
+        // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 8:00 PM (Debit Day End)
         DailyAlarmScheduler.scheduleBothAlarms(this);
 
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -1057,15 +1057,15 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
     }
 
-    /** Public entry point for DailyAlarmReceiver to call when the 9:59 PM alarm fires. */
+    /** Public entry point for DailyAlarmReceiver to call when the 8:00 PM alarm fires. */
     public void Store_Dayend2_Public() {
         Store_Dayend2();
     }
 
     /**
-     * 9:59 PM Midnight Scrape — Store Day End 2 Snapshot.
+     * 8:00 PM Midnight Scrape — Store Day End 2 Snapshot.
      *
-     * Fires after the 9:59 PM alarm (and also after every debit update if past 4 PM).
+     * Fires after the 8:00 PM alarm (and also after every debit update if past 4 PM).
      * Idempotent: stores only ONCE per calendar day using isDayEnd2StoredForDate() guard.
      *
      * Captures:
@@ -2016,7 +2016,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         int kit = Math.abs(in);
         in = kit;
         int stepChallenge = GenerateStepsChallenge(in);
-        String out = "Your Steps Challenge to successfully countdown your Balance by " + new RoundingCIF13().IntToString(kit + 250) + " points by Dayend (9:59 PM) is: " + new RoundingCIF13().IntToString(stepChallenge) + " Steps.";
+        String out = "Your Steps Challenge to successfully countdown your Balance by " + new RoundingCIF13().IntToString(kit + 250) + " points by Dayend (8:00 PM) is: " + new RoundingCIF13().IntToString(stepChallenge) + " Steps.";
 
         if (stepChallenge >= 30_000) {
             out += "\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.";

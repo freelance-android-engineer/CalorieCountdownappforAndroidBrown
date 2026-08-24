@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.util.Log;
 
 /**
- * Re-registers all daily alarms (3:30 PM, 4:00 PM, 9:59 PM) after device restart.
+ * Re-registers all daily alarms (3:30 PM, 4:00 PM, 8:00 PM) after device restart.
  * Triggered by BOOT_COMPLETED broadcast.
  */
 public class BootAlarmReceiver extends BroadcastReceiver {

@@ -40,7 +40,7 @@ class DayCiF1005(_id: Int, _balance: Int, _startBalance: Int, _endBalance: Int, 
     var savedFoodNotesTotalCalories: Int = 0
 
     // Whether the user has completed their debit update (steps/exercise) for this day
-    // Resets to false each new day. Set to true after 9:59pm debit update is performed.
+    // Resets to false each new day. Set to true after 8:00pm debit update is performed.
     var debitUpdatePerformed: Boolean = false
 
     // The previous day's closing balance, used for Countdown Report comparison
