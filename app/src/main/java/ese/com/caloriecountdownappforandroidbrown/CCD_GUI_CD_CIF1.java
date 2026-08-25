@@ -3041,6 +3041,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
         if (today == null) return true;
 
+        // Root cause fix: markDebitUpdatePerformed() always flags TODAY's day record,
+        // never yesterday's. So performing a (even catch-up/"dummy") debit update today
+        // could never satisfy this "yesterday" check, permanently blocking Food Notes
+        // for the rest of the day it was performed on. Treat today's own debit update
+        // as satisfying the requirement immediately.
+        if (today.getDebitUpdatePerformed()) return true;
+
         java.time.LocalDateTime todayDate = today.getDay();
         java.time.LocalDateTime yesterdayDate = todayDate.minusDays(1);
 
