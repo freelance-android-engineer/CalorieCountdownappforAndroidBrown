@@ -3079,6 +3079,16 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         java.time.LocalDateTime todayDate = today.getDay();
         java.time.LocalDateTime yesterdayDate = todayDate.minusDays(1);
 
+        // Recalibration fix: the day a Recalibrate marker is inserted is treated as "Day 0" —
+        // it does not require a debit update, and it must not be evaluated as a "missing"
+        // previous day's debit. So if yesterday (relative to today) is on or before the most
+        // recent recalibration date, there is nothing to remind about yet; normal reminder
+        // logic only resumes for days strictly after the recalibration date (Day 1 onward).
+        java.time.LocalDate lastRecalibrationDate = getLastRecalibrationDate();
+        if (lastRecalibrationDate != null && !yesterdayDate.toLocalDate().isAfter(lastRecalibrationDate)) {
+            return true;
+        }
+
         if (isDebitUpdatePerformedPersisted(yesterdayDate)) return true;
 
         for (Object obj : mDaysToZero.getNumberOFDaysToXero03FEB10()) {
@@ -3092,6 +3102,24 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
 
         return true; // No previous day found, allow proceeding
+    }
+
+    /**
+     * Returns the calendar date of the most recent Recalibrate marker (Food Notes screen),
+     * or null if the user has never recalibrated. Used to treat that date as "Day 0" for the
+     * previous-day debit reminder.
+     */
+    private java.time.LocalDate getLastRecalibrationDate() {
+        try {
+            String rawDate = new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getLastRecalibrateSeparatorDate();
+            if (rawDate == null || rawDate.isEmpty()) return null;
+            java.time.LocalDateTime parsed = java.time.LocalDateTime.parse(rawDate,
+                    java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"));
+            return parsed.toLocalDate();
+        } catch (Exception e) {
+            Log.e("DebitUpdate", "Failed to parse last recalibration date: " + e.getMessage(), e);
+            return null;
+        }
     }
 
     @Override

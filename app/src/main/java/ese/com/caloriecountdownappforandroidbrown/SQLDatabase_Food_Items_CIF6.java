@@ -4427,6 +4427,27 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Returns the note_date (format "dd-MM-yyyy HH:mm") of the most recent recalibrate
+     * separator row, or null if none exists. Used to treat the recalibration day as "Day 0"
+     * for the previous-day debit reminder.
+     */
+    public String getLastRecalibrateSeparatorDate() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT " + COLUMN_QUICK_FOOD_NOTE_DATE + " FROM " + TABLE_QUICK_FOOD_NOTE
+                + " WHERE COALESCE(" + COLUMN_NOTE_TYPE + ", 0) = 1"
+                + " AND " + COLUMN_IS_TRANSFERRED + " = 0"
+                + " ORDER BY " + COLUMN_QUICK_FOOD_NOTE_ID + " DESC LIMIT 1";
+        Cursor cursor = db.rawQuery(query, null);
+        String lastDate = null;
+        if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+            lastDate = cursor.getString(0);
+        }
+        if (cursor != null) cursor.close();
+        android.util.Log.d("RECALIBRATE", "getLastRecalibrateSeparatorDate: " + lastDate);
+        return lastDate;
+    }
+
+    /**
      * Inserts a recalibrate separator row into quick_food_note.
      * note_type=1 marks this as a separator; calories and quantity are empty.
      *
