@@ -2813,9 +2813,34 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             DayCiF1005 today = mDaysToZero.getCurrentDayType1005();
             if (today != null) {
                 today.setDebitUpdatePerformed(true);
+                // Root cause fix: debitUpdatePerformed only ever lived on the in-memory
+                // DayCiF1005 object. mDaysToZero is rebuilt from SQLite on every fresh
+                // Activity instance (e.g. app restart), and dayend_balance2 has no column
+                // for this flag, so it silently reset to false and "Update Previous Day
+                // Debit" reappeared even after the midnight scrape was completed and saved.
+                // Persist it (by date) in SharedPreferences so it survives restarts.
+                persistDebitUpdatePerformed(today.getDay());
                 Log.d("DebitUpdate", "Debit update performed for today: " + today.getDay());
             }
         }
+    }
+
+    private static final String DEBIT_UPDATE_PERFORMED_PREFIX = "debit_update_performed_";
+
+    private String debitUpdateDayKey(java.time.LocalDateTime day) {
+        return day.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    private void persistDebitUpdatePerformed(java.time.LocalDateTime day) {
+        getSharedPreferences("Calorie_Countdown", 0)
+                .edit()
+                .putBoolean(DEBIT_UPDATE_PERFORMED_PREFIX + debitUpdateDayKey(day), true)
+                .apply();
+    }
+
+    private boolean isDebitUpdatePerformedPersisted(java.time.LocalDateTime day) {
+        return getSharedPreferences("Calorie_Countdown", 0)
+                .getBoolean(DEBIT_UPDATE_PERFORMED_PREFIX + debitUpdateDayKey(day), false);
     }
 
     /**
@@ -3046,10 +3071,15 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         // could never satisfy this "yesterday" check, permanently blocking Food Notes
         // for the rest of the day it was performed on. Treat today's own debit update
         // as satisfying the requirement immediately.
-        if (today.getDebitUpdatePerformed()) return true;
+        // Also check the persisted flag (survives app restart) alongside the in-memory
+        // one, since a freshly recreated Activity's mDaysToZero always starts with
+        // debitUpdatePerformed == false (see markDebitUpdatePerformed()).
+        if (today.getDebitUpdatePerformed() || isDebitUpdatePerformedPersisted(today.getDay())) return true;
 
         java.time.LocalDateTime todayDate = today.getDay();
         java.time.LocalDateTime yesterdayDate = todayDate.minusDays(1);
+
+        if (isDebitUpdatePerformedPersisted(yesterdayDate)) return true;
 
         for (Object obj : mDaysToZero.getNumberOFDaysToXero03FEB10()) {
             DayCiF1005 day = (DayCiF1005) obj;
