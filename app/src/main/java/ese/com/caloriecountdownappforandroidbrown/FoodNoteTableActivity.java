@@ -3740,6 +3740,44 @@ public class FoodNoteTableActivity extends AppCompatActivity {
      * Deducts from the Countdown Balance and creates a Food Note entry immediately.
      */
     private void handleAccrualButtonClick() {
+        // Calculate the current Step Challenge in the background using the existing
+        // 4PM Debit / Steps Challenge algorithm (FourPMDebitStepsProcessor) so the
+        // dialog can show an accurate value instead of a hardcoded one.
+        executorService.submit(() -> {
+            FourPMDebitResult stepChallengePreview = calculateCurrentStepChallenge();
+            runOnUiThread(() -> showAccrualDialog(stepChallengePreview));
+        });
+    }
+
+    /**
+     * Calculates the current Step Challenge using the same pure algorithm relied on
+     * by the 4PM Debit flow ({@link FourPMDebitStepsProcessor#calculate}), based on
+     * today's confirmed food-note calories and the live Countdown Balance.
+     * Safe to call from a background thread.
+     */
+    private FourPMDebitResult calculateCurrentStepChallenge() {
+        int totalFoodCalories = databaseHelper.getTotalFoodNoteCaloriesToday();
+
+        SharedPreferences pref = getSharedPreferences("Calorie_Countdown", MODE_PRIVATE);
+        String gender = pref.getString("Gender_Type", "female");
+        int dailyBudget = FourPMDebitStepsProcessor.resolveDailyBudget(gender);
+
+        int currentBalance = 0;
+        try {
+            MIF4_Data_Model_Adapter adapter = new MIF4_Data_Model_Adapter(this);
+            String balanceStr = adapter.RetrieveBalance();
+            if (balanceStr != null && !balanceStr.trim().isEmpty()) {
+                currentBalance = Integer.parseInt(balanceStr.trim().replace(",", ""));
+            }
+        } catch (NumberFormatException nfe) {
+            android.util.Log.w("Accrual", "Could not parse balance — defaulting to 0");
+        }
+
+        String today = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+        return FourPMDebitStepsProcessor.calculate(today, totalFoodCalories, dailyBudget, currentBalance);
+    }
+
+    private void showAccrualDialog(FourPMDebitResult stepChallengePreview) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Accrual – Borrow from Tomorrow");
 
@@ -3747,13 +3785,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(48, 32, 48, 16);
 
+        TextView tvStepChallenge = new TextView(this);
+        int currentSteps = stepChallengePreview != null ? stepChallengePreview.stepChallenge : 0;
+        tvStepChallenge.setText("Current Steps Challenge: " + String.format(Locale.getDefault(), "%,d", currentSteps) + " Steps");
+        tvStepChallenge.setPadding(0, 0, 0, 24);
+        layout.addView(tvStepChallenge);
+
         final EditText etAmount = new EditText(this);
         etAmount.setHint("Calories/Points to borrow");
         etAmount.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         layout.addView(etAmount);
 
         builder.setView(layout);
-        builder.setPositiveButton("Borrow", null); // null prevents auto-dismiss on invalid input
+        builder.setPositiveButton("Accrue", null); // null prevents auto-dismiss on invalid input
         builder.setNegativeButton("Cancel", (d, w) -> d.dismiss());
 
         AlertDialog dialog = builder.create();
@@ -3781,39 +3825,63 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             }
 
             dialog.dismiss();
-
-            // Step 1: Deduct from Countdown Balance
-            if (CCD_GUI_CD_CIF1.instance != null) {
-                CCD_GUI_CD_CIF1.instance.Countdown(amount);
-            } else {
-                android.util.Log.w("Accrual", "CCD_GUI_CD_CIF1.instance is null — balance not updated in UI");
-                Toast.makeText(this,
-                        "Balance UI unavailable. Return to the main screen to see the updated balance.",
-                        Toast.LENGTH_LONG).show();
-            }
-
-            // Step 2: Insert Accrual food note into DB and show it in the list immediately
-            String currentDateTime = new java.text.SimpleDateFormat(
-                    "dd-MM-yyyy HH:mm", java.util.Locale.getDefault())
-                    .format(new java.util.Date());
-            String amountStr = String.valueOf(amount);
-            long insertedId = databaseHelper.insertFoodNote(
-                    currentDateTime,
-                    "ACCRUAL Journal/Balance Debit",
-                    amountStr,
-                    amountStr
-            );
-
-            if (insertedId > 0) {
-                addRowToTable((int) insertedId,
-                        "ACCRUAL Journal/Balance Debit", amountStr, amountStr, currentDateTime);
-                Toast.makeText(this,
-                        "Accrual: " + amount + " calories borrowed from tomorrow.",
-                        Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Failed to save accrual entry. Please try again.", Toast.LENGTH_SHORT).show();
-            }
+            performAccrual(amount);
         });
+    }
+
+    /**
+     * Performs the Accrual: deducts the amount from the Main Countdown Balance,
+     * records an ACCRUAL Food Note (Journal Credit), then reuses the existing
+     * Step Challenge algorithm to show the updated value.
+     */
+    private void performAccrual(int amount) {
+        // Step 1: Deduct from Countdown Balance
+        if (CCD_GUI_CD_CIF1.instance != null) {
+            CCD_GUI_CD_CIF1.instance.Countdown(amount);
+        } else {
+            android.util.Log.w("Accrual", "CCD_GUI_CD_CIF1.instance is null — balance not updated in UI");
+            Toast.makeText(this,
+                    "Balance UI unavailable. Return to the main screen to see the updated balance.",
+                    Toast.LENGTH_LONG).show();
+        }
+
+        // Step 2: Insert Accrual food note into DB and show it in the list immediately
+        String currentDateTime = new SimpleDateFormat(
+                "dd-MM-yyyy HH:mm", Locale.getDefault())
+                .format(new Date());
+        String amountStr = String.valueOf(amount);
+        long insertedId = databaseHelper.insertFoodNote(
+                currentDateTime,
+                "ACCRUAL",
+                amountStr,
+                "Journal Credit"
+        );
+
+        if (insertedId > 0) {
+            addRowToTable((int) insertedId,
+                    "ACCRUAL", "Journal Credit", amountStr, currentDateTime);
+            Toast.makeText(this,
+                    "Accrual: " + amount + " calories borrowed from tomorrow.",
+                    Toast.LENGTH_LONG).show();
+
+            // Step 3: Recalculate the Step Challenge with the updated balance/food notes,
+            // reusing the exact same existing calculation routine.
+            executorService.submit(() -> {
+                FourPMDebitResult updated = calculateCurrentStepChallenge();
+                runOnUiThread(() -> showUpdatedStepChallenge(updated));
+            });
+        } else {
+            Toast.makeText(this, "Failed to save accrual entry. Please try again.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showUpdatedStepChallenge(FourPMDebitResult updated) {
+        int steps = updated != null ? updated.stepChallenge : 0;
+        new AlertDialog.Builder(this)
+                .setTitle("Step Challenge Updated")
+                .setMessage("Updated Steps Challenge: " + String.format(Locale.getDefault(), "%,d", steps) + " Steps")
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     // ========== CREATE AI PROMPT ==========

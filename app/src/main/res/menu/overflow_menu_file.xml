@@ -60,7 +60,7 @@
                     <menu>
                         <item
                             android:id="@+id/submenu3aa"
-                            android:title="Accurual"></item>
+                            android:title="Accrual"></item>
                         <item
                             android:id="@+id/submenu2a"
                             android:title="Journal"></item>
