@@ -28,6 +28,8 @@ import androidx.appcompat.widget.Toolbar;
 public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implements SensorEventListener {
 
     public static final String TOTAL_DEBIT_VALUE = "Total Debit Countdown Value";
+    // SharedPreferences ("Calorie_Countdown") key: date (dd-MM-yyyy) the BMR deduction was last applied.
+    public static final String KEY_BMR_APPLIED_DATE = "bmr_applied_date";
     public static int REQUEST_CODE_DEBIT_MAN = 1;
 
     private Button mDebit;
@@ -749,6 +751,12 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 // Male → 2500, Female → 2000
                 int bmrPoints = (selectedGender[0] == 0) ? 2500 : 2000;
                 StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                // Record that BMR has been applied today so the Kitty report does not apply it twice.
+                String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
+                        .format(new java.util.Date());
+                getSharedPreferences("Calorie_Countdown", 0).edit()
+                        .putString(KEY_BMR_APPLIED_DATE, today)
+                        .apply();
                 BackToParent(bmrPoints);
             }
         });

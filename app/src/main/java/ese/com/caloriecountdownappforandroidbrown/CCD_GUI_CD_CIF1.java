@@ -1894,79 +1894,47 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     private void Kitty() {
+        // Read the latest (already mutated) balance on the main thread, then do the
+        // DB-backed calculation off the main thread and post the dialog back.
+        final int currentbalance = Get_currentBalanceInt();
+        SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+        String gender = prefs.getString("Gender_Type", "male");
+        final int bmr = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
+        java.text.SimpleDateFormat dayFormat = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault());
+        Calendar cal = Calendar.getInstance();
+        String today = dayFormat.format(cal.getTime());
+        cal.add(Calendar.DAY_OF_YEAR, -1);
+        final String yesterday = dayFormat.format(cal.getTime());
+        final boolean bmrApplied = today.equals(prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null));
 
-        MIF4_Data_Model_Adapter data_model_adapter = new MIF4_Data_Model_Adapter(getApplicationContext());
-        //int dayend = data_model_adapter.RetriveDayEnd();
-        int dayend = 0; // 0 = no valid forecast yet; resolved by fallback guard below
-        if(mDaysToZero == null)
-        {
-            mDaysToZero = data_model_adapter.RetrievemForecast();
-            android.util.Log.d("Calorie Countdown app", "mDayToZero, retrieved, this is Contents:");
-            if (mDaysToZero != null) {
-                android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
-            }
-        }
+        mBgExecutor.execute(() -> {
+            try {
+                SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+                // Previous day's Day-End Balance = yesterday's day-end snapshot (dayend_balance2).
+                // Falls back to the existing dayend_balance value if no snapshot was stored yesterday.
+                Integer yesterdayDayEnd = db.getDayEnd2BalanceForDate(yesterday);
+                int previousDayEnd = (yesterdayDayEnd != null) ? yesterdayDayEnd : db.GetDayEndBalance();
+                KittyCalculator.Result result = KittyCalculator.calculate(previousDayEnd, currentbalance, bmr, bmrApplied);
+                android.util.Log.d("KittyFlow", "[Kitty] current=" + currentbalance + " previousDayEnd=" + previousDayEnd
+                        + " target=" + result.dayEndTarget + " bmr=" + bmr + " bmrApplied=" + bmrApplied
+                        + " outcome=" + result.outcome + " value=" + result.value);
 
-        if(mDaysToZero != null)
-        {
-            android.util.Log.d("Calorie Countdown app", "mDayToZero, already Intialized, this is Contents:");
-            android.util.Log.d("Version  2.0.0", mDaysToZero.printDaysType());
-
-            DayCiF1005 mToday = mDaysToZero.getCurrentDayType1005();
-            if((mToday) != null)
-            {
-                android.util.Log.d("Calorie Countdown app for iOS", "mToday NOT NULL, contents of mToday:");
-
-                dayend = mToday.getBudgetedDayEndBalanceForThisDay();
-            }
-            else
-            {
-                dayend = 0; // today not in forecast; fallback guard below handles this
-                android.util.Log.d("assigning int dayend","dayend: today not in forecast, using fallback");
-            }
-        }
-        else
-        {
-            android.util.Log.d("mDaysToZero", "Sorry mate, this var is null, Sort it! Noir.");
-
-        }
-
-
-        int currentbalance = Get_currentBalanceInt();
-
-        // Fix Issues 1 & 3: if dayend is 0 (no valid forecast data loaded), fall back to the
-        // last stored day-end balance.  If that is also 0 (first launch, no history), match
-        // dayend to currentbalance so kit = 0 and no spurious step-challenge dialog is shown.
-        if (dayend <= 0) {
-            int fallback = data_model_adapter.RetriveDayEnd();
-            dayend = (fallback > 0) ? fallback : currentbalance;
-            android.util.Log.d("KittyFlow", "[Kitty] dayend was 0 — fallback applied: RetriveDayEnd=" + fallback + " dayend=" + dayend);
-        }
-
-        int kit = currentbalance - dayend; //See i from Food Note and Complete
-        if(kit > 0) //positive value for kit mean the about of live calories/points that need to be
-            // burnt and Debitted. Go ahead and give Step Challange and amount of Steps needed, considering current
-            //value of Steps done.
-        {
-            final int finalCurrentBalance = currentbalance;
-            mBgExecutor.execute(() -> {
-                try {
-                    SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
-                    int previousDayEnd = db.GetDayEndBalance();
-                    int dayEndTarget = previousDayEnd - 250;
+                final String message;
+                if (result.outcome == KittyCalculator.Outcome.STEP_CHALLENGE) {
+                    int burn = result.value;
                     double stepsNumerator = db.getStepsNumerator(); // weight-based, falls back to 0.089
-                    double rawSteps = (finalCurrentBalance - dayEndTarget) / stepsNumerator;
-                    int stepChallenge = (int) Math.ceil(rawSteps);
-                    if (stepChallenge < 0) stepChallenge = 0;
+                    int stepChallenge = (int) Math.ceil(burn / stepsNumerator);
 
-                    StringBuilder msg = new StringBuilder("Client Step Challenge Calculation:\n\n");
-                    msg.append("Current Balance:        ").append(String.format("%,d", finalCurrentBalance)).append("\n");
+                    StringBuilder msg = new StringBuilder("Burn " + burn + " calories\n\n");
+                    msg.append("Client Step Challenge Calculation:\n\n");
+                    msg.append("Current Balance:        ").append(String.format("%,d", currentbalance)).append("\n");
                     msg.append("Previous Day End:       ").append(String.format("%,d", previousDayEnd)).append("\n");
-                    msg.append("Day End Target (- 250): ").append(String.format("%,d", dayEndTarget)).append("\n");
+                    msg.append("Day End Target (- 250): ").append(String.format("%,d", result.dayEndTarget)).append("\n");
+                    if (!bmrApplied) {
+                        msg.append("BMR:                    ").append(String.format("%,d", bmr)).append("\n");
+                    }
                     msg.append("Steps Numerator:        ").append(stepsNumerator).append("\n\n");
-                    msg.append("(").append(String.format("%,d", finalCurrentBalance))
-                       .append(" - ").append(String.format("%,d", dayEndTarget))
-                       .append(") / ").append(stepsNumerator).append("\n\n");
+                    msg.append(String.format("%,d", burn)).append(" / ").append(stepsNumerator).append("\n\n");
                     msg.append("Client Step Challenge = ").append(String.format("%,d", stepChallenge)).append(" Steps");
                     msg.append("\n\nClient Step Challenge = 15,000 Steps or equivalent Activity.");
 
@@ -1975,39 +1943,20 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     }
 
                     msg.append("\n\nOnly dispose of the Dialog once you have performed it.");
-
-                    final String message = msg.toString();
-                    mKittyHandler.post(() -> {
-                        Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-                        display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-                        display_dialog_cif11.Showing(message);
-                    });
-                } catch (Exception e) {
-                    android.util.Log.e("KittyFlow", "Error building Steps Challenge message: " + e.getMessage(), e);
+                    message = msg.toString();
+                } else {
+                    message = "You have " + result.value + " calories left in your Kitty";
                 }
-            });
-        }
 
-        if (kit == 0) {
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            display_dialog_cif11.Showing(KittyZero(kit));
-        }
-
-        if(kit < 0) //this will be a negative value and means smooth sailing, no need to anything
-            // as you are below 100 or 300 dr points target, the more this widens the more the countdown
-            // but don't recommend more than 1000 Dr - 1500 Points dr the more it widens the more Countdown Balance reduce
-            // at 16:00 do Bloomberg report things, remember 7pm final and scrap next day prep etc 0 cr and Surplus account and
-            // repeat Start Weight Loss Menuitem, updated Client Guide, adMob 0280 xero.sys Download AWS & Google Play Logo.
-            // Link in green and Create.
-            //Version 2.0.0
-        {
-
-            Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
-            display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
-            display_dialog_cif11.Showing(KittyPlus(kit));
-        }
-
+                mKittyHandler.post(() -> {
+                    Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
+                    display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+                    display_dialog_cif11.Showing(message);
+                });
+            } catch (Exception e) {
+                android.util.Log.e("KittyFlow", "Error building Kitty message: " + e.getMessage(), e);
+            }
+        });
     }
 
 

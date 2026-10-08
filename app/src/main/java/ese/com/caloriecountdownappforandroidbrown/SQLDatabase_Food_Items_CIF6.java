@@ -3610,6 +3610,33 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Returns the day-end balance stored by storeDayEnd2Snapshot() for the given date,
+     * or null if no snapshot exists for that date.
+     *
+     * @param date "dd-MM-yyyy" formatted date string
+     */
+    public Integer getDayEnd2BalanceForDate(String date) {
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery(
+                    "SELECT " + COLUMN_DAYEND_BALANCE_BALANCE_ACTUAL + " FROM " + TABLE_DAYEND_BALANCE2
+                            + " WHERE " + COLUMN_DAYEND_BALANCE_DATE2 + " = ?"
+                            + " ORDER BY _id DESC LIMIT 1",
+                    new String[]{date});
+            try {
+                if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                    return Integer.parseInt(cursor.getString(0).replace(",", "").trim());
+                }
+            } finally {
+                cursor.close();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[getDayEnd2BalanceForDate] " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
      * Store a complete 8:00 PM day-end snapshot in dayend_balance2.
      * Captures balance, daily budget, food calories consumed, kitty value, and estimated zero date.
      * The date is stored as the primary "balance_dayend_budget" composite key to remain
