@@ -135,7 +135,7 @@ public class FinalCreditMealBox extends IntentService {
         Kalends.set(Calendar.YEAR, year);
         Intent i = new Intent(FinalCreditMealBox.this, CCD_GUI_CD_CIF1.class);
         i.setAction(ACTION_CREDIT_FINALMEAL_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_FINAL_MEAL, i, 0);
+        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_FINAL_MEAL, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC, Kalends.getTimeInMillis(), pi);
         alarmManager.setRepeating(AlarmManager.RTC,Kalends.getTimeInMillis(),twentyFourHours, pi);
@@ -154,7 +154,7 @@ public class FinalCreditMealBox extends IntentService {
 
         Intent i = new Intent(FinalCreditMealBox.this, CCD_GUI_CD_CIF1.class);
         i.setAction(ACTION_CREDIT_FINALMEAL_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_FINAL_MEAL, i, 0);
+        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_FINAL_MEAL, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC, Kalends.getTimeInMillis(), pi);
         Log.d("Countdown", "Alarm Manager Set Yeah");

@@ -63,7 +63,7 @@ public class MIF1NewDayEndSetAlarm
 
         Intent i = new Intent(mContext, NewDayCountdown.class);
         i.setAction(ACTION_STORE_BALANCE);
-        PendingIntent pi = PendingIntent.getService(mContext, REQUEST_CODE_NEW_DAY, i, 0);
+        PendingIntent pi = PendingIntent.getService(mContext, REQUEST_CODE_NEW_DAY, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(mContext.ALARM_SERVICE);
         alarmManager.cancel(pi);
         pi.cancel();

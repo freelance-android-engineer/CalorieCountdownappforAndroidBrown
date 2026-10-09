@@ -136,7 +136,7 @@ public class CreditLunchBox extends IntentService {
         Kalends.set(Calendar.YEAR,year);
         Intent i = new Intent(CreditLunchBox.this, CCD_GUI_CD_CIF1.class);
         i.setAction(ACTION_CREDIT_LUNCH_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_LUNCH, i, 0);
+        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_LUNCH, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC, Kalends.getTimeInMillis(), pi);
         Log.d("Countdown", "Alarm Manager Set Yeah");
@@ -155,7 +155,7 @@ public class CreditLunchBox extends IntentService {
 
         Intent i = new Intent(CreditLunchBox.this, CCD_GUI_CD_CIF1.class);
         i.setAction(ACTION_CREDIT_LUNCH_TRANSACTION);
-        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_LUNCH, i, 0);
+        PendingIntent pi = PendingIntent.getService(getApplicationContext(), REQUEST_CODE_LUNCH, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(this.ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC, Kalends.getTimeInMillis(), pi);
         Log.d("Countdown", "Alarm Manager Set Yeah");
