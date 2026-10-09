@@ -2567,7 +2567,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 try {
                     double value = Double.parseDouble(inputText);
                     String result = performConversion(value, conversionType);
-                    showConversionResult(result);
+                    showConversionResultWithRecalibrate(result);
                 } catch (NumberFormatException e) {
                     showConversionResult("Invalid number entered. Please enter a valid number.");
                 }
@@ -2617,6 +2617,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Display_Dialog_CIF11 display_dialog_cif11 = new Display_Dialog_CIF11();
         display_dialog_cif11.Set_mAppContext(CCD_GUI_CD_CIF1.this);
         display_dialog_cif11.Showing(result);
+    }
+
+    /**
+     * Shows a successful conversion result in the same "Countdown Report" dialog style,
+     * with an extra "Open Recalibrate View" button that launches the Recalibrate screen.
+     */
+    private void showConversionResultWithRecalibrate(String result) {
+        AlertDialog alert = new AlertDialog.Builder(CCD_GUI_CD_CIF1.this).create();
+        alert.setTitle("Countdown Report");
+        alert.setMessage(result);
+        alert.setButton(AlertDialog.BUTTON_NEUTRAL, "OK", (dialog, which) -> dialog.dismiss());
+        alert.setButton(AlertDialog.BUTTON_POSITIVE, "Open Recalibrate View", (dialog, which) -> {
+            dialog.dismiss();
+            Start_Recalibration();
+        });
+        alert.show();
     }
 
     /**
