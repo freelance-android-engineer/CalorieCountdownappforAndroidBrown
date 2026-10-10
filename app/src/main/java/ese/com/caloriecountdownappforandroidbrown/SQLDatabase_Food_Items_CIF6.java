@@ -294,6 +294,12 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_SN_ID          = "sn_id";
     private static final String COLUMN_SN_VALUE        = "sn_value"; // REAL, e.g. 0.089
 
+    // Food Calorie Cache table — normalized food name → last saved calories (see FoodCalorieCache)
+    private static final String TABLE_FOOD_CALORIE_CACHE = "food_calorie_cache";
+    private static final String COLUMN_FCC_FOOD_KEY      = "food_key";
+    private static final String COLUMN_FCC_CALORIES      = "calories";
+    private static final String COLUMN_FCC_UPDATED_AT    = "updated_at";
+
     // 4PM Processing Log Table (added in DB version 7)
     private static final String TABLE_FOURPM_LOG = "fourpm_processing_log";
     private static final String COLUMN_LOG_ID = "log_id";
@@ -712,6 +718,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     + COLUMN_SC_STEP_CHALLENGE + " INTEGER DEFAULT 0, "
                     + COLUMN_SC_CREATED_AT + " TEXT DEFAULT '')");
         } catch (Exception ignore) { /* already exists */ }
+        // Food Calorie Cache
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOOD_CALORIE_CACHE + " ("
+                    + COLUMN_FCC_FOOD_KEY   + " TEXT PRIMARY KEY, "
+                    + COLUMN_FCC_CALORIES   + " INTEGER NOT NULL, "
+                    + COLUMN_FCC_UPDATED_AT + " INTEGER DEFAULT 0)");
+        } catch (Exception ignore) { /* already exists */ }
         // ─────────────────────────────────────────────────────────────────────
 
         // ====== 4PM Food Notes Processing — DB v7 additions ======
@@ -1104,6 +1117,17 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.d("Table creation", "created " + TABLE_STEPS_NUMERATOR);
         } catch (Exception e) {
             android.util.Log.w("Table creation", TABLE_STEPS_NUMERATOR + " creation: " + e.getMessage());
+        }
+
+        // Create food_calorie_cache table — Food Note calorie auto-fill
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_FOOD_CALORIE_CACHE + " ("
+                    + COLUMN_FCC_FOOD_KEY   + " TEXT PRIMARY KEY, "
+                    + COLUMN_FCC_CALORIES   + " INTEGER NOT NULL, "
+                    + COLUMN_FCC_UPDATED_AT + " INTEGER DEFAULT 0)");
+            android.util.Log.d("Table creation", "created " + TABLE_FOOD_CALORIE_CACHE);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_FOOD_CALORIE_CACHE + " creation: " + e.getMessage());
         }
 
     }
@@ -5505,6 +5529,59 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.e("STEPS_CHALLENGE_DB", "Error saving steps challenge: " + e.getMessage());
         }
         return id;
+    }
+
+    // ── Food Calorie Cache ────────────────────────────────────────────────────
+
+    /**
+     * Loads every Food Calorie Cache entry (normalized food name → calories).
+     * Returns an empty map on error so the Food Note dialog falls back to manual entry.
+     */
+    public java.util.Map<String, Integer> getFoodCalorieCache() {
+        java.util.Map<String, Integer> result = new java.util.HashMap<>();
+        Cursor cursor = null;
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            cursor = db.rawQuery("SELECT " + COLUMN_FCC_FOOD_KEY + ", " + COLUMN_FCC_CALORIES
+                    + " FROM " + TABLE_FOOD_CALORIE_CACHE, null);
+            while (cursor.moveToNext()) {
+                if (!cursor.isNull(0) && !cursor.isNull(1)) {
+                    result.put(cursor.getString(0), cursor.getInt(1));
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("FOOD_CALORIE_CACHE", "Error reading cache: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return result;
+    }
+
+    /**
+     * Adds or updates the cache entry for a saved Food Note. Blank names and calories that
+     * are not a whole, non-negative number are ignored, so a valid entry is never overwritten
+     * with bad data. The latest saved value for a food wins.
+     *
+     * @return true if the entry was written.
+     */
+    public boolean saveFoodCalorieCacheEntry(String foodName, String calories) {
+        String key = FoodCalorieCache.normalize(foodName);
+        Integer value = FoodCalorieCache.parseValidCalories(calories);
+        if (key == null || value == null) return false;
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_FCC_FOOD_KEY, key);
+            cv.put(COLUMN_FCC_CALORIES, value);
+            cv.put(COLUMN_FCC_UPDATED_AT, System.currentTimeMillis());
+            long id = db.insertWithOnConflict(TABLE_FOOD_CALORIE_CACHE, null, cv,
+                    SQLiteDatabase.CONFLICT_REPLACE);
+            android.util.Log.d("FOOD_CALORIE_CACHE", "saved " + key + " → " + value + " (row " + id + ")");
+            return id != -1;
+        } catch (Exception e) {
+            android.util.Log.e("FOOD_CALORIE_CACHE", "Error saving cache entry: " + e.getMessage());
+            return false;
+        }
     }
 
     // ── Steps Numerator (v18) ─────────────────────────────────────────────────

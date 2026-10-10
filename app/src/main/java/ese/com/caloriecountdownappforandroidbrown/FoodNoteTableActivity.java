@@ -439,6 +439,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     currentDateTime, foodName, String.valueOf(finalCalories),
                     portion.isEmpty() ? "1" : portion);
             if (insertedId > 0) {
+                rememberFoodCalories(foodName, String.valueOf(finalCalories));
                 addRowToTable((int) insertedId, foodName,
                         portion.isEmpty() ? "1" : portion,
                         String.valueOf(finalCalories), currentDateTime);
@@ -773,6 +774,68 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Food Calorie Cache — loads the cache once in the background, then fills the calories
+     * field when the typed food name matches a cached food. The lookup is in memory and
+     * debounced, so typing never queries the database. Calories the Subscriber typed are never
+     * replaced; an auto-filled value is cleared again if the name stops matching. The field
+     * stays editable so the Subscriber can review or change the value before saving.
+     */
+    private void attachCalorieCacheAutofill(EditText etFood, EditText etCalories) {
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final FoodCalorieCache[] cache = new FoodCalorieCache[1];
+        final String[] autoFilled = new String[1];
+
+        final Runnable lookup = () -> {
+            if (cache[0] == null) return;
+            String current = etCalories.getText().toString().trim();
+            boolean untouched = current.isEmpty() || current.equals(autoFilled[0]);
+            if (!untouched) return;
+
+            Integer cached = cache[0].lookup(etFood.getText().toString());
+            if (cached != null) {
+                String value = String.valueOf(cached);
+                autoFilled[0] = value;
+                etCalories.setText(value);
+                etCalories.setSelection(value.length());
+            } else if (autoFilled[0] != null) {
+                autoFilled[0] = null;
+                etCalories.setText("");
+            }
+        };
+
+        etFood.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                handler.removeCallbacks(lookup);
+                handler.postDelayed(lookup, 300);
+            }
+        });
+
+        try {
+            executorService.execute(() -> {
+                java.util.Map<String, Integer> stored = databaseHelper.getFoodCalorieCache();
+                handler.post(() -> {
+                    cache[0] = new FoodCalorieCache(stored);
+                    lookup.run();
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            android.util.Log.w("FOOD_CALORIE_CACHE", "Activity closing, auto-fill disabled: " + e.getMessage());
+        }
+    }
+
+    /** Food Calorie Cache — remembers a saved Food Note's calories; invalid values are ignored. */
+    private void rememberFoodCalories(String food, String calories) {
+        try {
+            executorService.execute(() -> databaseHelper.saveFoodCalorieCacheEntry(food, calories));
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            android.util.Log.w("FOOD_CALORIE_CACHE", "Activity closing, cache not updated: " + e.getMessage());
+        }
+    }
+
     private void showFoodInputDialog(String noteId, String food, String quantity, String calories) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View view = LayoutInflater.from(this).inflate(R.layout.add_row_food_note_dialog, null);
@@ -792,6 +855,11 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         etFood.setText(food);
         etQuantity.setText(quantity);
         etCalories.setText(calories);
+
+        // Food Calorie Cache: auto-fill calories for a food logged before (new notes only)
+        if (noteId == null) {
+            attachCalorieCacheAutofill(etFood, etCalories);
+        }
 
         String currentDateTime = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(new Date());
         tvDateTime.setText("Date & Time: " + currentDateTime);
@@ -818,13 +886,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 // === Update case ===
                 if (noteId != null) {
                     long existingId = Long.parseLong(noteId);
-                    databaseHelper.updateFoodNote(
+                    int rowsUpdated = databaseHelper.updateFoodNote(
                             (int) existingId,
                             currentDateTime,
                             food,
                             calories,
                             quantity
                     );
+                    if (rowsUpdated > 0) rememberFoodCalories(food, calories);
                     updateRowInTable((int) existingId, food, quantity, calories, currentDateTime);
                     syncFoodNoteToBackend(existingId, food, quantity, calories, currentDateTime);
                     dialog.dismiss();
@@ -851,6 +920,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int which) {
                                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                                    if (insertedId > 0) rememberFoodCalories(food, calories);
                                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
                                     syncFoodNoteToBackend(insertedId, food, quantity, calories, currentDateTime);
 
@@ -862,6 +932,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
                 } else {
                     long insertedId = databaseHelper.insertFoodNote(currentDateTime, food, calories, quantity);
+                    if (insertedId > 0) rememberFoodCalories(food, calories);
                     addRowToTable((int) insertedId, food, quantity, calories, currentDateTime);
                     syncFoodNoteToBackend(insertedId, food, quantity, calories, currentDateTime);
 
@@ -2732,6 +2803,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                         android.util.Log.d("ADD_ROW_IMAGE", "Inserting food note: " + foodName + ", calories: " + calories + ", quantity: " + quantity);
                         long insertedId = databaseHelper.insertFoodNote(currentDateTime, foodName, calories, quantity);
                         android.util.Log.d("ADD_ROW_IMAGE", "Inserted with ID: " + insertedId);
+                        if (insertedId > 0) rememberFoodCalories(foodName, calories);
 
                         // Verify insertion by querying the database
                         android.util.Log.d("ADD_ROW_IMAGE", "Verifying data was saved...");

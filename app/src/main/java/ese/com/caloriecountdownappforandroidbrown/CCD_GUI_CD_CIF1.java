@@ -163,6 +163,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 8:00 PM (Debit Day End)
         DailyAlarmScheduler.scheduleBothAlarms(this);
 
+        // One-time notice of the recommended Client Step Challenge (skipped once shown)
+        StepChallengeUpdateNotifier.notifyIfTargetChanged(this);
+
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -1936,7 +1939,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     msg.append("Steps Numerator:        ").append(stepsNumerator).append("\n\n");
                     msg.append(String.format("%,d", burn)).append(" / ").append(stepsNumerator).append("\n\n");
                     msg.append("Client Step Challenge = ").append(String.format("%,d", stepChallenge)).append(" Steps");
-                    msg.append("\n\nClient Step Challenge = 15,000 Steps or equivalent Activity.");
+                    msg.append("\n\n").append(KittyCalculator.recommendedStepChallengeText());
 
                     if (stepChallenge >= 30_000) {
                         msg.append("\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.");
@@ -2883,7 +2886,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                             + " - 250 - " + String.format("%,d", bmr)
                             + ") / " + stepsNumerator + "\n\n"
                             + clientName + " Step Challenge = " + String.format("%,d", finalStepChallenge) + " Steps"
-                            + "\n\nClient Step Challenge = 15,000 Steps or equivalent Activity.";
+                            + "\n\n" + KittyCalculator.recommendedStepChallengeText();
 
                     Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
                     dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);

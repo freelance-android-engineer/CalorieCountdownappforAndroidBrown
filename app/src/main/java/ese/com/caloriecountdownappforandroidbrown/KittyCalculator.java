@@ -16,6 +16,14 @@ public final class KittyCalculator {
 
     public static final int DAY_END_TARGET_DROP = 250;
 
+    /** Recommended daily Client Step Challenge shown in the Countdown Report (client: 15,500). */
+    public static final int RECOMMENDED_STEP_CHALLENGE = 15_500;
+
+    public static String recommendedStepChallengeText() {
+        return String.format(java.util.Locale.US,
+                "Client Step Challenge = %,d Steps or equivalent Activity.", RECOMMENDED_STEP_CHALLENGE);
+    }
+
     public enum Outcome {
         /** value = calories left in the Kitty (> 0). */
         KITTY,

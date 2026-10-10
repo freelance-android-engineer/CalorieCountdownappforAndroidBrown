@@ -12,6 +12,13 @@ public class KittyCalculatorTest {
     }
 
     @Test
+    public void recommendedStepChallengeIs15500Steps() {
+        assertEquals(15_500, KittyCalculator.RECOMMENDED_STEP_CHALLENGE);
+        assertEquals("Client Step Challenge = 15,500 Steps or equivalent Activity.",
+                KittyCalculator.recommendedStepChallengeText());
+    }
+
+    @Test
     public void dayEndTargetIsPreviousDayEndMinus250() {
         assertEquals(9_750, KittyCalculator.dayEndTarget(10_000));
     }
