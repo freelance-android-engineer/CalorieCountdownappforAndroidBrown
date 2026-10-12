@@ -102,9 +102,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public static CountdownToZeroDayCiF1004 mDaysToZero;
 
     /**
-     * mDayZero — flat list of DayCiF1005 objects spanning from today to estimated zero date.
-     * Rule: numberOfDays = openingBalance / 25  (each day targets 25-point minimum countdown).
-     * Populated by buildMDayZeroList() when opening balance is available.
+     * mDayZero — flat list of DayCiF1005 objects spanning from the Start Weight-Loss date to
+     * the estimated zero date. Empty until Start Weight-Loss calculates the Opening Balance.
+     * Rule: budget falls 25 CR/day until 0 (10,000 CR → 400 days); see DayZeroForecast.
+     * Populated by buildMDayZeroList() from MIF4_Data_Model_Adapter after the Opening Balance is stored.
      * Use mDaysToZero for the richer CountdownToZeroDayCiF1004 collection.
      */
     public static java.util.List<DayCiF1005> mDayZero = new java.util.ArrayList<>();
@@ -1023,6 +1024,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 int newBalance = Get_currentBalanceInt();
                 android.util.Log.d("DebitFlow", "[DEBIT] Debit complete. prev=" + previousBalance + ", new=" + newBalance);
                 showCountdownReport(previousBalance, newBalance);
+                applyMaintenanceMode();
                 android.util.Log.d("DebitFlow", "[DEBIT] Debit flow completed successfully");
             } catch (NumberFormatException e) {
                 // Root cause: balance TextView empty/null → StringToInt("") → NFE
@@ -2422,40 +2424,45 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     }
 
     /**
-     * Build the mDayZero flat list of DayCiF1005 objects.
-     *
-     * Rule (per client spec): numberOfDays = openingBalance / 25
-     * Example: 100,000 / 25 = 4,000 days
-     *
-     * Each DayCiF1005 represents one future day from today, counting down by 25 points/day.
-     * The last object's date is the estimated zero-balance date.
+     * Build the mDayZero flat list of DayCiF1005 objects, dated from today.
+     * Prefer {@link #buildMDayZeroList(int, java.time.LocalDateTime)} with the Start Weight-Loss date.
      *
      * @param openingBalance the countdown starting balance
      */
     public static void buildMDayZeroList(int openingBalance) {
-        mDayZero = new java.util.ArrayList<>();
+        buildMDayZeroList(openingBalance, java.time.LocalDateTime.now());
+    }
+
+    /**
+     * Build the mDayZero flat list of DayCiF1005 objects.
+     *
+     * Rule (per client spec): the budget falls 25 CR per day until it reaches 0.
+     * Example: 10,000 CR → Day 1 budget 9,975, Day 2 9,950 ... Day 400 budget 0.
+     * See {@link DayZeroForecast} for the calculation.
+     *
+     * Day 1 is the Start Weight-Loss date; each following object advances one day.
+     * Rebuilding with the same Opening Balance and start date is skipped, so repeated
+     * triggers of the workflow do not re-initialize the list.
+     *
+     * @param openingBalance the countdown starting balance
+     * @param startDate      the Start Weight-Loss date
+     */
+    public static void buildMDayZeroList(int openingBalance, java.time.LocalDateTime startDate) {
+        if (DayZeroForecast.isSameForecast(mDayZero, openingBalance, startDate)) {
+            android.util.Log.d("mDayZero", "[buildMDayZeroList] Already built for openingBalance="
+                    + openingBalance + ", startDate=" + startDate + "; skipping.");
+            return;
+        }
         if (openingBalance <= 0) {
+            mDayZero = new java.util.ArrayList<>();
             android.util.Log.w("mDayZero", "[buildMDayZeroList] openingBalance <= 0, list empty.");
             return;
         }
 
-        int numberOfDays = openingBalance / 25; // 100000 / 25 = 4000 days
+        mDayZero = DayZeroForecast.build(openingBalance, startDate);
+
         android.util.Log.d("mDayZero", "[buildMDayZeroList] openingBalance=" + openingBalance
-                + " → numberOfDays=" + numberOfDays);
-
-        java.time.LocalDateTime date = java.time.LocalDateTime.now();
-        int balance = openingBalance;
-
-        for (int i = 0; i < numberOfDays; i++) {
-            int endBalance = Math.max(0, balance - 25);
-            DayCiF1005 day = new DayCiF1005(i, balance, openingBalance, endBalance, date, String.valueOf(balance - 25), "0");
-            mDayZero.add(day);
-            balance = endBalance;
-            date = date.plusDays(1);
-            if (balance == 0) break; // Stop early if we've reached zero
-        }
-
-        android.util.Log.d("mDayZero", "[buildMDayZeroList] Built " + mDayZero.size() + " DayCiF1005 entries."
+                + ", startDate=" + startDate + " → Built " + mDayZero.size() + " DayCiF1005 entries."
                 + " Last date: " + (mDayZero.isEmpty() ? "N/A" : mDayZero.get(mDayZero.size() - 1).getDay()));
     }
 
@@ -2994,6 +3001,68 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
         dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
         dialog.Showing(report.toString());
+    }
+
+    /**
+     * Weight-Loss Maintenance Mode — applied after the daily cycle's Countdown Report.
+     * Rules are in MaintenanceModeCalculator; state and surplus are persisted by
+     * WeightLossMaintenanceMode.
+     */
+    private void applyMaintenanceMode() {
+        WeightLossMaintenanceMode maintenance = new WeightLossMaintenanceMode(getApplicationContext());
+        MaintenanceModeCalculator.Result result = maintenance.settle(
+                Get_currentBalanceInt(), isWeightLossJourneyStarted(), this::setMainCountdownBalance);
+        if (result == null) {
+            android.util.Log.e("Maintenance", "[applyMaintenanceMode] Main balance store failed — nothing changed, will retry next cycle.");
+            return;
+        }
+        long surplus = Math.round(maintenance.getSurplusAccount().getAccountValue());
+        android.util.Log.d("Maintenance", "[applyMaintenanceMode] transition=" + result.transition
+                + ", mainBalance=" + result.mainBalance + ", surplusCredit=" + result.surplusCredit
+                + ", surplusBalance=" + surplus);
+
+        String message = null;
+        if (result.transition == MaintenanceModeCalculator.Transition.ENTERED_MAINTENANCE) {
+            message = "Congratulations! Your Countdown Balance has reached 0 Cr.\n\n"
+                    + "Weight-Loss Maintenance Mode is now active. Your Countdown Balance stays at 0 Cr "
+                    + "and any countdown below 0 is added to your Surplus Account.\n\n"
+                    + "Surplus Account: " + surplus + " Cr";
+        } else if (result.transition == MaintenanceModeCalculator.Transition.RETURNED_TO_COUNTDOWN) {
+            message = "You counted up above 0 Cr. Your Countdown Balance is now "
+                    + result.mainBalance + " Cr and you are back in Countdown Mode.\n\n"
+                    + "Surplus Account: " + surplus + " Cr";
+        }
+        if (message != null) {
+            Display_Dialog_CIF11 dialog = new Display_Dialog_CIF11();
+            dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
+            dialog.Showing(message);
+        }
+    }
+
+    /** Stores and displays a new Main Countdown Balance; returns the store result (negative on failure). */
+    private long setMainCountdownBalance(int balance) {
+        String plainFigure = new RoundingCIF13().IntToString(balance);
+        long storeResult = StoreCountdownBalance(plainFigure);
+        if (storeResult >= 0) {
+            String numberFormat = getSharedPreferences("Calorie_Countdown", 0)
+                    .getString(AppCustomization.KEY_NUMBER_FORMAT, AppCustomization.FORMAT_PLAIN);
+            mBalance_text = AppCustomization.formatBalance(plainFigure, numberFormat);
+            TextView countdownbalance = (TextView) findViewById(R.id.textView);
+            if (countdownbalance != null) {
+                countdownbalance.setText(mBalance_text);
+            }
+        }
+        return storeResult;
+    }
+
+    /** True once Start Weight-Loss has stored an Opening Balance. */
+    private boolean isWeightLossJourneyStarted() {
+        try {
+            String startCountdown = new MIF4_Data_Model_Adapter(getApplicationContext()).RetrieveStartCountdown();
+            return startCountdown != null && Integer.parseInt(startCountdown.replace(",", "").trim()) > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // ── Variables Menu handlers ────────────────────────────────────────────────

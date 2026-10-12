@@ -288,13 +288,12 @@ public class MediaLibraryActivity extends AppCompatActivity {
             boolean anyImage = false;
             do {
                 int idxId    = cursor.getColumnIndex("memo_id");
-                int idxImage = cursor.getColumnIndex("memo_image");
                 int idxDate  = cursor.getColumnIndex("memo_date");
                 int idxTitle = cursor.getColumnIndex("memo_title");
                 int idxText  = cursor.getColumnIndex("memo_text");
 
                 int    memoId      = (idxId    >= 0) ? cursor.getInt(idxId)       : -1;
-                String imageBase64 = (idxImage >= 0) ? cursor.getString(idxImage) : null;
+                String imageBase64 = (memoId   >= 0) ? databaseHelper.getMemoImage(memoId) : null;
                 String date        = (idxDate  >= 0) ? cursor.getString(idxDate)  : "";
                 String title       = (idxTitle >= 0) ? cursor.getString(idxTitle) : "";
                 String text        = (idxText  >= 0) ? cursor.getString(idxText)  : "";

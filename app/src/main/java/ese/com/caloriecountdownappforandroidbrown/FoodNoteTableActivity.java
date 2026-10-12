@@ -554,22 +554,27 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         clearMemoPanelWithoutToast();
 
         // Try to load memo for current title
-        Cursor cursor = databaseHelper.getMemoByTitle(currentTitle);
-        if (cursor != null && cursor.moveToFirst()) {
-            // Get column indices
-            int textIndex = cursor.getColumnIndex("memo_text");
-            int imageIndex = cursor.getColumnIndex("memo_image");
+        Cursor cursor = null;
+        try {
+            cursor = databaseHelper.getMemoByTitle(currentTitle);
+            if (cursor != null && cursor.moveToFirst()) {
+                // Get column indices
+                int idIndex = cursor.getColumnIndex("memo_id");
+                int textIndex = cursor.getColumnIndex("memo_text");
 
-            if (textIndex != -1) {
-                String memoText = cursor.getString(textIndex);
-                if (memoText != null && !memoText.isEmpty()) {
-                    etMemoText.setText(memoText);
+                if (textIndex != -1) {
+                    String memoText = cursor.getString(textIndex);
+                    if (memoText != null && !memoText.isEmpty()) {
+                        etMemoText.setText(memoText);
+                    }
                 }
-            }
 
-            if (imageIndex != -1) {
-                String imageBase64 = cursor.getString(imageIndex);
+                // Image is read separately (in chunks) so large images cannot hide the memo
+                String imageBase64 = idIndex != -1 ? databaseHelper.getMemoImage(cursor.getInt(idIndex)) : null;
                 if (imageBase64 != null && !imageBase64.isEmpty()) {
+                    // Keep the stored image even if it cannot be previewed, so re-saving
+                    // the memo does not overwrite it with null
+                    memoImageBase64 = imageBase64;
                     // Convert base64 to bitmap and display
                     try {
                         byte[] decodedBytes = Base64.decode(imageBase64, Base64.DEFAULT);
@@ -578,18 +583,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             ivMemoAddImage.setVisibility(View.GONE);
                             ivMemoImagePreview.setImageBitmap(bitmap);
                             ivMemoImagePreview.setVisibility(View.VISIBLE);
-                            memoImageBase64 = imageBase64;
                         }
-                    } catch (Exception e) {
+                    } catch (Exception | OutOfMemoryError e) {
                         android.util.Log.e("MEMO", "Error decoding memo image: " + e.getMessage());
                     }
                 }
-            }
 
-            cursor.close();
-            android.util.Log.d("MEMO", "Loaded memo for title: " + currentTitle);
-        } else {
-            android.util.Log.d("MEMO", "No memo found for title: " + currentTitle + ", showing empty state");
+                android.util.Log.d("MEMO", "Loaded memo for title: " + currentTitle);
+            } else {
+                android.util.Log.d("MEMO", "No memo found for title: " + currentTitle + ", showing empty state");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MEMO", "Error loading memo for title: " + currentTitle + " - " + e.getMessage());
+        } finally {
             if (cursor != null) {
                 cursor.close();
             }
@@ -761,6 +767,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
      */
     private void handleMemoImageResult(Bitmap bitmap) {
         if (bitmap != null) {
+            // Downscale so the stored base64 stays well under the SQLite CursorWindow
+            // limit; full-size photos were saved but could not be read back
+            int[] size = MemoImageStorage.scaledSize(bitmap.getWidth(), bitmap.getHeight(),
+                    MemoImageStorage.MAX_DIMENSION_PX);
+            if (size[0] != bitmap.getWidth() || size[1] != bitmap.getHeight()) {
+                bitmap = Bitmap.createScaledBitmap(bitmap, size[0], size[1], true);
+            }
+
             // Hide the add image icon and show preview
             ivMemoAddImage.setVisibility(View.GONE);
             ivMemoImagePreview.setImageBitmap(bitmap);
@@ -1438,6 +1452,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();
 
+        // Summed total, optionally adjusted by "Apply BMR"; Credit uses the adjusted total
+        SumCaloriesBmr sum = new SumCaloriesBmr(totalCalories);
+
         TextView tvTotalCalories = dialog.findViewById(R.id.tvTotalCalories);
         if (tvTotalCalories != null) {
             tvTotalCalories.setText(String.valueOf(totalCalories));
@@ -1451,11 +1468,12 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnCredit = dialog.findViewById(R.id.btnCredit);
         if (btnCredit != null) {
             btnCredit.setOnClickListener(v1 -> {
-                android.util.Log.d("FoodNoteCredit", "[btnCredit] Attempting to add " + totalCalories + " calories to balance");
+                int creditCalories = sum.getTotal();
+                android.util.Log.d("FoodNoteCredit", "[btnCredit] Attempting to add " + creditCalories + " calories to balance");
 
-                if (totalCalories <= 0) {
+                if (creditCalories <= 0) {
                     // Root cause fix: guard against zero/negative credit which would be misleading
-                    Toast.makeText(FoodNoteTableActivity.this, "No calories to add (total is " + totalCalories + ")", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(FoodNoteTableActivity.this, "No calories to add (total is " + creditCalories + ")", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                     return;
                 }
@@ -1463,10 +1481,17 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 if (CCD_GUI_CD_CIF1.instance != null) {
                     // Root cause fix: AddToBalance now has full NFE/null safety and logs internally.
                     // Toast is shown here (not inside AddToBalance) to keep UI feedback clear.
-                    CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(totalCalories));
-                    android.util.Log.d("FoodNoteCredit", "[btnCredit] AddToBalance called for " + totalCalories + " calories");
+                    CCD_GUI_CD_CIF1.instance.AddToBalance(String.valueOf(creditCalories));
+                    android.util.Log.d("FoodNoteCredit", "[btnCredit] AddToBalance called for " + creditCalories + " calories");
                     Toast.makeText(FoodNoteTableActivity.this,
-                            "Added " + totalCalories + " calories to Countdown Balance", Toast.LENGTH_SHORT).show();
+                            "Added " + creditCalories + " calories to Countdown Balance", Toast.LENGTH_SHORT).show();
+                    if (sum.isBmrApplied()) {
+                        // BMR is now in the balance — record it like the Debit BMR deduction does,
+                        // so the Kitty report and Apply BMR do not apply it again today
+                        getSharedPreferences("Calorie_Countdown", 0).edit()
+                                .putString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, todayBmrDateKey())
+                                .apply();
+                    }
                 } else {
                     // Root cause fix: CCD_GUI_CD_CIF1.instance null means main activity is not in memory.
                     // Log so developer can diagnose process/activity lifecycle issues.
@@ -1477,6 +1502,42 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 dialog.dismiss();
             });
         }
+
+        // Apply BMR button - optionally subtracts the selected BMR from the summed total
+        Button btnApplyBmr = dialog.findViewById(R.id.btnApplyBmr);
+        if (btnApplyBmr != null) {
+            btnApplyBmr.setOnClickListener(v1 -> {
+                SharedPreferences pref = getSharedPreferences("Calorie_Countdown", 0);
+                // Selected BMR comes from the gender chosen in Start Weight-Loss (2500 male / 2000 female)
+                String gender = pref.getString("Gender_Type", null);
+                if (gender == null || gender.trim().isEmpty()) {
+                    Toast.makeText(FoodNoteTableActivity.this,
+                            "No BMR selected. Please complete Start Weight-Loss to select your gender first.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (todayBmrDateKey().equals(pref.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null))) {
+                    Toast.makeText(FoodNoteTableActivity.this,
+                            "BMR has already been applied today.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                int bmr = FourPMDebitStepsProcessor.resolveDailyBudget(gender);
+                if (sum.applyBmr(bmr)) {
+                    if (tvTotalCalories != null) {
+                        tvTotalCalories.setText(totalCalories + " - " + bmr + " (BMR) = " + sum.getTotal());
+                    }
+                    btnApplyBmr.setEnabled(false);
+                    android.util.Log.d("FoodNoteCredit", "[btnApplyBmr] total=" + totalCalories + ", bmr=" + bmr
+                            + ", adjusted=" + sum.getTotal());
+                }
+            });
+        }
+    }
+
+    /** Date key used by Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE. */
+    private String todayBmrDateKey() {
+        return new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
     }
 
 

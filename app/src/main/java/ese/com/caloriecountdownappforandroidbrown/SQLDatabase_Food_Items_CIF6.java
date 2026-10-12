@@ -5130,7 +5130,9 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     public Cursor getAllMemos() {
         android.util.Log.d("MEMO", "getAllMemos called");
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " ORDER BY " + COLUMN_MEMO_DATE + " DESC", null);
+        // memo_image is excluded (see getMemoByTitle); load it per row with getMemoImage(memo_id).
+        return db.rawQuery("SELECT " + COLUMN_MEMO_ID + ", " + COLUMN_MEMO_DATE + ", " + COLUMN_MEMO_TEXT + ", " + COLUMN_MEMO_TITLE
+                + " FROM " + TABLE_MEMO + " ORDER BY " + COLUMN_MEMO_DATE + " DESC", null);
     }
 
     /**
@@ -5174,12 +5176,52 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             }
         }
 
+        // memo_image is excluded: a large base64 image can exceed the CursorWindow and make
+        // the whole row unreadable. Load the image separately with getMemoImage(memo_id).
+        String columns = COLUMN_MEMO_ID + ", " + COLUMN_MEMO_DATE + ", " + COLUMN_MEMO_TEXT + ", " + COLUMN_MEMO_TITLE;
         if (title == null || title.isEmpty()) {
             // Return empty cursor if no title provided
-            return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE 1=0", null);
+            return db.rawQuery("SELECT " + columns + " FROM " + TABLE_MEMO + " WHERE 1=0", null);
         }
-        return db.rawQuery("SELECT * FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_TITLE + " = ?",
+        return db.rawQuery("SELECT " + columns + " FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_TITLE + " = ?"
+                        + " ORDER BY " + COLUMN_MEMO_DATE + " DESC, " + COLUMN_MEMO_ID + " DESC",
                 new String[]{title});
+    }
+
+    /**
+     * Get the base64 image of a memo, reading it in chunks so images larger than the
+     * CursorWindow (saved before memo images were downscaled) can still be loaded.
+     *
+     * @param memoId The memo_id of the memo
+     * @return The base64 image string, or null if the memo has no image or it cannot be read
+     */
+    public String getMemoImage(int memoId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String[] idArg = new String[]{String.valueOf(memoId)};
+
+        int length = 0;
+        Cursor lengthCursor = db.rawQuery("SELECT length(" + COLUMN_MEMO_IMAGE + ") FROM " + TABLE_MEMO
+                + " WHERE " + COLUMN_MEMO_ID + " = ?", idArg);
+        try {
+            if (lengthCursor.moveToFirst() && !lengthCursor.isNull(0)) {
+                length = lengthCursor.getInt(0);
+            }
+        } finally {
+            lengthCursor.close();
+        }
+        if (length <= 0) {
+            return null;
+        }
+
+        return MemoImageStorage.readInChunks(length, MemoImageStorage.READ_CHUNK_CHARS, (start, count) -> {
+            Cursor chunkCursor = db.rawQuery("SELECT substr(" + COLUMN_MEMO_IMAGE + ", " + start + ", " + count + ")"
+                    + " FROM " + TABLE_MEMO + " WHERE " + COLUMN_MEMO_ID + " = ?", idArg);
+            try {
+                return chunkCursor.moveToFirst() ? chunkCursor.getString(0) : null;
+            } finally {
+                chunkCursor.close();
+            }
+        });
     }
 
 

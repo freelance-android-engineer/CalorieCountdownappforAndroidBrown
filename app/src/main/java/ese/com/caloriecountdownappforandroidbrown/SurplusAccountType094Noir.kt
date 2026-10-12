@@ -13,39 +13,40 @@ class SurplusAccountType094Noir(val _inAccountValue: Double) : SurplusAccountTyp
 
 
     override fun creditAccount(amount: Int): Boolean {
-        TODO("Not yet implemented")
+        if (amount < 0) return false
         //Algorithm Engineering -> ANDROID
         //Step One:
         //the purpsose of this fun is to add the integer amount inputed as an argument to
         //the Balance of this SurplusPastXEROAccount.
 
         accountValue += amount
+        return true
     }
 
 
 
 
     override fun debitAccount(amount: Int): Boolean {
-        TODO("Not yet implemented")
+        if (amount < 0) return false
         //Algorithm Engineering -> ANDROID
         //Step One:
         //the purpsose of this fun is to subtract the integer amount inputed as an argument from
         //the Balance of this SurplusPastXEROAccount.🧪Cirlce
 
         accountValue -= amount
+        return true
     }
 
 
 
 
     override fun emptyAccount(): Boolean {
-        TODO("Not yet implemented")
         //Algorithm Engineering -> ANDROID
         //Step One:
         //the purpsose of this fun is to empty this account to zero Cr this SurplusPastXEROAccount.🧪Cirlce
 
         accountValue = 0.0
-    
+        return true
 
     }
 

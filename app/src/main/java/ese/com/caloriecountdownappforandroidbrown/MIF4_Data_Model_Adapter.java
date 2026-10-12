@@ -166,6 +166,9 @@ public class MIF4_Data_Model_Adapter extends FragmentActivity
             InitmForecast(IN);
             Log.d("SWL_DEBUG", "StoreStartWeightLoss: InitmForecast completed");
 
+            // A new journey returns the app to Countdown Mode (surplus balance is kept)
+            new WeightLossMaintenanceMode(context).startNewJourney();
+
         } catch (Exception e) {
             Log.e("SWL_DEBUG", "StoreStartWeightLoss: EXCEPTION: " + e.getMessage(), e);
             throw e;
@@ -2119,6 +2122,13 @@ public class Meal_Type
 
         //ESE
 
+        // Populate the static mDayZero forecast from the Opening Balance, starting on the
+        // Start Weight-Loss date.
+        java.util.Date startDate = IN.getStartDate();
+        java.time.LocalDateTime start = (startDate != null)
+                ? startDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                : java.time.LocalDateTime.now();
+        CCD_GUI_CD_CIF1.buildMDayZeroList(IN.getStartCountdown(), start);
     }
 
     // ── Exercise Items (Cardio + Strength Training) ───────────────────────────
