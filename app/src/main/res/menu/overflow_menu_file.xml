@@ -446,6 +446,9 @@
             <item
                 android:id="@+id/variables_balance_last_updated"
                 android:title="Balance Last Updated" />
+            <item
+                android:id="@+id/variables_steps_challenge"
+                android:title="Steps Challenge" />
         </menu>
     </item>
 

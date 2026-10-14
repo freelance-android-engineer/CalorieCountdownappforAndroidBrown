@@ -645,6 +645,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.variables_steps_challenge) {
+                showLastStepsChallengeDialog();
+                return true;
+            }
+
             return true;
 
         });
@@ -3086,6 +3091,29 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 .setMessage(message)
                 .setPositiveButton("OK", null)
                 .show();
+    }
+
+    /** Reminds the Subscriber of their last assigned Step Challenge — read only, nothing is recalculated. */
+    private void showLastStepsChallengeDialog() {
+        mBgExecutor.execute(() -> {
+            LastStepChallenge last;
+            try {
+                last = new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getLastAssignedStepChallenge();
+            } catch (Exception e) {
+                android.util.Log.e("Variables", "getLastAssignedStepChallenge error: " + e.getMessage(), e);
+                last = null;
+            }
+
+            final String message = (last != null) ? last.buildMessage() : LastStepChallenge.emptyMessage();
+            mKittyHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                new android.app.AlertDialog.Builder(CCD_GUI_CD_CIF1.this)
+                        .setTitle("Steps Challenge")
+                        .setMessage(message)
+                        .setPositiveButton("OK", null)
+                        .show();
+            });
+        });
     }
 
     /**

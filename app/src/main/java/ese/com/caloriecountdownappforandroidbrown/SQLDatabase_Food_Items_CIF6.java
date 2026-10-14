@@ -5725,6 +5725,45 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
         return 0;
     }
+
+    /**
+     * Returns the most recently saved Step Challenge across both places the app stores one
+     * ({@code steps_challenge_log} and {@code fourpm_debit_challenge}), or {@code null} if
+     * neither has a row. Read-only — used by Variables → "Steps Challenge".
+     */
+    public LastStepChallenge getLastAssignedStepChallenge() {
+        LastStepChallenge mainScreen = readLatestStepChallenge(
+                "SELECT " + COLUMN_SC_DATE + ", " + COLUMN_SC_CREATED_AT + ", "
+                        + COLUMN_SC_STEP_CHALLENGE + ", 0"
+                        + " FROM " + TABLE_STEPS_CHALLENGE
+                        + " ORDER BY " + COLUMN_SC_ID + " DESC LIMIT 1",
+                LastStepChallenge.Source.MAIN_SCREEN);
+        LastStepChallenge fourPmDebit = readLatestStepChallenge(
+                "SELECT " + COLUMN_DEBIT_DATE + ", " + COLUMN_DEBIT_CREATED_AT + ", "
+                        + COLUMN_DEBIT_STEP_CHALLENGE + ", " + COLUMN_DEBIT_IS_CAPPED
+                        + " FROM " + TABLE_FOURPM_DEBIT
+                        + " ORDER BY " + COLUMN_DEBIT_ID + " DESC LIMIT 1",
+                LastStepChallenge.Source.FOUR_PM_DEBIT);
+        LastStepChallenge latest = LastStepChallenge.mostRecent(mainScreen, fourPmDebit);
+        android.util.Log.d("STEPS_CHALLENGE_DB", "getLastAssignedStepChallenge → "
+                + (latest == null ? "none" : latest.source + " " + latest.stepChallenge));
+        return latest;
+    }
+
+    /** Reads one row of (date, created_at, step_challenge, is_capped); null if empty or on error. */
+    private LastStepChallenge readLatestStepChallenge(String sql, LastStepChallenge.Source source) {
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery(sql, null);
+            if (cursor == null || !cursor.moveToFirst()) return null;
+            return new LastStepChallenge(source, cursor.getString(0), cursor.getString(1),
+                    cursor.getInt(2), cursor.getInt(3) == 1);
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_CHALLENGE_DB",
+                    "Error reading last " + source + " step challenge: " + e.getMessage());
+            return null;
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+    }
 }
-
-
