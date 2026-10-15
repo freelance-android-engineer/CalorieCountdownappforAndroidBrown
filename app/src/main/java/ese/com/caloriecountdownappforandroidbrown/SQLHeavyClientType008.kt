@@ -186,7 +186,7 @@ class SQLHeavyClientType008(private val context: Context) {
     }
 
     /**
-     * Sync the 8:00 PM day-end snapshot to the backend.
+     * Sync the 9:00 PM day-end snapshot to the backend.
      *
      * @param clientName       client identifier
      * @param date             snapshot date "dd-MM-yyyy"

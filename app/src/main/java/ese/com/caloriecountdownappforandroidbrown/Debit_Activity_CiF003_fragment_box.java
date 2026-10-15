@@ -42,6 +42,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     private Button mMidnightScrape;
     private Button mStepsChallenge;
     private Button mAddNewDebitItem;
+    private Button mAccountability;
     private Fitness_Item_CIF5 mCountdown;
     private int mStep_Count = 0;
 
@@ -200,6 +201,15 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View v) {
                 showAddNewDebitItemDialog();
+            }
+        });
+
+        // Accountability button - Subscriber enters the steps missed from their Steps Challenge
+        mAccountability = (Button) findViewById(R.id.btnAccountability);
+        mAccountability.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAccountabilityDialog();
             }
         });
 
@@ -728,6 +738,75 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         } catch (Exception e) {
             android.util.Log.e("MidnightScrape", "showMidnightScrapeDialog: " + e.getMessage(), e);
             Toast.makeText(this, "Midnight Scrape error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showAccountabilityDialog() {
+        final EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        input.setHint("Missed steps");
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Accountability")
+                .setMessage("Enter the number of steps you missed in today's Steps Challenge.")
+                .setView(input)
+                .setPositiveButton("Submit", null) // set below so invalid input keeps the dialog open
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Integer missedSteps = Accountability.parseMissedSteps(input.getText().toString());
+            if (missedSteps == null) {
+                Toast.makeText(this, "Please enter a whole number of steps greater than 0.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            v.setEnabled(false); // one submission per dialog, so a double tap can't credit twice
+            dialog.dismiss();
+            creditAccountability(missedSteps);
+        }));
+        dialog.show();
+    }
+
+    /** Converts the missed steps with the Subscriber's Steps Numerator and credits the Main Countdown Balance. */
+    private void creditAccountability(int missedSteps) {
+        try {
+            double stepsNumerator = new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getStepsNumerator();
+            int credit = Accountability.toCredit(missedSteps, stepsNumerator);
+            android.util.Log.d("Accountability", "missedSteps=" + missedSteps + ", stepsNumerator=" + stepsNumerator
+                    + ", credit=" + credit);
+
+            String calculation = String.format("%,d", missedSteps) + " steps × " + stepsNumerator
+                    + " (Steps Numerator) = " + String.format("%,d", credit) + " calories";
+            if (credit <= 0) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Accountability")
+                        .setMessage(calculation + "\n\nThat is too few steps to credit, so your Countdown Balance was not changed.")
+                        .setPositiveButton("OK", null)
+                        .show();
+                return;
+            }
+
+            if (CCD_GUI_CD_CIF1.instance == null) {
+                android.util.Log.e("Accountability", "CCD_GUI_CD_CIF1.instance is null — main activity not available");
+                Toast.makeText(this, "Cannot update balance: please return to the main screen first, then try again.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (!CCD_GUI_CD_CIF1.instance.CreditAccountability(credit)) {
+                Toast.makeText(this, "Could not update your Countdown Balance. Please try again.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Accountability")
+                    .setMessage(calculation + "\n\n" + String.format("%,d", credit)
+                            + " calories have been credited to your Countdown Balance.")
+                    .setPositiveButton("OK", null)
+                    .show();
+        } catch (Exception e) {
+            android.util.Log.e("Accountability", "creditAccountability: " + e.getMessage(), e);
+            Toast.makeText(this, "Accountability error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

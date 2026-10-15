@@ -1485,6 +1485,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     android.util.Log.d("FoodNoteCredit", "[btnCredit] AddToBalance called for " + creditCalories + " calories");
                     Toast.makeText(FoodNoteTableActivity.this,
                             "Added " + creditCalories + " calories to Countdown Balance", Toast.LENGTH_SHORT).show();
+                    // food_consumed = the summed Food Notes value shown in this dialog, for Kitty Reports
+                    FoodConsumed.record(getSharedPreferences("Calorie_Countdown", 0), todayBmrDateKey(), totalCalories);
                     if (sum.isBmrApplied()) {
                         // BMR is now in the balance — record it like the Debit BMR deduction does,
                         // so the Kitty report and Apply BMR do not apply it again today
@@ -2068,7 +2070,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         } else {
             int stepChallenge = StepChallengeFun(Math.abs(result));
             message = "You have 0 Calories left in your Kitty and have the additional challenge of doing "
-                    + stepChallenge + " steps by 8:00 PM.";
+                    + stepChallenge + " steps by 9:00 PM.";
             if (stepChallenge >= 30_000) {
                 message += "\n\nStep Challenge capped at 30,000! Consider using Accrual to lighten the load.";
             }

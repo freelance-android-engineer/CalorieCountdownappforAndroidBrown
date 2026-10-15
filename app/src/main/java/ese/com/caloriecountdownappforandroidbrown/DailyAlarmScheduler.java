@@ -13,7 +13,7 @@ import java.util.Calendar;
 /**
  * Schedules the two daily alarms for the Calorie Countdown lifecycle:
  * - 3:30 PM (Credit Day End) - user should generate Step Challenge
- * - 8:00 PM (Debit Day End) - user should update steps/exercise activity
+ * - 9:00 PM (Debit Day End) - user should update steps/exercise activity
  *
  * Uses AlarmManager.setExactAndAllowWhileIdle() for reliable delivery.
  * Alarms re-schedule themselves for the next day after firing.
@@ -29,8 +29,8 @@ public class DailyAlarmScheduler {
     private static final int CREDIT_HOUR = 15;
     private static final int CREDIT_MINUTE = 30;
 
-    private static final int DEBIT_HOUR = 20;   // 8:00 PM
-    private static final int DEBIT_MINUTE = 0;
+    static final int DEBIT_HOUR = 21;   // 9:00 PM
+    static final int DEBIT_MINUTE = 0;
 
     private static final int FOURPM_HOUR = 16;
     private static final int FOURPM_MINUTE = 0;
@@ -42,7 +42,7 @@ public class DailyAlarmScheduler {
         scheduleCreditDayEndAlarm(context);
         scheduleDebitDayEndAlarm(context);
         schedule4PMFoodNotesAlarm(context);
-        Log.d(TAG, "All daily alarms scheduled (3:30 PM, 4:00 PM, 8:00 PM)");
+        Log.d(TAG, "All daily alarms scheduled (3:30 PM, 4:00 PM, 9:00 PM)");
     }
 
     /**
@@ -64,7 +64,7 @@ public class DailyAlarmScheduler {
     }
 
     /**
-     * Schedule the 8:00 PM Debit Day End alarm.
+     * Schedule the 9:00 PM Debit Day End alarm.
      */
     public static void scheduleDebitDayEndAlarm(Context context) {
         Calendar calendar = getNextAlarmTime(DEBIT_HOUR, DEBIT_MINUTE);
@@ -136,14 +136,20 @@ public class DailyAlarmScheduler {
      * If that time has already passed today, it schedules for tomorrow.
      */
     private static Calendar getNextAlarmTime(int hour, int minute) {
+        return getNextAlarmTime(hour, minute, System.currentTimeMillis());
+    }
+
+    /** Same as {@link #getNextAlarmTime(int, int)} for a given "now" — package-private for tests. */
+    static Calendar getNextAlarmTime(int hour, int minute, long nowMillis) {
         Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(nowMillis);
         calendar.set(Calendar.HOUR_OF_DAY, hour);
         calendar.set(Calendar.MINUTE, minute);
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
 
         // If the time has already passed today, schedule for tomorrow
-        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+        if (calendar.getTimeInMillis() <= nowMillis) {
             calendar.add(Calendar.DAY_OF_YEAR, 1);
         }
 

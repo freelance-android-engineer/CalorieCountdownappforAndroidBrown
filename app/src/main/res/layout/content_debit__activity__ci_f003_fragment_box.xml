@@ -119,6 +119,13 @@
             android:layout_marginTop="16dp"
             android:text="@string/btn_add_new_debit_item"/>
 
+        <Button
+            android:id="@+id/btnAccountability"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/btn_accountability"/>
+
     </LinearLayout>
     </ScrollView>
 

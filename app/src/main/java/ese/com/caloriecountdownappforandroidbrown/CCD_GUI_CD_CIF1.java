@@ -161,7 +161,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             }
         }
 
-        // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 8:00 PM (Debit Day End)
+        // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 9:00 PM (Debit Day End)
         DailyAlarmScheduler.scheduleBothAlarms(this);
 
         // One-time notice of the recommended Client Step Challenge (skipped once shown)
@@ -1067,15 +1067,15 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         }
     }
 
-    /** Public entry point for DailyAlarmReceiver to call when the 8:00 PM alarm fires. */
+    /** Public entry point for DailyAlarmReceiver to call when the 9:00 PM alarm fires. */
     public void Store_Dayend2_Public() {
         Store_Dayend2();
     }
 
     /**
-     * 8:00 PM Midnight Scrape — Store Day End 2 Snapshot.
+     * 9:00 PM Midnight Scrape — Store Day End 2 Snapshot.
      *
-     * Fires after the 8:00 PM alarm (and also after every debit update if past 4 PM).
+     * Fires after the 9:00 PM alarm (and also after every debit update if past 4 PM).
      * Idempotent: stores only ONCE per calendar day using isDayEnd2StoredForDate() guard.
      *
      * Captures:
@@ -1916,6 +1916,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         cal.add(Calendar.DAY_OF_YEAR, -1);
         final String yesterday = dayFormat.format(cal.getTime());
         final boolean bmrApplied = today.equals(prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null));
+        // food_consumed — today's Food Notes total credited via Sum Notes → Credit (null if none)
+        final Integer foodConsumed = FoodConsumed.forDate(prefs, today);
 
         mBgExecutor.execute(() -> {
             try {
@@ -1927,7 +1929,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 KittyCalculator.Result result = KittyCalculator.calculate(previousDayEnd, currentbalance, bmr, bmrApplied);
                 android.util.Log.d("KittyFlow", "[Kitty] current=" + currentbalance + " previousDayEnd=" + previousDayEnd
                         + " target=" + result.dayEndTarget + " bmr=" + bmr + " bmrApplied=" + bmrApplied
-                        + " outcome=" + result.outcome + " value=" + result.value);
+                        + " outcome=" + result.outcome + " value=" + result.value + " foodConsumed=" + foodConsumed);
 
                 final String message;
                 if (result.outcome == KittyCalculator.Outcome.STEP_CHALLENGE) {
@@ -1940,6 +1942,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     msg.append("Current Balance:        ").append(String.format("%,d", currentbalance)).append("\n");
                     msg.append("Previous Day End:       ").append(String.format("%,d", previousDayEnd)).append("\n");
                     msg.append("Day End Target (- 250): ").append(String.format("%,d", result.dayEndTarget)).append("\n");
+                    if (foodConsumed != null) {
+                        msg.append("Food Consumed:          ").append(String.format("%,d", foodConsumed)).append("\n");
+                    }
                     if (!bmrApplied) {
                         msg.append("BMR:                    ").append(String.format("%,d", bmr)).append("\n");
                     }
@@ -1955,7 +1960,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                     msg.append("\n\nOnly dispose of the Dialog once you have performed it.");
                     message = msg.toString();
                 } else {
-                    message = "You have " + result.value + " calories left in your Kitty";
+                    message = "You have " + result.value + " calories left in your Kitty"
+                            + (foodConsumed != null
+                                    ? "\n\nFood Consumed today: " + String.format("%,d", foodConsumed) + " calories"
+                                    : "");
                 }
 
                 mKittyHandler.post(() -> {
@@ -1975,7 +1983,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         int kit = Math.abs(in);
         in = kit;
         int stepChallenge = GenerateStepsChallenge(in);
-        String out = "Your Steps Challenge to successfully countdown your Balance by " + new RoundingCIF13().IntToString(kit + 250) + " points by Dayend (8:00 PM) is: " + new RoundingCIF13().IntToString(stepChallenge) + " Steps.";
+        String out = "Your Steps Challenge to successfully countdown your Balance by " + new RoundingCIF13().IntToString(kit + 250) + " points by Dayend (9:00 PM) is: " + new RoundingCIF13().IntToString(stepChallenge) + " Steps.";
 
         if (stepChallenge >= 30_000) {
             out += "\n\nYour Step Challenge has hit the 30,000 cap! Consider using the Accrual menu item to borrow calories from the previous day and reduce your challenge.";
@@ -3042,6 +3050,22 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             dialog.Set_mAppContext(CCD_GUI_CD_CIF1.this);
             dialog.Showing(message);
         }
+    }
+
+    /**
+     * Debit screen "Accountability" credit: adds the converted missed steps to the Main Countdown
+     * Balance and stores it. Unlike AddToBalance/Countup it does not overwrite the pre-credit
+     * Day End Balance that the Step Challenge is calculated from.
+     *
+     * @return true if the new balance was stored
+     */
+    public boolean CreditAccountability(int calories) {
+        if (calories <= 0) return false;
+        int currentBalance = Get_currentBalanceInt();
+        long storeResult = setMainCountdownBalance(currentBalance + calories);
+        android.util.Log.d("Accountability", "[CreditAccountability] balance=" + currentBalance
+                + ", credit=" + calories + ", storeResult=" + storeResult);
+        return storeResult >= 0;
     }
 
     /** Stores and displays a new Main Countdown Balance; returns the store result (negative on failure). */
