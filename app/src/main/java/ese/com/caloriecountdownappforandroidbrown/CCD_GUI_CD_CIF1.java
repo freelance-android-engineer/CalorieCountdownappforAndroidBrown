@@ -3061,10 +3061,26 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      */
     public boolean CreditAccountability(int calories) {
         if (calories <= 0) return false;
+        return applyAccountabilityChange(calories);
+    }
+
+    /**
+     * Debit screen "de-Accountability" debit: subtracts the converted surplus steps from the Main
+     * Countdown Balance and stores it, the same way as {@link #CreditAccountability}. Like the
+     * existing Debit flow, the balance may go below zero (overdrawn).
+     *
+     * @return true if the new balance was stored
+     */
+    public boolean DebitDeAccountability(int calories) {
+        if (calories <= 0) return false;
+        return applyAccountabilityChange(-calories);
+    }
+
+    private boolean applyAccountabilityChange(int change) {
         int currentBalance = Get_currentBalanceInt();
-        long storeResult = setMainCountdownBalance(currentBalance + calories);
-        android.util.Log.d("Accountability", "[CreditAccountability] balance=" + currentBalance
-                + ", credit=" + calories + ", storeResult=" + storeResult);
+        long storeResult = setMainCountdownBalance(currentBalance + change);
+        android.util.Log.d("Accountability", "[applyAccountabilityChange] balance=" + currentBalance
+                + ", change=" + change + ", storeResult=" + storeResult);
         return storeResult >= 0;
     }
 

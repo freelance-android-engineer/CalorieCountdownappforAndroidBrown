@@ -5651,6 +5651,28 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
+     * Returns the Subscriber's stored steps numerator (calories per step), or {@code null} if none
+     * has been saved or it cannot be read. Unlike {@link #getStepsNumerator()} there is no
+     * {@code 0.089} fallback — used by Accountability / de-Accountability so a missing value never
+     * changes the balance.
+     */
+    public Double getStoredStepsNumerator() {
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_SN_VALUE + " FROM " + TABLE_STEPS_NUMERATOR
+                    + " ORDER BY " + COLUMN_SN_ID + " DESC LIMIT 1", null);
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+                return cursor.getDouble(0);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_NUMERATOR_DB", "Error reading stored steps numerator: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
+    /**
      * Returns the stored steps numerator (calories per step).
      * Falls back to the legacy constant {@code 0.089} if no value has been saved yet.
      *

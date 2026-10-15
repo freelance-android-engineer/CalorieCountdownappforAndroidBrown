@@ -2615,6 +2615,7 @@
     <string name="btn_add_strength_item">Add Strength Training Item</string>
     <string name="btn_add_new_debit_item">Add New Debit Item</string>
     <string name="btn_accountability">Accountability</string>
+    <string name="btn_de_accountability">de-Accountability</string>
     <string name="btn_ai_debit">AI</string>
 
     <!-- New Cardio Item Screen -->

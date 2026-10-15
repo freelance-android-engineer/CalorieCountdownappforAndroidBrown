@@ -1,18 +1,23 @@
 package ese.com.caloriecountdownappforandroidbrown;
 
+import android.content.SharedPreferences;
+
 /**
- * Input rules for the Debit screen's "Accountability" button, where the Subscriber enters the
- * steps they missed from their daily Steps Challenge. No Android dependencies so it can be
- * unit tested on the JVM.
+ * Rules for the Debit screen's "Accountability" and "de-Accountability" buttons.
+ * No Android UI dependencies so it can be unit tested on the JVM.
  *
- * The missed steps are converted to Calories/Points with the Subscriber's Steps Numerator
- * (calories burned per step, stored in SQLite) and credited to the Main Countdown Balance:
+ *   Accountability    — steps missed from the daily Steps Challenge, CREDITED to the balance
+ *   de-Accountability — surplus steps above the daily Steps Challenge, DEBITED from the balance
  *
- *   credit = round(missedSteps × Steps Numerator)
- *
+ * Both convert steps with the Subscriber's Steps Numerator (calories burned per step, stored
+ * in SQLite):  points = round(steps × Steps Numerator)
  * This is the inverse of the Step Challenge (steps = calories ÷ Steps Numerator).
  */
 public final class Accountability {
+
+    /** Prefs keys holding the last processed event id, so one event is never applied twice. */
+    static final String KEY_LAST_ACCOUNTABILITY_EVENT = "accountability_last_event_id";
+    static final String KEY_LAST_DE_ACCOUNTABILITY_EVENT = "de_accountability_last_event_id";
 
     private Accountability() {}
 
@@ -30,14 +35,35 @@ public final class Accountability {
         return steps > 0 ? steps : null;
     }
 
+    /** Parses the surplus-steps input (steps above the daily target); same rules as missed steps. */
+    public static Integer parseSurplusSteps(String input) {
+        return parseMissedSteps(input);
+    }
+
     /**
-     * Calories/Points to credit for the missed steps.
+     * Points for a number of steps: round(steps × stepsNumerator).
      *
-     * @return round(missedSteps × stepsNumerator), or 0 if the inputs are not usable
+     * @return the points (0 when the numerator is 0), or null when the steps or the numerator
+     *         are missing or invalid, in which case the balance must not be changed
      */
-    public static int toCredit(int missedSteps, double stepsNumerator) {
-        if (missedSteps <= 0 || !(stepsNumerator > 0) || Double.isInfinite(stepsNumerator)) return 0;
-        long credit = Math.round(missedSteps * stepsNumerator);
-        return (int) Math.min(credit, Integer.MAX_VALUE);
+    public static Integer toPoints(int steps, Double stepsNumerator) {
+        if (steps <= 0 || stepsNumerator == null || stepsNumerator.isNaN()
+                || stepsNumerator.isInfinite() || stepsNumerator < 0) {
+            return null;
+        }
+        long points = Math.round(steps * stepsNumerator);
+        return (int) Math.min(points, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Claims an event so it is applied at most once, persisted before the balance changes.
+     *
+     * @return true if the event had not been processed and is now recorded; false if it was
+     *         already processed or could not be recorded (the balance must then not change)
+     */
+    public static boolean claimEvent(SharedPreferences prefs, String key, String eventId) {
+        if (eventId == null || eventId.isEmpty()) return false;
+        if (eventId.equals(prefs.getString(key, null))) return false;
+        return prefs.edit().putString(key, eventId).commit();
     }
 }
