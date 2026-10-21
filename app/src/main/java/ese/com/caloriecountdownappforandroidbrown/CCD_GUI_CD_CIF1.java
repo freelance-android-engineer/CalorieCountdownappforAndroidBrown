@@ -1915,7 +1915,10 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         String today = dayFormat.format(cal.getTime());
         cal.add(Calendar.DAY_OF_YEAR, -1);
         final String yesterday = dayFormat.format(cal.getTime());
-        final boolean bmrApplied = today.equals(prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null));
+        final boolean bmrAppliedToday = today.equals(prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null));
+        // Recalibrated today → the Kitty starts anew from the recalibrated balance (client rule)
+        final Integer recalibratedDayEnd = RecalibratedKitty.previousDayEnd(prefs, today);
+        final boolean bmrApplied = RecalibratedKitty.bmrApplied(prefs, today, bmrAppliedToday);
         // food_consumed — today's Food Notes total credited via Sum Notes → Credit (null if none)
         final Integer foodConsumed = FoodConsumed.forDate(prefs, today);
 
@@ -1924,8 +1927,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
                 // Previous day's Day-End Balance = yesterday's day-end snapshot (dayend_balance2).
                 // Falls back to the existing dayend_balance value if no snapshot was stored yesterday.
-                Integer yesterdayDayEnd = db.getDayEnd2BalanceForDate(yesterday);
-                int previousDayEnd = (yesterdayDayEnd != null) ? yesterdayDayEnd : db.GetDayEndBalance();
+                int previousDayEnd;
+                if (recalibratedDayEnd != null) {
+                    previousDayEnd = recalibratedDayEnd;
+                } else {
+                    Integer yesterdayDayEnd = db.getDayEnd2BalanceForDate(yesterday);
+                    previousDayEnd = (yesterdayDayEnd != null) ? yesterdayDayEnd : db.GetDayEndBalance();
+                }
                 KittyCalculator.Result result = KittyCalculator.calculate(previousDayEnd, currentbalance, bmr, bmrApplied);
                 android.util.Log.d("KittyFlow", "[Kitty] current=" + currentbalance + " previousDayEnd=" + previousDayEnd
                         + " target=" + result.dayEndTarget + " bmr=" + bmr + " bmrApplied=" + bmrApplied

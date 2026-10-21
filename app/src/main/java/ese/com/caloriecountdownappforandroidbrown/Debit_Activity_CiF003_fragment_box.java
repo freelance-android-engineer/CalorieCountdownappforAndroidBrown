@@ -861,10 +861,9 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 return;
             }
 
-            showAccountabilityResult(title, calculation + "\n\n"
-                    + String.format("%,d", points) + " points have been " + (credit ? "credited to" : "debited from")
-                    + " your Countdown Balance.\n\n"
-                    + "Balance: " + String.format("%,d", previousBalance) + " → " + String.format("%,d", main.Get_currentBalanceInt()));
+            // Client: always summarize what happened in the Countdown Report dialog
+            showAccountabilityResult("Countdown Report", Accountability.debitReport(credit, steps, stepsNumerator,
+                    points, previousBalance, main.Get_currentBalanceInt()));
         } catch (Exception e) {
             android.util.Log.e("Accountability", title + ": " + e.getMessage(), e);
             Toast.makeText(this, title + " error: " + e.getMessage(), Toast.LENGTH_LONG).show();

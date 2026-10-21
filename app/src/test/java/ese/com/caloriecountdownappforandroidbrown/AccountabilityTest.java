@@ -110,4 +110,68 @@ public class AccountabilityTest {
         prefs.failCommits = true;
         assertFalse(Accountability.claimEvent(prefs, Accountability.KEY_LAST_ACCOUNTABILITY_EVENT, "event-1"));
     }
+
+    // ── Credit screen (calories) ──
+
+    @Test
+    public void creditCaloriesUseTheSameInputRules() {
+        assertEquals(Integer.valueOf(410), Accountability.parseCalories("410"));
+        assertNull(Accountability.parseCalories("0"));
+        assertNull(Accountability.parseCalories("-410"));
+        assertNull(Accountability.parseCalories("41.0"));
+    }
+
+    @Test
+    public void creditScreenEventsAreTrackedSeparatelyFromDebitScreen() {
+        FakeSharedPreferences prefs = new FakeSharedPreferences();
+        assertTrue(Accountability.claimEvent(prefs, Accountability.KEY_LAST_ACCOUNTABILITY_EVENT, "same-id"));
+        assertTrue(Accountability.claimEvent(prefs, Accountability.KEY_LAST_CREDIT_ACCOUNTABILITY_EVENT, "same-id"));
+        assertTrue(Accountability.claimEvent(prefs, Accountability.KEY_LAST_CREDIT_DE_ACCOUNTABILITY_EVENT, "same-id"));
+    }
+
+    // ── Countdown Report summaries ──
+
+    @Test
+    public void creditAccountabilityReport() {
+        // Client example: Budget 3500, ate 3910 → 410 above budget → +410
+        String report = Accountability.creditReport(true, 410, 71_917, 72_327);
+        assertTrue(report.contains("Countdown Report"));
+        assertTrue(report.contains("Credit — Accountability"));
+        assertTrue(report.contains("410 calories ABOVE your daily Credit Budget"));
+        assertTrue(report.contains("410 points added to your Main Countdown Balance"));
+        assertTrue(report.contains("Previous Balance:  71,917 Cr"));
+        assertTrue(report.contains("New Balance:       72,327 Cr"));
+        assertTrue(report.contains("Net Countup:       +410 pts"));
+    }
+
+    @Test
+    public void creditDeAccountabilityReport() {
+        // Client example: Budget 3500, ate 3090 → 410 below budget → -410
+        String report = Accountability.creditReport(false, 410, 71_917, 71_507);
+        assertTrue(report.contains("Credit — de-Accountability"));
+        assertTrue(report.contains("410 calories BELOW your daily Credit Budget"));
+        assertTrue(report.contains("410 points taken off your Main Countdown Balance"));
+        assertTrue(report.contains("Net Countdown:     -410 pts"));
+    }
+
+    @Test
+    public void debitAccountabilityReport() {
+        // Client example: Budget 15,500 steps, walked 10,500 → 5,000 × 0.089 = 445 → +445
+        String report = Accountability.debitReport(true, 5_000, 0.089, 445, 70_000, 70_445);
+        assertTrue(report.contains("Debit — Accountability"));
+        assertTrue(report.contains("5,000 steps BELOW your daily Steps Budget"));
+        assertTrue(report.contains("5,000 steps × 0.089 (Steps Numerator) = 445 points"));
+        assertTrue(report.contains("Net Countup:       +445 pts"));
+    }
+
+    @Test
+    public void debitDeAccountabilityReport() {
+        // Client example: Budget 15,500 steps, walked 20,500 → 5,000 × 0.089 = 445 → -445
+        String report = Accountability.debitReport(false, 5_000, 0.089, 445, 70_000, 69_555);
+        assertTrue(report.contains("Debit — de-Accountability"));
+        assertTrue(report.contains("5,000 steps ABOVE your daily Steps Budget"));
+        assertTrue(report.contains("445 points taken off your Main Countdown Balance"));
+        assertTrue(report.contains("New Balance:       69,555 Cr"));
+        assertTrue(report.contains("Net Countdown:     -445 pts"));
+    }
 }

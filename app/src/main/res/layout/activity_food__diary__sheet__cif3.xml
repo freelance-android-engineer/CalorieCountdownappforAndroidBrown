@@ -413,6 +413,18 @@
                 android:layout_height="wrap_content"
                 android:text= "@string/clear_all"/>
 
+            <Button
+                android:id="@+id/btnCreditAccountability"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_accountability"/>
+
+            <Button
+                android:id="@+id/btnCreditDeAccountability"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_de_accountability"/>
+
 
 
 

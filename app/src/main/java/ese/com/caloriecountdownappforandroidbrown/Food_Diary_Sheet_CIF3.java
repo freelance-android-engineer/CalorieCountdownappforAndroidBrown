@@ -56,6 +56,8 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Button mRecalibrate;
     private Button mJustAdd;
     private Button mClearButton;
+    private Button mAccountability;
+    private Button mDeAccountability;
 
     private Context mAppContext;
 
@@ -211,6 +213,107 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             }
         });
 
+        // Accountability button - Subscriber enters the calories eaten above the daily Credit Budget
+        mAccountability = (Button) findViewById(R.id.btnCreditAccountability);
+        mAccountability.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showCaloriesEntryDialog(true);
+            }
+        });
+
+        // de-Accountability button - Subscriber enters the calories eaten below the daily Credit Budget
+        mDeAccountability = (Button) findViewById(R.id.btnCreditDeAccountability);
+        mDeAccountability.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showCaloriesEntryDialog(false);
+            }
+        });
+
+    }
+
+    /**
+     * Calories entry for Credit Accountability (credit) and de-Accountability (debit). Each dialog
+     * is one event with its own id, claimed in prefs before the balance changes, so a double tap
+     * can never apply it twice.
+     */
+    private void showCaloriesEntryDialog(final boolean accountability) {
+        final String eventId = java.util.UUID.randomUUID().toString();
+        final EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        input.setHint(accountability ? "Calories above budget" : "Calories below budget");
+
+        final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(accountability ? "Accountability" : "de-Accountability")
+                .setMessage(accountability
+                        ? "Enter how many calories you ate ABOVE your daily Credit Budget."
+                        : "Enter how many calories you ate BELOW your daily Credit Budget.")
+                .setView(input)
+                .setPositiveButton("Submit", null) // set below so invalid input keeps the dialog open
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Integer calories = Accountability.parseCalories(input.getText().toString());
+            if (calories == null) {
+                Toast.makeText(this, "Please enter a whole number of calories greater than 0.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            v.setEnabled(false);
+            dialog.dismiss();
+            applyCreditAccountability(accountability, calories, eventId);
+        }));
+        dialog.show();
+    }
+
+    /**
+     * Accountability:    calories above the Credit Budget → CREDIT the Main Countdown Balance
+     * de-Accountability: calories below the Credit Budget → DEBIT  the Main Countdown Balance
+     */
+    private void applyCreditAccountability(boolean accountability, int calories, String eventId) {
+        final String title = accountability ? "Accountability" : "de-Accountability";
+        try {
+            CCD_GUI_CD_CIF1 main = CCD_GUI_CD_CIF1.instance;
+            if (main == null) {
+                Log.e("Accountability", "CCD_GUI_CD_CIF1.instance is null — main activity not available");
+                Toast.makeText(this, "Cannot update balance: please return to the main screen first, then try again.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            String eventKey = accountability ? Accountability.KEY_LAST_CREDIT_ACCOUNTABILITY_EVENT
+                    : Accountability.KEY_LAST_CREDIT_DE_ACCOUNTABILITY_EVENT;
+            if (!Accountability.claimEvent(getSharedPreferences("Calorie_Countdown", 0), eventKey, eventId)) {
+                Log.w("Accountability", "Credit " + title + ": event " + eventId + " already processed — skipped");
+                Toast.makeText(this, "This " + title + " entry has already been processed.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int previousBalance = main.Get_currentBalanceInt();
+            boolean stored = accountability ? main.CreditAccountability(calories) : main.DebitDeAccountability(calories);
+            Log.d("Accountability", "Credit " + title + ": calories=" + calories + ", stored=" + stored
+                    + ", event=" + eventId);
+            if (!stored) {
+                showCreditAccountabilityResult(title, "Your Countdown Balance could not be updated. Please try again.");
+                return;
+            }
+
+            // Client: always summarize what happened in the Countdown Report dialog
+            showCreditAccountabilityResult("Countdown Report", Accountability.creditReport(accountability, calories,
+                    previousBalance, main.Get_currentBalanceInt()));
+        } catch (Exception e) {
+            Log.e("Accountability", "Credit " + title + ": " + e.getMessage(), e);
+            Toast.makeText(this, title + " error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showCreditAccountabilityResult(String title, String message) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
 

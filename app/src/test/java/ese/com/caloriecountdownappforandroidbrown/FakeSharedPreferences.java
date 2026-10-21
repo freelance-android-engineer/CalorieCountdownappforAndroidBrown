@@ -18,7 +18,7 @@ final class FakeSharedPreferences implements SharedPreferences {
     @Override public int getInt(String k, int d) { return values.containsKey(k) ? (Integer) values.get(k) : d; }
     @Override public long getLong(String k, long d) { return d; }
     @Override public float getFloat(String k, float d) { return d; }
-    @Override public boolean getBoolean(String k, boolean d) { return d; }
+    @Override public boolean getBoolean(String k, boolean d) { return values.containsKey(k) ? (Boolean) values.get(k) : d; }
     @Override public boolean contains(String k) { return values.containsKey(k); }
     @Override public void registerOnSharedPreferenceChangeListener(OnSharedPreferenceChangeListener l) {}
     @Override public void unregisterOnSharedPreferenceChangeListener(OnSharedPreferenceChangeListener l) {}

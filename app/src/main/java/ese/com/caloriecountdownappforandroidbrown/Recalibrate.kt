@@ -114,6 +114,7 @@ class Recalibrate : AppCompatActivity()
 
         val output =  ((mass - target) * 2.2)  * 3500
 
+        resetKitty(output.toInt())
         return output.toInt().toString()
     }
 
@@ -131,7 +132,21 @@ class Recalibrate : AppCompatActivity()
         val mass:Float = Input1.toFloat()
         val output = ((mass - target) ) * 3500
 
+        resetKitty(output.toInt())
         return output.toInt().toString()
+    }
+
+    /**
+     * Client rule: recalibrating resets the Kitty to the full BMR (2500 / 2000) and starts it
+     * anew from the recalibrated balance. Recorded before the balance is set, because setting it
+     * shows the Kitty dialog straight away.
+     */
+    private fun resetKitty(recalibratedBalance: Int)
+    {
+        val prefs = getSharedPreferences("Calorie_Countdown", 0)
+        val today = java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(java.util.Date())
+        val bmrAppliedToday = today == prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null)
+        RecalibratedKitty.record(prefs, today, recalibratedBalance, bmrAppliedToday)
     }
 
     /**
