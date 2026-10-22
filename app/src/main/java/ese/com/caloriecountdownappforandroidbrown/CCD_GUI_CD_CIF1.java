@@ -164,6 +164,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         // Schedule the two daily alarms: 4:00 PM (Credit Day End) and 9:00 PM (Debit Day End)
         DailyAlarmScheduler.scheduleBothAlarms(this);
 
+        // Day End Balance: fill earlier days whose 11:59 PM capture was missed (app killed / device off)
+        final String dayEndToday = DayEndBalance.dateKey(System.currentTimeMillis());
+        mBgExecutor.execute(() -> new SQLDatabase_Food_Items_CIF6(getApplicationContext())
+                .recoverMissedDayEndBalances(dayEndToday));
+
         // One-time notice of the recommended Client Step Challenge (skipped once shown)
         StepChallengeUpdateNotifier.notifyIfTargetChanged(this);
 

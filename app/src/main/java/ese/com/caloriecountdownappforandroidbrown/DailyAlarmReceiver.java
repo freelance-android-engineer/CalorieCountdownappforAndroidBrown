@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat;
  * BroadcastReceiver that handles the two daily alarms:
  * - 3:30 PM (Credit Day End) - Prompts user to generate Step Challenge
  * - 9:00 PM (Debit Day End) - Prompts user to update debit activity (steps/exercise)
+ * - 11:59 PM (Day End Balance) - Stores the definitive Day End Balance for the day
  */
 public class DailyAlarmReceiver extends BroadcastReceiver {
 
@@ -22,6 +23,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
     public static final String ACTION_CREDIT_DAY_END = "ese.com.caloriecountdownappforandroidbrown.CREDIT_DAY_END";
     public static final String ACTION_DEBIT_DAY_END = "ese.com.caloriecountdownappforandroidbrown.DEBIT_DAY_END";
     public static final String ACTION_4PM_FOOD_NOTES = "ese.com.caloriecountdownappforandroidbrown.FOURPM_FOOD_NOTES";
+    public static final String ACTION_DAY_END_BALANCE = "ese.com.caloriecountdownappforandroidbrown.DAY_END_BALANCE";
 
     private static final String CHANNEL_ID_CREDIT = "credit_day_end_channel";
     private static final String CHANNEL_ID_DEBIT = "debit_day_end_channel";
@@ -54,6 +56,10 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 show4PMFoodNotesNotification(context);
                 // Re-schedule for tomorrow
                 DailyAlarmScheduler.schedule4PMFoodNotesAlarm(context);
+            } else if (ACTION_DAY_END_BALANCE.equals(action)) {
+                captureDayEndBalance(context, intent);
+                // Re-schedule for tomorrow
+                DailyAlarmScheduler.scheduleDayEndBalanceAlarm(context);
             }
         } finally {
             pendingResult.finish();
@@ -247,6 +253,29 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
 
         } catch (Exception e) {
             Log.e(TAG, "[triggerMidnightScrape] Background snapshot failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 11:59 PM — stores the Main Countdown Balance as the definitive Day End Balance.
+     * The balance is read from SQLite (countdown_balances), which StoreCountdownBalance() writes on
+     * every change of the balance shown on screen, so it works even when the app is not running.
+     * The date is the day the alarm was scheduled for, so an alarm delivered late (after midnight)
+     * is still stored against the correct day.
+     */
+    private void captureDayEndBalance(Context context, Intent intent) {
+        try {
+            long now = System.currentTimeMillis();
+            long scheduledAt = intent.getLongExtra(DailyAlarmScheduler.EXTRA_SCHEDULED_AT, now);
+            String date = DayEndBalance.dateKey(scheduledAt);
+
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(context);
+            String balanceStr = db.GetLatestBalance();
+            int balance = Integer.parseInt(AppCustomization.stripCommas(balanceStr == null ? "0" : balanceStr).trim());
+            boolean stored = db.saveDayEndBalance(date, balance, DayEndBalance.SOURCE_SCHEDULED, now);
+            Log.d(TAG, "[captureDayEndBalance] date=" + date + " balance=" + balance + " stored=" + stored);
+        } catch (Exception e) {
+            Log.e(TAG, "[captureDayEndBalance] " + e.getMessage(), e);
         }
     }
 

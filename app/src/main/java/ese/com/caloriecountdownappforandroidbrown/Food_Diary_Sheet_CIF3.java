@@ -36,6 +36,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private static int REQUEST_CODE_SPELLINGITEMSLIST = 4;
     private static int REQUEST_CODE_RECALIBRATE = 5;
     private static int REQUEST_CODE_JUSTADD = 6;
+    private static int REQUEST_CODE_DIET_PLANNER = 7;
     private static final String TAG = "Calorie Countdown App";
     public static final String TOTAL_CREDIT_VALUE = "Total Credit Countup Value";
     public static final String SUMMATION_TEXT = "Report Summary";
@@ -58,6 +59,7 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
     private Button mClearButton;
     private Button mAccountability;
     private Button mDeAccountability;
+    private Button mDietPlanner;
 
     private Context mAppContext;
 
@@ -210,6 +212,16 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             @Override
             public void onClick(View v) {
                 clearAllEditTextFields();
+            }
+        });
+
+        // Diet Planner and Generator button - build weekly Diet Plans and credit a saved meal
+        mDietPlanner = (Button) findViewById(R.id.button12);
+        mDietPlanner.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(Food_Diary_Sheet_CIF3.this, Diet_Planner_CIF0116_fragment_box.class);
+                startActivityForResult(i, REQUEST_CODE_DIET_PLANNER);
             }
         });
 
@@ -688,6 +700,47 @@ public class Food_Diary_Sheet_CIF3 extends FragmentActivity implements SpellChec
             setResult(RESULT_OK, result);
             finish();
         }
+        if (requestcode == REQUEST_CODE_DIET_PLANNER && resultcode == RESULT_OK && data != null) {
+            creditDietPlannerMeal(data);
+        }
+    }
+
+    /**
+     * Credits a meal chosen from a saved Diet Planner through the existing Credit flow: the meal's
+     * items go into the Summary Box exactly like searched items, so the Main Countdown Balance is
+     * updated with the existing formula (calories_per_100g × grams / 100) by CCD_GUI_CD_CIF1.
+     * The event id is claimed first so a repeated result can never credit the same meal twice.
+     */
+    private void creditDietPlannerMeal(Intent data) {
+        long planId = data.getLongExtra(Diet_Planner_CIF0116_fragment_box.EXTRA_PLAN_ID, -1);
+        int day = data.getIntExtra(Diet_Planner_CIF0116_fragment_box.EXTRA_DAY, -1);
+        int meal = data.getIntExtra(Diet_Planner_CIF0116_fragment_box.EXTRA_MEAL, -1);
+        String eventId = data.getStringExtra(Diet_Planner_CIF0116_fragment_box.EXTRA_EVENT_ID);
+
+        Diet_Planner_CIF0116 plan = databaseHelper.getDietPlan(planId);
+        if (plan == null || day < 0 || day >= Diet_Planner_CIF0116.DAYS.length
+                || meal < 0 || meal >= Diet_Planner_CIF0116.MEAL_BOXES.length || plan.getBox(day, meal).isEmpty()) {
+            Toast.makeText(this, "This Diet Planner meal could not be found, so nothing was credited.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!Accountability.claimEvent(getSharedPreferences("Calorie_Countdown", 0),
+                Diet_Planner_CIF0116.KEY_LAST_DIET_PLANNER_CREDIT_EVENT, eventId)) {
+            Log.w(TAG, "Diet Planner credit: event " + eventId + " already processed — skipped");
+            Toast.makeText(this, "This meal has already been credited.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<Food_Item_CIF4> items = plan.getBox(day, meal);
+        Log.d(TAG, "Diet Planner credit: " + plan.getDietName() + " " + Diet_Planner_CIF0116.DAYS[day] + " "
+                + Diet_Planner_CIF0116.MEAL_BOXES[meal] + " items=" + items.size()
+                + " credits=" + Diet_Planner_CIF0116.mealCredits(items) + " event=" + eventId);
+
+        FoodItemsLab_CIF9 lab = FoodItemsLab_CIF9.get(getApplicationContext());
+        lab.reset();
+        lab.appendmFoodItems(items);
+        SummaryBoxCIF12 summary_box = SummaryBoxCIF12.get(getApplicationContext());
+        summary_box.Set_mFoodItems(lab.getmFoodItems());
+        BackToParentActivity(summary_box);
     }
 
 

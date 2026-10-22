@@ -754,17 +754,142 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     private void showAccountabilityDialog() {
-        showStepsEntryDialog(true, "Accountability",
+        withStepsNumeratorChoice(() -> showStepsEntryDialog(true, "Accountability",
                 "Enter the number of steps you missed in today's Steps Challenge.",
-                "Missed steps");
+                "Missed steps"));
     }
 
     private void showDeAccountabilityDialog() {
-        showStepsEntryDialog(false, "de-Accountability",
+        withStepsNumeratorChoice(() -> showStepsEntryDialog(false, "de-Accountability",
                 "Enter your surplus steps: the steps you walked above your "
                         + String.format("%,d", KittyCalculator.RECOMMENDED_STEP_CHALLENGE)
                         + "-step daily Steps Challenge.",
-                "Surplus steps");
+                "Surplus steps"));
+    }
+
+    /** Runs next straight away if the Subscriber has chosen a Steps Numerator, otherwise asks first. */
+    private void withStepsNumeratorChoice(Runnable next) {
+        String source = new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getStepsNumeratorSource();
+        if (StepsNumeratorChoice.isExplicitChoice(source)) {
+            next.run();
+        } else {
+            showStepsNumeratorChoiceDialog(next);
+        }
+    }
+
+    /**
+     * Client rule: explain the Steps Numerator and where the displayed value comes from, then let
+     * the Subscriber (A) accept the displayed value, (B) enter a custom value or (C) use the
+     * recommended 0.089. The choice is saved in SQLite and used by every later Accountability and
+     * de-Accountability calculation; past entries are not recalculated.
+     *
+     * @param next run after a successful save (may be null)
+     */
+    private void showStepsNumeratorChoiceDialog(final Runnable next) {
+        final SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+        final Double derived = db.getWeightDerivedStepsNumerator();
+        final Double current = db.getStoredStepsNumerator();
+        final String source = db.getStepsNumeratorSource();
+        final java.util.Locale us = java.util.Locale.US;
+
+        StringBuilder explanation = new StringBuilder();
+        explanation.append("The Steps Numerator is the number of calories burned per step. Accountability and "
+                + "de-Accountability use it to turn steps into points:\n\n"
+                + "points = steps × Steps Numerator\n\n");
+        if (derived != null) {
+            explanation.append("Value displayed by the app: ").append(String.format(us, "%.4f", derived)).append("\n")
+                    .append("How it was obtained: calculated at Start Weight Loss from your start weight — "
+                            + "start weight (lbs) × ")
+                    .append(java.math.BigDecimal.valueOf(StepsNumeratorChoice.WEIGHT_FACTOR).toPlainString())
+                    .append(". It is an estimate based on your weight only, not a measurement of your own steps.\n\n");
+        } else {
+            explanation.append("The app has no calculated value yet (it is calculated from your start weight "
+                    + "when you complete Start Weight Loss).\n\n");
+        }
+        explanation.append("Current selection: ")
+                .append(current != null ? String.format(us, "%.4f", current) : "none")
+                .append(" — ").append(StepsNumeratorChoice.describeSource(source)).append("\n\n")
+                .append("Your choice is saved and used for all future Accountability and de-Accountability "
+                        + "calculations. Past entries are not changed.");
+
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(pad, pad / 2, pad, 0);
+
+        android.widget.TextView text = new android.widget.TextView(this);
+        text.setText(explanation);
+        layout.addView(text);
+
+        final android.widget.RadioGroup group = new android.widget.RadioGroup(this);
+        final android.widget.RadioButton optionA = new android.widget.RadioButton(this);
+        optionA.setId(View.generateViewId());
+        optionA.setText(derived != null
+                ? "A. Accept the displayed value (" + String.format(us, "%.4f", derived) + ")"
+                : "A. Accept the displayed value (not available)");
+        optionA.setEnabled(derived != null);
+        final android.widget.RadioButton optionB = new android.widget.RadioButton(this);
+        optionB.setId(View.generateViewId());
+        optionB.setText("B. Enter a custom Steps Numerator");
+        final android.widget.RadioButton optionC = new android.widget.RadioButton(this);
+        optionC.setId(View.generateViewId());
+        optionC.setText("C. Use " + StepsNumeratorChoice.RECOMMENDED + " — Recommended");
+        group.addView(optionA);
+        group.addView(optionB);
+        group.addView(optionC);
+        layout.addView(group);
+
+        final EditText custom = new EditText(this);
+        custom.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        custom.setHint("Custom value, e.g. 0.089");
+        custom.setEnabled(false);
+        layout.addView(custom);
+
+        group.setOnCheckedChangeListener((g, checkedId) -> custom.setEnabled(checkedId == optionB.getId()));
+        group.check(optionC.getId());
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(layout);
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Steps Numerator")
+                .setView(scroll)
+                .setPositiveButton("Save", null) // set below so invalid input keeps the dialog open
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            int checked = group.getCheckedRadioButtonId();
+            Double value;
+            String chosenSource;
+            if (checked == optionA.getId() && derived != null) {
+                value = derived;
+                chosenSource = StepsNumeratorChoice.SOURCE_ACCEPTED;
+            } else if (checked == optionB.getId()) {
+                value = StepsNumeratorChoice.parseCustom(custom.getText().toString());
+                chosenSource = StepsNumeratorChoice.SOURCE_CUSTOM;
+                if (value == null) {
+                    Toast.makeText(this, "Please enter a number greater than 0 and no more than "
+                            + StepsNumeratorChoice.MAX_CUSTOM + " (e.g. 0.089).", Toast.LENGTH_LONG).show();
+                    return;
+                }
+            } else if (checked == optionC.getId()) {
+                value = StepsNumeratorChoice.RECOMMENDED;
+                chosenSource = StepsNumeratorChoice.SOURCE_RECOMMENDED;
+            } else {
+                Toast.makeText(this, "Please choose an option.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!db.saveStepsNumeratorChoice(value, chosenSource)) {
+                Toast.makeText(this, "Your Steps Numerator could not be saved. Please try again.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            android.util.Log.d("Accountability", "Steps Numerator chosen: " + value + " (" + chosenSource + ")");
+            Toast.makeText(this, "Steps Numerator saved: " + value, Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+            if (next != null) next.run();
+        }));
+        dialog.show();
     }
 
     /**
@@ -784,19 +909,27 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                 .setView(input)
                 .setPositiveButton("Submit", null) // set below so invalid input keeps the dialog open
                 .setNegativeButton("Cancel", null)
+                .setNeutralButton("Steps Numerator", null)
                 .create();
 
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String text = input.getText().toString();
-            Integer steps = credit ? Accountability.parseMissedSteps(text) : Accountability.parseSurplusSteps(text);
-            if (steps == null) {
-                Toast.makeText(this, "Please enter a whole number of steps greater than 0.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            v.setEnabled(false);
-            dialog.dismiss();
-            applyAccountability(credit, steps, eventId);
-        }));
+        dialog.setOnShowListener(d -> {
+            // Change the saved Steps Numerator, then come back to this entry
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                dialog.dismiss();
+                showStepsNumeratorChoiceDialog(() -> showStepsEntryDialog(credit, title, message, hint));
+            });
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String text = input.getText().toString();
+                Integer steps = credit ? Accountability.parseMissedSteps(text) : Accountability.parseSurplusSteps(text);
+                if (steps == null) {
+                    Toast.makeText(this, "Please enter a whole number of steps greater than 0.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                v.setEnabled(false);
+                dialog.dismiss();
+                applyAccountability(credit, steps, eventId);
+            });
+        });
         dialog.show();
     }
 

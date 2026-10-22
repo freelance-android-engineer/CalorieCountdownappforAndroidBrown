@@ -2672,7 +2672,18 @@
     <!-- Customization Settings -->
     <string name="action_customize_title">Customize Appearance</string>
     <string name="title_activity_customization_settings">Customize Appearance</string>
+
+    <!-- Diet Planner (v2.0.0) -->
+    <string name="diet_planner_saved_plans">Your saved Diet Plans</string>
+    <string name="diet_planner_no_plans">No Diet Plans saved yet. Create one to get started.</string>
+    <string name="diet_planner_new">Create New Diet Plan</string>
+    <string name="diet_planner_edit">Edit Selected Plan</string>
+    <string name="diet_planner_credit_meal">Credit a Meal from Plan</string>
+    <string name="diet_planner_delete">Delete Selected Plan</string>
+    <string name="diet_planner_search_hint">Search food or drink</string>
+    <string name="diet_planner_search">Search</string>
+    <string name="diet_planner_add_new_food">Add New Food Item</string>
+    <string name="diet_planner_previous">Previous</string>
+    <string name="diet_planner_next">Next</string>
+    <string name="diet_planner_save">Save Plan</string>
 </resources>
-
-
-

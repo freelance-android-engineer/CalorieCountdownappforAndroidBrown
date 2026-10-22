@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 18; // v18: steps_numerator table for weight-based step conversion
+    private static final int VERSION = 19; // v19: day_end_balance_def, diet planner tables, steps_numerator source
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -293,6 +293,43 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String TABLE_STEPS_NUMERATOR = "steps_numerator";
     private static final String COLUMN_SN_ID          = "sn_id";
     private static final String COLUMN_SN_VALUE        = "sn_value"; // REAL, e.g. 0.089
+    // v19: how sn_value was chosen (see StepsNumeratorChoice) and the latest weight-derived value
+    private static final String COLUMN_SN_SOURCE       = "sn_source";
+    private static final String COLUMN_SN_DERIVED      = "sn_derived";
+
+    // Definitive Day End Balance (added in DB version 19) — one row per calendar date, see DayEndBalance
+    private static final String TABLE_DAY_END_BALANCE_DEF   = "day_end_balance_def";
+    private static final String COLUMN_DEB_DATE             = "deb_date";        // "yyyy-MM-dd" PRIMARY KEY
+    private static final String COLUMN_DEB_BALANCE          = "deb_balance";
+    private static final String COLUMN_DEB_SOURCE           = "deb_source";
+    private static final String COLUMN_DEB_CAPTURED_AT      = "deb_captured_at"; // "yyyy-MM-dd HH:mm:ss"
+    private static final String COLUMN_DEB_RECALIBRATED     = "deb_recalibrated_balance";
+
+    // Diet Planner (added in DB version 19) — see Diet_Planner_CIF0116
+    private static final String TABLE_DIET_PLAN             = "diet_plan";
+    private static final String COLUMN_DP_ID                = "dp_id";
+    private static final String COLUMN_DP_NAME              = "dp_name";
+    private static final String COLUMN_DP_UPDATED_AT        = "dp_updated_at";
+    private static final String TABLE_DIET_PLAN_ITEM        = "diet_plan_item";
+    private static final String COLUMN_DPI_ID               = "dpi_id";
+    private static final String COLUMN_DPI_PLAN_ID          = "dpi_plan_id";
+    private static final String COLUMN_DPI_DAY              = "dpi_day";   // 0 = Monday … 6 = Sunday
+    private static final String COLUMN_DPI_MEAL             = "dpi_meal";  // index in Diet_Planner_CIF0116.MEAL_BOXES
+    private static final String COLUMN_DPI_POSITION         = "dpi_position";
+    private static final String COLUMN_DPI_NAME             = "dpi_food_item_name";
+    private static final String COLUMN_DPI_FOOD_TYPE        = "dpi_food_type";
+    private static final String COLUMN_DPI_CATEGORY         = "dpi_category";
+    private static final String COLUMN_DPI_GRAMS_PER_SERVING = "dpi_grams_per_serving";
+    private static final String COLUMN_DPI_CALORIES_100G    = "dpi_calories_per_100g";
+    private static final String COLUMN_DPI_FAT_100G         = "dpi_fat_per_100g";
+    private static final String COLUMN_DPI_SATURATED_FAT    = "dpi_saturated_fat";
+    private static final String COLUMN_DPI_TRANS_FAT        = "dpi_trans_fat";
+    private static final String COLUMN_DPI_PROTEIN_100G     = "dpi_protein_per_100g";
+    private static final String COLUMN_DPI_CARBS_100G       = "dpi_carbs_per_100g";
+    private static final String COLUMN_DPI_SUGAR_100G       = "dpi_sugar_per_100g";
+    private static final String COLUMN_DPI_SALT_100G        = "dpi_salt_per_100g";
+    private static final String COLUMN_DPI_FIBER            = "dpi_fiber";
+    private static final String COLUMN_DPI_WEIGHT           = "dpi_weight";    // grams eaten
 
     // Food Calorie Cache table — normalized food name → last saved calories (see FoodCalorieCache)
     private static final String TABLE_FOOD_CALORIE_CACHE = "food_calorie_cache";
@@ -1112,8 +1149,10 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         // Create steps_numerator table (v18) — stores weight-derived calories-per-step factor
         try {
             db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_STEPS_NUMERATOR + " ("
-                    + COLUMN_SN_ID    + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_SN_VALUE + " REAL NOT NULL)");
+                    + COLUMN_SN_ID      + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_SN_VALUE   + " REAL NOT NULL, "
+                    + COLUMN_SN_SOURCE  + " TEXT DEFAULT '" + StepsNumeratorChoice.SOURCE_WEIGHT_DERIVED + "', "
+                    + COLUMN_SN_DERIVED + " REAL)");
             android.util.Log.d("Table creation", "created " + TABLE_STEPS_NUMERATOR);
         } catch (Exception e) {
             android.util.Log.w("Table creation", TABLE_STEPS_NUMERATOR + " creation: " + e.getMessage());
@@ -1130,6 +1169,55 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             android.util.Log.w("Table creation", TABLE_FOOD_CALORIE_CACHE + " creation: " + e.getMessage());
         }
 
+        // v19: definitive Day End Balance and Diet Planner tables
+        createDayEndBalanceAndDietPlannerTables(db);
+
+    }
+
+    /** v19 tables; IF NOT EXISTS so it is safe from both onCreate and onUpgrade. */
+    private void createDayEndBalanceAndDietPlannerTables(SQLiteDatabase db) {
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DAY_END_BALANCE_DEF + " ("
+                    + COLUMN_DEB_DATE         + " TEXT PRIMARY KEY, "
+                    + COLUMN_DEB_BALANCE      + " INTEGER NOT NULL, "
+                    + COLUMN_DEB_SOURCE       + " TEXT NOT NULL, "
+                    + COLUMN_DEB_CAPTURED_AT  + " TEXT NOT NULL, "
+                    + COLUMN_DEB_RECALIBRATED + " INTEGER)");
+            android.util.Log.d("Table creation", "created " + TABLE_DAY_END_BALANCE_DEF);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_DAY_END_BALANCE_DEF + " creation: " + e.getMessage());
+        }
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DIET_PLAN + " ("
+                    + COLUMN_DP_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_DP_NAME       + " TEXT NOT NULL UNIQUE, "
+                    + COLUMN_DP_UPDATED_AT + " TEXT DEFAULT '')");
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DIET_PLAN_ITEM + " ("
+                    + COLUMN_DPI_ID               + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_DPI_PLAN_ID          + " INTEGER NOT NULL, "
+                    + COLUMN_DPI_DAY              + " INTEGER NOT NULL, "
+                    + COLUMN_DPI_MEAL             + " INTEGER NOT NULL, "
+                    + COLUMN_DPI_POSITION         + " INTEGER DEFAULT 0, "
+                    + COLUMN_DPI_NAME             + " TEXT NOT NULL, "
+                    + COLUMN_DPI_FOOD_TYPE        + " TEXT, "
+                    + COLUMN_DPI_CATEGORY         + " TEXT, "
+                    + COLUMN_DPI_GRAMS_PER_SERVING + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_CALORIES_100G    + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_FAT_100G         + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_SATURATED_FAT    + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_TRANS_FAT        + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_PROTEIN_100G     + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_CARBS_100G       + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_SUGAR_100G       + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_SALT_100G        + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_FIBER            + " REAL DEFAULT 0, "
+                    + COLUMN_DPI_WEIGHT           + " INTEGER DEFAULT 0)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_" + TABLE_DIET_PLAN_ITEM + "_plan ON "
+                    + TABLE_DIET_PLAN_ITEM + " (" + COLUMN_DPI_PLAN_ID + ", " + COLUMN_DPI_DAY + ", " + COLUMN_DPI_MEAL + ")");
+            android.util.Log.d("Table creation", "created " + TABLE_DIET_PLAN + ", " + TABLE_DIET_PLAN_ITEM);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", "diet planner tables creation: " + e.getMessage());
+        }
     }
 
     @Override
@@ -1434,6 +1522,26 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             } catch (Exception e) {
                 android.util.Log.w("DB_UPGRADE", TABLE_STEPS_NUMERATOR + " already exists: " + e.getMessage());
             }
+        }
+
+        // v19: Steps Numerator source (existing value kept, labelled weight-derived — never replaced),
+        // definitive Day End Balance and Diet Planner tables. Additive only, no existing rows change value.
+        if (oldVersion < 19) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_STEPS_NUMERATOR + " ADD COLUMN " + COLUMN_SN_SOURCE
+                        + " TEXT DEFAULT '" + StepsNumeratorChoice.SOURCE_WEIGHT_DERIVED + "'");
+                android.util.Log.d("DB_UPGRADE", "v19: added " + COLUMN_SN_SOURCE + " to " + TABLE_STEPS_NUMERATOR);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", COLUMN_SN_SOURCE + " column already exists: " + e.getMessage());
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_STEPS_NUMERATOR + " ADD COLUMN " + COLUMN_SN_DERIVED + " REAL");
+                db.execSQL("UPDATE " + TABLE_STEPS_NUMERATOR + " SET " + COLUMN_SN_DERIVED + " = " + COLUMN_SN_VALUE);
+                android.util.Log.d("DB_UPGRADE", "v19: added " + COLUMN_SN_DERIVED + " to " + TABLE_STEPS_NUMERATOR);
+            } catch (Exception e) {
+                android.util.Log.w("DB_UPGRADE", COLUMN_SN_DERIVED + " column already exists: " + e.getMessage());
+            }
+            createDayEndBalanceAndDietPlannerTables(db);
         }
 
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
@@ -5635,19 +5743,84 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
      * <p>Formula used at call site:
      * {@code stepsNumerator = startWeightPounds × 0.000446}</p>
      *
+     * <p>v19: if the Subscriber has explicitly chosen a Steps Numerator (StepsNumeratorChoice A/B/C)
+     * that choice is kept and only the weight-derived value shown as Option A is updated.</p>
+     *
      * @param value Calories per step derived from the subscriber's start weight (e.g. 0.0892).
      */
     public void saveStepsNumerator(double value) {
+        String source = getStepsNumeratorSource();
+        Double current = getStoredStepsNumerator();
+        if (StepsNumeratorChoice.isExplicitChoice(source) && current != null) {
+            writeStepsNumerator(current, source, value);
+        } else {
+            writeStepsNumerator(value, StepsNumeratorChoice.SOURCE_WEIGHT_DERIVED, value);
+        }
+    }
+
+    /**
+     * Saves the Subscriber's explicit Steps Numerator choice (StepsNumeratorChoice A, B or C),
+     * keeping the weight-derived value so it can still be displayed as Option A.
+     */
+    public boolean saveStepsNumeratorChoice(double value, String source) {
+        return writeStepsNumerator(value, source, getWeightDerivedStepsNumerator());
+    }
+
+    private boolean writeStepsNumerator(double value, String source, Double derived) {
         SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
         try {
             db.delete(TABLE_STEPS_NUMERATOR, null, null); // keep exactly one row
             ContentValues cv = new ContentValues();
             cv.put(COLUMN_SN_VALUE, value);
+            cv.put(COLUMN_SN_SOURCE, source);
+            if (derived != null) cv.put(COLUMN_SN_DERIVED, derived);
             long id = db.insert(TABLE_STEPS_NUMERATOR, null, cv);
-            android.util.Log.d("STEPS_NUMERATOR_DB", "saveStepsNumerator: value=" + value + ", id=" + id);
+            if (id == -1) return false;
+            db.setTransactionSuccessful();
+            android.util.Log.d("STEPS_NUMERATOR_DB", "saveStepsNumerator: value=" + value + ", source=" + source
+                    + ", derived=" + derived + ", id=" + id);
+            return true;
         } catch (Exception e) {
             android.util.Log.e("STEPS_NUMERATOR_DB", "Error saving steps numerator: " + e.getMessage());
+            return false;
+        } finally {
+            db.endTransaction();
         }
+    }
+
+    /** How the stored Steps Numerator was chosen (StepsNumeratorChoice.SOURCE_*), or null if none is stored. */
+    public String getStepsNumeratorSource() {
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_SN_SOURCE + " FROM " + TABLE_STEPS_NUMERATOR
+                    + " ORDER BY " + COLUMN_SN_ID + " DESC LIMIT 1", null);
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.isNull(0) ? StepsNumeratorChoice.SOURCE_WEIGHT_DERIVED : cursor.getString(0);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_NUMERATOR_DB", "Error reading steps numerator source: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
+    /** The value calculated at Start Weight Loss (start weight lbs × 0.000446), or null if never calculated. */
+    public Double getWeightDerivedStepsNumerator() {
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_SN_DERIVED + " FROM " + TABLE_STEPS_NUMERATOR
+                    + " ORDER BY " + COLUMN_SN_ID + " DESC LIMIT 1", null);
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+                return cursor.getDouble(0);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("STEPS_NUMERATOR_DB", "Error reading weight-derived steps numerator: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
     }
 
     /**
@@ -5786,6 +5959,313 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             return null;
         } finally {
             if (cursor != null) cursor.close();
+        }
+    }
+
+    // ── Definitive Day End Balance (v19) ─────────────────────────────────────
+
+    /**
+     * Stores the Day End Balance for a calendar date — one row per date. The latest capture of the
+     * date wins (see DayEndBalance); a Recalibration capture is also kept in deb_recalibrated_balance.
+     *
+     * @param date             "yyyy-MM-dd" (DayEndBalance.dateKey)
+     * @param balance          Main Countdown Balance at the moment of capture
+     * @param source           DayEndBalance.SOURCE_SCHEDULED or SOURCE_RECALIBRATION
+     * @param capturedAtMillis time of capture
+     * @return true if stored
+     */
+    public boolean saveDayEndBalance(String date, int balance, String source, long capturedAtMillis) {
+        if (!DayEndBalance.isDateKey(date)) return false;
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            DayEndBalance.Record existing = getDayEndBalanceRecord(db, date);
+            Integer recalibrated = DayEndBalance.SOURCE_RECALIBRATION.equals(source) ? Integer.valueOf(balance)
+                    : (existing != null ? existing.recalibratedBalance : null);
+            long id = replaceDayEndBalance(db, date, balance, source, DayEndBalance.timestamp(capturedAtMillis), recalibrated);
+            if (id == -1) return false;
+            db.setTransactionSuccessful();
+            android.util.Log.d("DayEndBalance", "[saveDayEndBalance] date=" + date + " balance=" + balance
+                    + " source=" + source + " replaced=" + (existing != null));
+            return true;
+        } catch (Exception e) {
+            android.util.Log.e("DayEndBalance", "[saveDayEndBalance] " + e.getMessage(), e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private long replaceDayEndBalance(SQLiteDatabase db, String date, int balance, String source,
+                                      String capturedAt, Integer recalibrated) {
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_DEB_DATE, date);
+        cv.put(COLUMN_DEB_BALANCE, balance);
+        cv.put(COLUMN_DEB_SOURCE, source);
+        cv.put(COLUMN_DEB_CAPTURED_AT, capturedAt);
+        if (recalibrated != null) cv.put(COLUMN_DEB_RECALIBRATED, recalibrated);
+        else cv.putNull(COLUMN_DEB_RECALIBRATED);
+        return db.insertWithOnConflict(TABLE_DAY_END_BALANCE_DEF, null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    /** The definitive Day End Balance stored for a date ("yyyy-MM-dd"), or null if none was stored. */
+    public Integer getDayEndBalanceForDate(String date) {
+        DayEndBalance.Record record = getDayEndBalanceRecord(date);
+        return record != null ? Integer.valueOf(record.balance) : null;
+    }
+
+    /** The full Day End Balance record for a date ("yyyy-MM-dd"), or null if none was stored. */
+    public DayEndBalance.Record getDayEndBalanceRecord(String date) {
+        try {
+            return getDayEndBalanceRecord(this.getReadableDatabase(), date);
+        } catch (Exception e) {
+            android.util.Log.e("DayEndBalance", "[getDayEndBalanceRecord] " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private DayEndBalance.Record getDayEndBalanceRecord(SQLiteDatabase db, String date) {
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_DEB_DATE + ", " + COLUMN_DEB_BALANCE + ", " + COLUMN_DEB_SOURCE
+                + ", " + COLUMN_DEB_CAPTURED_AT + ", " + COLUMN_DEB_RECALIBRATED
+                + " FROM " + TABLE_DAY_END_BALANCE_DEF + " WHERE " + COLUMN_DEB_DATE + " = ?", new String[]{date});
+        try {
+            return cursor.moveToFirst() ? readDayEndBalance(cursor) : null;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    /** All definitive Day End Balances, oldest date first — for reports and plots. */
+    public List<DayEndBalance.Record> getDayEndBalances() {
+        List<DayEndBalance.Record> result = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_DEB_DATE + ", " + COLUMN_DEB_BALANCE
+                    + ", " + COLUMN_DEB_SOURCE + ", " + COLUMN_DEB_CAPTURED_AT + ", " + COLUMN_DEB_RECALIBRATED
+                    + " FROM " + TABLE_DAY_END_BALANCE_DEF + " ORDER BY " + COLUMN_DEB_DATE + " ASC", null);
+            while (cursor.moveToNext()) {
+                result.add(readDayEndBalance(cursor));
+            }
+        } catch (Exception e) {
+            android.util.Log.e("DayEndBalance", "[getDayEndBalances] " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return result;
+    }
+
+    private DayEndBalance.Record readDayEndBalance(Cursor cursor) {
+        return new DayEndBalance.Record(cursor.getString(0), cursor.getInt(1), cursor.getString(2),
+                cursor.getString(3), cursor.isNull(4) ? null : Integer.valueOf(cursor.getInt(4)));
+    }
+
+    /**
+     * Fills dates before {@code today} whose 23:59 capture was missed, from the last balance recorded
+     * that day in daily_countdown_history (written on every balance change). Dates without any
+     * history row are left empty — no balance is invented or carried over.
+     *
+     * @param today "yyyy-MM-dd"; today's own balance is never recovered (the day is not over)
+     * @return number of dates recovered
+     */
+    public int recoverMissedDayEndBalances(String today) {
+        int recovered = 0;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = null;
+        db.beginTransaction();
+        try {
+            cursor = db.rawQuery("SELECT " + COLUMN_HIST_DATE + ", " + COLUMN_HIST_BALANCE + ", " + COLUMN_HIST_UPDATED_AT
+                    + " FROM " + TABLE_DAILY_HISTORY + " WHERE " + COLUMN_HIST_DATE + " < ?"
+                    + " ORDER BY " + COLUMN_HIST_DATE + " ASC", new String[]{today});
+            while (cursor.moveToNext()) {
+                String date = cursor.getString(0);
+                if (!DayEndBalance.isDateKey(date)) continue;
+                int balance = cursor.getInt(1);
+                String updatedAt = cursor.getString(2);
+                DayEndBalance.Record existing = getDayEndBalanceRecord(db, date);
+                if (!DayEndBalance.shouldRecover(existing != null ? existing.source : null,
+                        existing != null ? existing.capturedAt : null, updatedAt)) continue;
+                String capturedAt = (updatedAt != null && !updatedAt.isEmpty()) ? updatedAt : date + " 23:59:00";
+                replaceDayEndBalance(db, date, balance, DayEndBalance.SOURCE_RECOVERED, capturedAt,
+                        existing != null ? existing.recalibratedBalance : null);
+                recovered++;
+            }
+            db.setTransactionSuccessful();
+            android.util.Log.d("DayEndBalance", "[recoverMissedDayEndBalances] recovered=" + recovered);
+        } catch (Exception e) {
+            android.util.Log.e("DayEndBalance", "[recoverMissedDayEndBalances] " + e.getMessage(), e);
+            recovered = 0;
+        } finally {
+            if (cursor != null) cursor.close();
+            db.endTransaction();
+        }
+        return recovered;
+    }
+
+    // ── Diet Planner (v19) ───────────────────────────────────────────────────
+
+    /**
+     * Saves a Diet Planner with all its meal boxes, replacing its previous items.
+     *
+     * @return the plan id, or -1 on failure, or -2 if another plan already has this Diet Name
+     */
+    public long saveDietPlan(Diet_Planner_CIF0116 plan) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            long existingId = findDietPlanId(db, plan.getDietName());
+            if (existingId != -1 && existingId != plan.getId()) return -2;
+
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_DP_NAME, plan.getDietName());
+            cv.put(COLUMN_DP_UPDATED_AT, DayEndBalance.timestamp(System.currentTimeMillis()));
+            long planId = plan.getId();
+            if (planId > 0 && db.update(TABLE_DIET_PLAN, cv, COLUMN_DP_ID + " = ?",
+                    new String[]{String.valueOf(planId)}) == 1) {
+                db.delete(TABLE_DIET_PLAN_ITEM, COLUMN_DPI_PLAN_ID + " = ?", new String[]{String.valueOf(planId)});
+            } else {
+                planId = db.insert(TABLE_DIET_PLAN, null, cv);
+                if (planId == -1) return -1;
+            }
+
+            for (int d = 0; d < Diet_Planner_CIF0116.DAYS.length; d++) {
+                for (int m = 0; m < Diet_Planner_CIF0116.MEAL_BOXES.length; m++) {
+                    ArrayList<Food_Item_CIF4> box = plan.getBox(d, m);
+                    for (int position = 0; position < box.size(); position++) {
+                        if (db.insert(TABLE_DIET_PLAN_ITEM, null, dietPlanItemValues(planId, d, m, position, box.get(position))) == -1) {
+                            return -1;
+                        }
+                    }
+                }
+            }
+            db.setTransactionSuccessful();
+            plan.setId(planId);
+            android.util.Log.d("DietPlanner", "[saveDietPlan] saved '" + plan.getDietName() + "' id=" + planId);
+            return planId;
+        } catch (Exception e) {
+            android.util.Log.e("DietPlanner", "[saveDietPlan] " + e.getMessage(), e);
+            return -1;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private long findDietPlanId(SQLiteDatabase db, String dietName) {
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_DP_ID + " FROM " + TABLE_DIET_PLAN
+                + " WHERE " + COLUMN_DP_NAME + " = ? COLLATE NOCASE", new String[]{dietName});
+        try {
+            return cursor.moveToFirst() ? cursor.getLong(0) : -1;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    private ContentValues dietPlanItemValues(long planId, int day, int meal, int position, Food_Item_CIF4 item) {
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_DPI_PLAN_ID, planId);
+        cv.put(COLUMN_DPI_DAY, day);
+        cv.put(COLUMN_DPI_MEAL, meal);
+        cv.put(COLUMN_DPI_POSITION, position);
+        cv.put(COLUMN_DPI_NAME, item.Get_food_item_name());
+        cv.put(COLUMN_DPI_FOOD_TYPE, item.Get_food_type());
+        cv.put(COLUMN_DPI_CATEGORY, item.Get_category());
+        cv.put(COLUMN_DPI_GRAMS_PER_SERVING, item.Get_grams_per_serving_portion());
+        cv.put(COLUMN_DPI_CALORIES_100G, item.Get_calories_per_100g());
+        cv.put(COLUMN_DPI_FAT_100G, item.Get_fat_per_100g());
+        cv.put(COLUMN_DPI_SATURATED_FAT, item.Get_saturated_fat());
+        cv.put(COLUMN_DPI_TRANS_FAT, item.Get_trans_fat());
+        cv.put(COLUMN_DPI_PROTEIN_100G, item.Get_protein_per_100g());
+        cv.put(COLUMN_DPI_CARBS_100G, item.Get_carbs_per_100g());
+        cv.put(COLUMN_DPI_SUGAR_100G, item.Get_sugar_per_100g());
+        cv.put(COLUMN_DPI_SALT_100G, item.Get_salt_per_100g());
+        cv.put(COLUMN_DPI_FIBER, item.Get_fiber());
+        cv.put(COLUMN_DPI_WEIGHT, item.Get_weight());
+        return cv;
+    }
+
+    /** Saved Diet Planners as id → Diet Name, alphabetically. */
+    public LinkedHashMap<Long, String> getDietPlanNames() {
+        LinkedHashMap<Long, String> result = new LinkedHashMap<>();
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_DP_ID + ", " + COLUMN_DP_NAME
+                    + " FROM " + TABLE_DIET_PLAN + " ORDER BY " + COLUMN_DP_NAME + " COLLATE NOCASE ASC", null);
+            while (cursor.moveToNext()) {
+                result.put(cursor.getLong(0), cursor.getString(1));
+            }
+        } catch (Exception e) {
+            android.util.Log.e("DietPlanner", "[getDietPlanNames] " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return result;
+    }
+
+    /** Loads a saved Diet Planner with all its meal boxes, or null if it does not exist. */
+    public Diet_Planner_CIF0116 getDietPlan(long planId) {
+        Cursor cursor = null;
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            cursor = db.rawQuery("SELECT " + COLUMN_DP_NAME + " FROM " + TABLE_DIET_PLAN
+                    + " WHERE " + COLUMN_DP_ID + " = ?", new String[]{String.valueOf(planId)});
+            if (!cursor.moveToFirst()) return null;
+            Diet_Planner_CIF0116 plan = new Diet_Planner_CIF0116(cursor.getString(0));
+            plan.setId(planId);
+            cursor.close();
+
+            cursor = db.rawQuery("SELECT " + COLUMN_DPI_DAY + ", " + COLUMN_DPI_MEAL + ", " + COLUMN_DPI_NAME + ", "
+                    + COLUMN_DPI_FOOD_TYPE + ", " + COLUMN_DPI_CATEGORY + ", " + COLUMN_DPI_GRAMS_PER_SERVING + ", "
+                    + COLUMN_DPI_CALORIES_100G + ", " + COLUMN_DPI_FAT_100G + ", " + COLUMN_DPI_SATURATED_FAT + ", "
+                    + COLUMN_DPI_TRANS_FAT + ", " + COLUMN_DPI_PROTEIN_100G + ", " + COLUMN_DPI_CARBS_100G + ", "
+                    + COLUMN_DPI_SUGAR_100G + ", " + COLUMN_DPI_SALT_100G + ", " + COLUMN_DPI_FIBER + ", "
+                    + COLUMN_DPI_WEIGHT + " FROM " + TABLE_DIET_PLAN_ITEM + " WHERE " + COLUMN_DPI_PLAN_ID + " = ?"
+                    + " ORDER BY " + COLUMN_DPI_DAY + ", " + COLUMN_DPI_MEAL + ", " + COLUMN_DPI_POSITION,
+                    new String[]{String.valueOf(planId)});
+            while (cursor.moveToNext()) {
+                int day = cursor.getInt(0);
+                int meal = cursor.getInt(1);
+                if (day < 0 || day >= Diet_Planner_CIF0116.DAYS.length
+                        || meal < 0 || meal >= Diet_Planner_CIF0116.MEAL_BOXES.length) continue;
+                Food_Item_CIF4 item = new Food_Item_CIF4();
+                item.Set_food_item_name(cursor.getString(2));
+                if (!cursor.isNull(3)) item.Set_food_type(cursor.getString(3));
+                if (!cursor.isNull(4)) item.Set_category(cursor.getString(4));
+                item.Set_grams_per_serving_portion(cursor.getFloat(5));
+                item.Set_calories_per_100g(cursor.getFloat(6));
+                item.Set_fat_per_100g(cursor.getFloat(7));
+                item.Set_saturated_fat(cursor.getFloat(8));
+                item.Set_trans_fat(cursor.getFloat(9));
+                item.Set_protein_per_100g(cursor.getFloat(10));
+                item.Set_carbs_per_100g(cursor.getFloat(11));
+                item.Set_sugar_per_100g(cursor.getFloat(12));
+                item.Set_salt_per_100g(cursor.getFloat(13));
+                item.Set_fiber(cursor.getFloat(14));
+                item.Set_weight(cursor.getInt(15));
+                item.Make_calorie_value();
+                plan.getBox(day, meal).add(item);
+            }
+            return plan;
+        } catch (Exception e) {
+            android.util.Log.e("DietPlanner", "[getDietPlan] " + e.getMessage(), e);
+            return null;
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+    }
+
+    /** Deletes a saved Diet Planner and its items. */
+    public boolean deleteDietPlan(long planId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete(TABLE_DIET_PLAN_ITEM, COLUMN_DPI_PLAN_ID + " = ?", new String[]{String.valueOf(planId)});
+            int deleted = db.delete(TABLE_DIET_PLAN, COLUMN_DP_ID + " = ?", new String[]{String.valueOf(planId)});
+            db.setTransactionSuccessful();
+            return deleted == 1;
+        } catch (Exception e) {
+            android.util.Log.e("DietPlanner", "[deleteDietPlan] " + e.getMessage(), e);
+            return false;
+        } finally {
+            db.endTransaction();
         }
     }
 }

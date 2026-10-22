@@ -239,6 +239,10 @@
             android:label="@string/action_start_weightloss_title"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name=".Diet_Planner_CIF0116_fragment_box"
+            android:label="@string/cancel4a1"
+            android:parentActivityName=".Food_Diary_Sheet_CIF3" />
+        <activity
             android:name=".Add_New_Item_Activity_CIF12"
             android:label="@string/action_start_weightloss_title"
             android:theme="@style/AppTheme.NoActionBar" />

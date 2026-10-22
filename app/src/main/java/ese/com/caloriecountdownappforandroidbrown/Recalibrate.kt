@@ -11,6 +11,8 @@ import java.lang.Exception
 
 class Recalibrate : AppCompatActivity()
 {
+    /** True once a valid recalibrated balance has been calculated in this tap. */
+    private var recalibrated = false
 
 
 
@@ -35,7 +37,10 @@ class Recalibrate : AppCompatActivity()
                 //Check and confirm that it is not possible to select both units and that both units are not selected
 
                 //new fragment takes in unit and user value and returns recalibrated balance as text
-                view -> CCD_GUI_CD_CIF1.instance.ChangeTextColor( recalibratedBalance( checkWhichUnitisChecked()))
+                view ->
+                recalibrated = false
+                CCD_GUI_CD_CIF1.instance.ChangeTextColor( recalibratedBalance( checkWhichUnitisChecked()))
+                if (recalibrated) captureDayEndBalance()
 
             finish()
 
@@ -147,6 +152,23 @@ class Recalibrate : AppCompatActivity()
         val today = java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(java.util.Date())
         val bmrAppliedToday = today == prefs.getString(Debit_Activity_CiF003_fragment_box.KEY_BMR_APPLIED_DATE, null)
         RecalibratedKitty.record(prefs, today, recalibratedBalance, bmrAppliedToday)
+        recalibrated = true
+    }
+
+    /**
+     * Client rule: at the moment of Recalibration, store the Main Countdown Balance shown on the
+     * screen as today's Day End Balance (a later 23:59 capture replaces it, see DayEndBalance).
+     */
+    private fun captureDayEndBalance()
+    {
+        try {
+            val now = System.currentTimeMillis()
+            val balance = CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt()
+            SQLDatabase_Food_Items_CIF6(this).saveDayEndBalance(DayEndBalance.dateKey(now), balance,
+                    DayEndBalance.SOURCE_RECALIBRATION, now)
+        } catch (e: Exception) {
+            android.util.Log.e("DayEndBalance", "Recalibration capture failed: " + e.message, e)
+        }
     }
 
     /**

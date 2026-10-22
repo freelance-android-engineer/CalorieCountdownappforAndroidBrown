@@ -14,6 +14,7 @@ import java.util.Calendar;
  * Schedules the two daily alarms for the Calorie Countdown lifecycle:
  * - 3:30 PM (Credit Day End) - user should generate Step Challenge
  * - 9:00 PM (Debit Day End) - user should update steps/exercise activity
+ * - 11:59 PM (Day End Balance) - captures the definitive Day End Balance (see DayEndBalance)
  *
  * Uses AlarmManager.setExactAndAllowWhileIdle() for reliable delivery.
  * Alarms re-schedule themselves for the next day after firing.
@@ -25,6 +26,10 @@ public class DailyAlarmScheduler {
     private static final int REQUEST_CODE_CREDIT_DAY_END = 4000;
     private static final int REQUEST_CODE_DEBIT_DAY_END = 2159;
     private static final int REQUEST_CODE_4PM_FOOD_NOTES = 1600;
+    private static final int REQUEST_CODE_DAY_END_BALANCE = 2359;
+
+    /** Intent extra: the time the Day End Balance alarm was scheduled for, so a late alarm keeps its date. */
+    static final String EXTRA_SCHEDULED_AT = "scheduled_at_millis";
 
     private static final int CREDIT_HOUR = 15;
     private static final int CREDIT_MINUTE = 30;
@@ -36,13 +41,14 @@ public class DailyAlarmScheduler {
     private static final int FOURPM_MINUTE = 0;
 
     /**
-     * Schedule all three daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
+     * Schedule all daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
      */
     public static void scheduleBothAlarms(Context context) {
         scheduleCreditDayEndAlarm(context);
         scheduleDebitDayEndAlarm(context);
         schedule4PMFoodNotesAlarm(context);
-        Log.d(TAG, "All daily alarms scheduled (3:30 PM, 4:00 PM, 9:00 PM)");
+        scheduleDayEndBalanceAlarm(context);
+        Log.d(TAG, "All daily alarms scheduled (3:30 PM, 4:00 PM, 9:00 PM, 11:59 PM)");
     }
 
     /**
@@ -101,7 +107,27 @@ public class DailyAlarmScheduler {
     }
 
     /**
-     * Cancel both alarms.
+     * Schedule the 11:59 PM Day End Balance capture.
+     * Fires once per day; DailyAlarmReceiver re-schedules it for the next day.
+     */
+    public static void scheduleDayEndBalanceAlarm(Context context) {
+        Calendar calendar = getNextAlarmTime(DayEndBalance.CAPTURE_HOUR, DayEndBalance.CAPTURE_MINUTE);
+
+        Intent intent = new Intent(context, DailyAlarmReceiver.class);
+        intent.setAction(DailyAlarmReceiver.ACTION_DAY_END_BALANCE);
+        intent.putExtra(EXTRA_SCHEDULED_AT, calendar.getTimeInMillis());
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_DAY_END_BALANCE, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        setExactAlarm(context, calendar.getTimeInMillis(), pendingIntent);
+
+        Log.d(TAG, "Day End Balance alarm scheduled for: " + calendar.getTime());
+    }
+
+    /**
+     * Cancel all alarms.
      */
     public static void cancelBothAlarms(Context context) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -127,6 +153,13 @@ public class DailyAlarmScheduler {
                 REQUEST_CODE_4PM_FOOD_NOTES, fourPMIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         alarmManager.cancel(fourPMPi);
+
+        Intent dayEndIntent = new Intent(context, DailyAlarmReceiver.class);
+        dayEndIntent.setAction(DailyAlarmReceiver.ACTION_DAY_END_BALANCE);
+        PendingIntent dayEndPi = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_DAY_END_BALANCE, dayEndIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        alarmManager.cancel(dayEndPi);
 
         Log.d(TAG, "All daily alarms cancelled");
     }
