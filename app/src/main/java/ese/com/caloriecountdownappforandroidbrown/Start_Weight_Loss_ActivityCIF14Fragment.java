@@ -174,6 +174,10 @@ public class Start_Weight_Loss_ActivityCIF14Fragment extends Fragment {
         IN.setCurrentWeight(editText70.getText().toString());
         IN.setTargetWeight(editText71.getText().toString());
         addToSharedPref(IN.getTargetWeight());
+        // Recalibrate converts the Target Weight to the unit it recalibrates in, so save its unit too
+        getActivity().getSharedPreferences("Calorie_Countdown", 0).edit()
+                .putString(RecalibrationCalculator.KEY_TARGET_WEIGHT_UNITS, IN.getWeightUnits())
+                .apply();
         mTargetWeight = editText71.getText().toString();
 
         SQLDatabase_Food_Items_CIF6 cif6 = new SQLDatabase_Food_Items_CIF6(getActivity());
