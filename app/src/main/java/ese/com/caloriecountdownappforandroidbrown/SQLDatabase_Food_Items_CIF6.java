@@ -2221,6 +2221,26 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * The Target Weight exactly as saved by Start Weight Loss (e.g. "112.9"), or null if none.
+     * Unlike {@link #GetTargetWeight()} the decimals are kept — used by Recalibrate.
+     */
+    public String getTargetWeightText() {
+        Cursor cursor = null;
+        try {
+            cursor = getReadableDatabase().rawQuery("SELECT " + COLUMUM_TARGET_WEIGHT_TARGETWEIGHT
+                    + " FROM " + TABLE_TARGET_WEIGHT + " LIMIT 1", null);
+            if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                return cursor.getString(0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[getTargetWeightText] " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
     public String GetReminder() {
         Cursor cursor = getWritableDatabase().rawQuery("SELECT * FROM " + TABLE_REMINDER_STATUS, null);
         cursor.moveToFirst();
@@ -5846,28 +5866,16 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     }
 
     /**
-     * Returns the stored steps numerator (calories per step).
-     * Falls back to the legacy constant {@code 0.089} if no value has been saved yet.
+     * Returns the Steps Numerator (calories per step) used by the Steps Challenge calculations:
+     * the Subscriber's explicit choice (StepsNumeratorChoice A, B or C), otherwise the recommended
+     * {@code 0.089}. A value only calculated at Start Weight Loss is not used without confirmation.
      *
-     * @return Calories burned per step (personalised to subscriber start weight, or 0.089 default).
+     * @return Calories burned per step.
      */
     public double getStepsNumerator() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        try {
-            Cursor cursor = db.rawQuery("SELECT " + COLUMN_SN_VALUE + " FROM " + TABLE_STEPS_NUMERATOR
-                    + " ORDER BY " + COLUMN_SN_ID + " DESC LIMIT 1", null);
-            if (cursor != null && cursor.moveToFirst()) {
-                double value = cursor.getDouble(0);
-                cursor.close();
-                android.util.Log.d("STEPS_NUMERATOR_DB", "getStepsNumerator: " + value);
-                return value;
-            }
-            if (cursor != null) cursor.close();
-        } catch (Exception e) {
-            android.util.Log.e("STEPS_NUMERATOR_DB", "Error reading steps numerator: " + e.getMessage());
-        }
-        android.util.Log.d("STEPS_NUMERATOR_DB", "getStepsNumerator: no stored value, using default 0.089");
-        return 0.089; // legacy constant fallback
+        double value = StepsNumeratorChoice.effective(getStoredStepsNumerator(), getStepsNumeratorSource());
+        android.util.Log.d("STEPS_NUMERATOR_DB", "getStepsNumerator: " + value);
+        return value;
     }
 
     /**

@@ -40,6 +40,18 @@ public final class StepsNumeratorChoice {
     }
 
     /**
+     * The Steps Numerator calculations use: the Subscriber's explicit choice (A, B or C), otherwise
+     * the recommended 0.089 — a value only calculated at Start Weight Loss is never used silently.
+     */
+    public static double effective(Double storedValue, String source) {
+        if (storedValue != null && isExplicitChoice(source) && storedValue > 0
+                && !storedValue.isNaN() && !storedValue.isInfinite()) {
+            return storedValue;
+        }
+        return RECOMMENDED;
+    }
+
+    /**
      * Parses a custom Steps Numerator.
      *
      * @return the value if it is a number greater than 0 and at most {@link #MAX_CUSTOM},

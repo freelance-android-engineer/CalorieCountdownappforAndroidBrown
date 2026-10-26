@@ -38,19 +38,30 @@ class Recalibrate : AppCompatActivity()
 
                 //new fragment takes in unit and user value and returns recalibrated balance as text
                 view ->
-                recalibrated = false
-                CCD_GUI_CD_CIF1.instance.ChangeTextColor( recalibratedBalance( checkWhichUnitisChecked()))
-                if (recalibrated) captureDayEndBalance()
-
-            finish()
-
-
+                val units = checkWhichUnitisChecked()
+                val target = getLatestTargetWeight()
+                val weight = RecalibrationCalculator.parseWeight(findViewById<EditText>(R.id.editTextTextPersonName2).text.toString())
+                if (target != null && target.second == null && weight != null) {
+                    // Older versions saved the Target Weight without its unit: ask once instead of guessing
+                    confirmTargetWeight(target.first) { recalibrateAndFinish(units) }
+                } else {
+                    recalibrateAndFinish(units)
+                }
         }
 
     }
 
 
 
+
+    private fun recalibrateAndFinish(units: String)
+    {
+        recalibrated = false
+        CCD_GUI_CD_CIF1.instance.ChangeTextColor( recalibratedBalance(units))
+        if (recalibrated) captureDayEndBalance()
+
+        finish()
+    }
 
     private fun recalibratedBalance(Input1: String) : String
     {
@@ -106,21 +117,18 @@ class Recalibrate : AppCompatActivity()
 
     private fun recalibrateKilo(Input1: String):String
     {
-        val target = getLatestTargetWeight()
-        if (target == null) {
-            Toast.makeText(this, "Target weight not set. Please complete Start Weight Loss first.", Toast.LENGTH_LONG).show()
-            return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
-        }
+        val target = targetWeightIn(RecalibrationCalculator.UNIT_KILOGRAMS)
+                ?: return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
 
         //Make sure mass is converted to Pounds! Safely and that it is Kilograms.
         val mass:Float = Input1.toFloat()
 
-        android.util.Log.d("RETRIEVE TARGET WEIGHT", target.toString())
+        android.util.Log.d("RETRIEVE TARGET WEIGHT", target.toString() + " kg")
 
-        val output =  ((mass - target) * 2.2)  * 3500
+        val output = RecalibrationCalculator.recalibrateKilograms(mass, target)
 
-        resetKitty(output.toInt())
-        return output.toInt().toString()
+        resetKitty(output)
+        return output.toString()
     }
 
 
@@ -128,17 +136,75 @@ class Recalibrate : AppCompatActivity()
 
     private fun recalibratePounds(Input1: String):String
     {
+        val target = targetWeightIn(RecalibrationCalculator.UNIT_POUNDS)
+                ?: return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
+
+        val mass:Float = Input1.toFloat()
+
+        android.util.Log.d("RETRIEVE TARGET WEIGHT", target.toString() + " lb")
+
+        val output = RecalibrationCalculator.recalibratePounds(mass, target)
+
+        resetKitty(output)
+        return output.toString()
+    }
+
+    /** The saved Target Weight converted to the recalibration unit, or null (with a message) if unavailable. */
+    private fun targetWeightIn(units: String): Float?
+    {
         val target = getLatestTargetWeight()
         if (target == null) {
             Toast.makeText(this, "Target weight not set. Please complete Start Weight Loss first.", Toast.LENGTH_LONG).show()
-            return CCD_GUI_CD_CIF1.instance.Get_currentBalance()
+            return null
         }
+        val converted = RecalibrationCalculator.convert(target.first, target.second, units)
+        if (converted == null) {
+            Toast.makeText(this, "Please confirm the unit of your Target Weight, then recalibrate again.", Toast.LENGTH_LONG).show()
+        }
+        return converted
+    }
 
-        val mass:Float = Input1.toFloat()
-        val output = ((mass - target) ) * 3500
+    /**
+     * Asks the Subscriber to confirm the saved Target Weight and its unit (older versions did not
+     * record the unit). Saved the same way Start Weight Loss saves it, so it is asked only once.
+     */
+    private fun confirmTargetWeight(saved: Float, onConfirmed: () -> Unit)
+    {
+        val savedText = java.math.BigDecimal(saved.toString()).stripTrailingZeros().toPlainString()
+        val input = EditText(this)
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        input.setText(savedText)
 
-        resetKitty(output.toInt())
-        return output.toInt().toString()
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Confirm your Target Weight")
+                .setMessage("Your saved Target Weight is $savedText, but its unit was not recorded.\n\n"
+                        + "Please check the value and choose its unit. You will only be asked once.")
+                .setView(input)
+                .setPositiveButton("Kilograms", null) // set below so invalid input keeps the dialog open
+                .setNeutralButton("Pounds", null)
+                .setNegativeButton("Cancel", null)
+                .create()
+        dialog.setOnShowListener {
+            val save = { units: String ->
+                if (!RecalibrationCalculator.isValidTargetWeight(input.text.toString())) {
+                    Toast.makeText(this, "Please enter your Target Weight as a number between 1 and "
+                            + RecalibrationCalculator.MAX_TARGET_WEIGHT.toInt() + ".", Toast.LENGTH_SHORT).show()
+                } else {
+                    val text = input.text.toString().trim()
+                    SQLDatabase_Food_Items_CIF6(this).PostValueToTargetWeightTable(text)
+                    CCD_GUI_CD_CIF1.instance.Store_Target_Weight_Pounds(text)
+                    getSharedPreferences("Calorie_Countdown", 0).edit()
+                            .putString(RecalibrationCalculator.KEY_TARGET_WEIGHT_UNITS, units).apply()
+                    dialog.dismiss()
+                    onConfirmed()
+                }
+            }
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                    .setOnClickListener { save(RecalibrationCalculator.UNIT_KILOGRAMS) }
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+                    .setOnClickListener { save(RecalibrationCalculator.UNIT_POUNDS) }
+        }
+        dialog.show()
     }
 
     /**
@@ -174,18 +240,21 @@ class Recalibrate : AppCompatActivity()
     /**
      * Reads the latest target weight from SQLite (authoritative source, written by Start Weight Loss).
      * Falls back to SharedPreferences if SQLite has no valid user-entered value.
-     * Returns null if no valid target weight has been saved yet.
+     * Returns the value with its unit (null if the unit was not recorded), or null if no valid
+     * target weight has been saved yet.
      */
-    private fun getLatestTargetWeight(): Float? {
-        // Primary: SQLite target_weight table (written by Start Weight Loss)
-        val dbValue = SQLDatabase_Food_Items_CIF6(this).GetTargetWeight()
-        if (!dbValue.isNullOrEmpty() && dbValue != "0" && dbValue != "1") {
-            return try { dbValue.toFloat() } catch (e: NumberFormatException) { null }
+    private fun getLatestTargetWeight(): Pair<Float, String?>? {
+        val units = RecalibrationCalculator.normaliseUnit(getSharedPreferences("Calorie_Countdown", 0)
+                .getString(RecalibrationCalculator.KEY_TARGET_WEIGHT_UNITS, null))
+        // Primary: SQLite target_weight table (written by Start Weight Loss), decimals kept
+        val dbValue = RecalibrationCalculator.parseWeight(SQLDatabase_Food_Items_CIF6(this).getTargetWeightText())
+        if (dbValue != null && dbValue > 1f) {
+            return Pair(dbValue, units)
         }
         // Fallback: SharedPreferences (also written by Start Weight Loss)
-        val prefValue = CCD_GUI_CD_CIF1.instance?.RetrieveTargetWeightPounds()
-        if (!prefValue.isNullOrEmpty()) {
-            return try { prefValue.toFloat() } catch (e: NumberFormatException) { null }
+        val prefValue = RecalibrationCalculator.parseWeight(CCD_GUI_CD_CIF1.instance?.RetrieveTargetWeightPounds())
+        if (prefValue != null) {
+            return Pair(prefValue, units)
         }
         return null
     }
