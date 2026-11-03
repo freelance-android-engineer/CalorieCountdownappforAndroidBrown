@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 19; // v19: day_end_balance_def, diet planner tables, steps_numerator source
+    private static final int VERSION = 20; // v19: day_end_balance_def, diet planner tables, steps_numerator source; v20: yesterday_dayend_reference
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -304,6 +304,15 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_DEB_SOURCE           = "deb_source";
     private static final String COLUMN_DEB_CAPTURED_AT      = "deb_captured_at"; // "yyyy-MM-dd HH:mm:ss"
     private static final String COLUMN_DEB_RECALIBRATED     = "deb_recalibrated_balance";
+
+    // Variables → Yesterday Dayend Balance (added in DB version 20) — one reference per day, see YesterdayDayEnd
+    private static final String TABLE_YESTERDAY_DAYEND_REF  = "yesterday_dayend_reference";
+    private static final String COLUMN_YDR_FOR_DATE         = "ydr_for_date";       // "yyyy-MM-dd" PRIMARY KEY
+    private static final String COLUMN_YDR_BALANCE          = "ydr_balance";
+    private static final String COLUMN_YDR_TYPE             = "ydr_type";
+    private static final String COLUMN_YDR_REFERENCE_DATE   = "ydr_reference_date"; // date of the balance
+    private static final String COLUMN_YDR_CAPTURED_AT      = "ydr_captured_at";    // "yyyy-MM-dd HH:mm:ss"
+    private static final String COLUMN_YDR_SAVED_AT         = "ydr_saved_at";
 
     // Diet Planner (added in DB version 19) — see Diet_Planner_CIF0116
     private static final String TABLE_DIET_PLAN             = "diet_plan";
@@ -1172,6 +1181,25 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         // v19: definitive Day End Balance and Diet Planner tables
         createDayEndBalanceAndDietPlannerTables(db);
 
+        // v20: Yesterday Dayend Balance reference
+        createYesterdayDayEndReferenceTable(db);
+
+    }
+
+    /** v20 table; IF NOT EXISTS so it is safe from both onCreate and onUpgrade. */
+    private void createYesterdayDayEndReferenceTable(SQLiteDatabase db) {
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_YESTERDAY_DAYEND_REF + " ("
+                    + COLUMN_YDR_FOR_DATE       + " TEXT PRIMARY KEY, "
+                    + COLUMN_YDR_BALANCE        + " INTEGER NOT NULL, "
+                    + COLUMN_YDR_TYPE           + " TEXT NOT NULL, "
+                    + COLUMN_YDR_REFERENCE_DATE + " TEXT, "
+                    + COLUMN_YDR_CAPTURED_AT    + " TEXT, "
+                    + COLUMN_YDR_SAVED_AT       + " TEXT NOT NULL)");
+            android.util.Log.d("Table creation", "created " + TABLE_YESTERDAY_DAYEND_REF);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_YESTERDAY_DAYEND_REF + " creation: " + e.getMessage());
+        }
     }
 
     /** v19 tables; IF NOT EXISTS so it is safe from both onCreate and onUpgrade. */
@@ -1542,6 +1570,11 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 android.util.Log.w("DB_UPGRADE", COLUMN_SN_DERIVED + " column already exists: " + e.getMessage());
             }
             createDayEndBalanceAndDietPlannerTables(db);
+        }
+
+        // v20: Yesterday Dayend Balance reference table. Additive only, no existing rows change.
+        if (oldVersion < 20) {
+            createYesterdayDayEndReferenceTable(db);
         }
 
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
@@ -6107,6 +6140,77 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             db.endTransaction();
         }
         return recovered;
+    }
+
+    // ── Yesterday Dayend Balance (v20) ───────────────────────────────────────
+
+    /** Result of {@link #resolveYesterdayDayEndReference}. */
+    public static final class YesterdayDayEndResult {
+        public final YesterdayDayEnd.Reference reference;
+        /** True when this call saved a new No Record baseline. */
+        public final boolean newlySaved;
+
+        YesterdayDayEndResult(YesterdayDayEnd.Reference reference, boolean newlySaved) {
+            this.reference = reference;
+            this.newlySaved = newlySaved;
+        }
+    }
+
+    /**
+     * Today's Yesterday Dayend reference (see YesterdayDayEnd.resolve), saved as today's row in
+     * yesterday_dayend_reference. One row per day: a No Record baseline is saved once and kept;
+     * Day End Balance records are only read, never changed.
+     *
+     * @return the result, or null if there is no reference (no record and no Current Balance) or on error
+     */
+    public YesterdayDayEndResult resolveYesterdayDayEndReference(String today, String yesterday,
+                                                                 Integer prefsRecalibrated, Integer currentBalance,
+                                                                 long nowMillis) {
+        if (!DayEndBalance.isDateKey(today) || !DayEndBalance.isDateKey(yesterday)) return null;
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            YesterdayDayEnd.Reference stored = getYesterdayDayEndReference(db, today);
+            YesterdayDayEnd.Reference ref = YesterdayDayEnd.resolve(today, yesterday,
+                    getDayEndBalanceRecord(db, today), prefsRecalibrated, getDayEndBalanceRecord(db, yesterday),
+                    stored, currentBalance, DayEndBalance.timestamp(nowMillis));
+            if (ref == null) return null;
+            boolean newlySaved = false;
+            if (!ref.sameAs(stored)) {
+                ContentValues cv = new ContentValues();
+                cv.put(COLUMN_YDR_FOR_DATE, ref.forDate);
+                cv.put(COLUMN_YDR_BALANCE, ref.balance);
+                cv.put(COLUMN_YDR_TYPE, ref.type);
+                cv.put(COLUMN_YDR_REFERENCE_DATE, ref.referenceDate);
+                cv.put(COLUMN_YDR_CAPTURED_AT, ref.capturedAt);
+                cv.put(COLUMN_YDR_SAVED_AT, DayEndBalance.timestamp(nowMillis));
+                if (db.insertWithOnConflict(TABLE_YESTERDAY_DAYEND_REF, null, cv, SQLiteDatabase.CONFLICT_REPLACE) == -1) {
+                    return null;
+                }
+                newlySaved = YesterdayDayEnd.TYPE_NO_RECORD_BASELINE.equals(ref.type);
+            }
+            db.setTransactionSuccessful();
+            android.util.Log.d("YesterdayDayEnd", "[resolve] today=" + today + " type=" + ref.type
+                    + " balance=" + ref.balance + " newlySaved=" + newlySaved);
+            return new YesterdayDayEndResult(ref, newlySaved);
+        } catch (Exception e) {
+            android.util.Log.e("YesterdayDayEnd", "[resolve] " + e.getMessage(), e);
+            return null;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private YesterdayDayEnd.Reference getYesterdayDayEndReference(SQLiteDatabase db, String date) {
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_YDR_FOR_DATE + ", " + COLUMN_YDR_BALANCE + ", " + COLUMN_YDR_TYPE
+                + ", " + COLUMN_YDR_REFERENCE_DATE + ", " + COLUMN_YDR_CAPTURED_AT
+                + " FROM " + TABLE_YESTERDAY_DAYEND_REF + " WHERE " + COLUMN_YDR_FOR_DATE + " = ?", new String[]{date});
+        try {
+            return cursor.moveToFirst() ? new YesterdayDayEnd.Reference(cursor.getString(0), cursor.getInt(1),
+                    cursor.getString(2), cursor.getString(3), cursor.getString(4)) : null;
+        } finally {
+            cursor.close();
+        }
     }
 
     // ── Diet Planner (v19) ───────────────────────────────────────────────────

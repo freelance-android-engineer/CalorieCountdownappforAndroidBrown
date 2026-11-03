@@ -655,6 +655,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 return true;
             }
 
+            if (id == R.id.variables_yesterday_dayend_balance) {
+                showYesterdayDayEndBalanceDialog();
+                return true;
+            }
+
             return true;
 
         });
@@ -3167,6 +3172,74 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                         .show();
             });
         });
+    }
+
+    /**
+     * Reminds the Subscriber of the balance to finish today under (see YesterdayDayEnd): today's
+     * Recalibrated Balance, else yesterday's Day End Balance, else (No Record) the Current Balance,
+     * saved once as the new Previous Day Dayend. Balances are only read; nothing is recalculated.
+     */
+    private void showYesterdayDayEndBalanceDialog() {
+        // Current Balance as shown on screen; null if it is not displayed yet (never assumed to be 0)
+        final TextView balanceView = (TextView) findViewById(R.id.textView);
+        final String balanceText = balanceView != null ? balanceView.getText().toString().trim() : "";
+        final Integer currentBalance = balanceText.isEmpty() ? null : Get_currentBalanceInt();
+
+        final long now = System.currentTimeMillis();
+        final String today = DayEndBalance.dateKey(now);
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(now);
+        cal.add(Calendar.DAY_OF_YEAR, -1);
+        final String yesterdayKey = DayEndBalance.dateKey(cal.getTimeInMillis());
+        // Recalibrated balance kept for the Kitty — used only if the SQLite capture is missing
+        SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+        String kittyToday = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(new Date(now));
+        final Integer prefsRecalibrated = RecalibratedKitty.isRecalibrated(prefs, kittyToday)
+                ? Integer.valueOf(prefs.getInt(RecalibratedKitty.KEY_RECALIBRATED_BALANCE, 0)) : null;
+
+        mBgExecutor.execute(() -> {
+            String message;
+            try {
+                SQLDatabase_Food_Items_CIF6.YesterdayDayEndResult result = new SQLDatabase_Food_Items_CIF6(getApplicationContext())
+                        .resolveYesterdayDayEndReference(today, yesterdayKey, prefsRecalibrated, currentBalance, now);
+                if (result == null) {
+                    message = (currentBalance == null)
+                            ? "No Record.\n\nThere is no Day End Balance for yesterday and the Current Balance is not available yet. Please try again once your balance is shown."
+                            : "The Yesterday Dayend Balance could not be loaded. Please try again.";
+                } else {
+                    YesterdayDayEnd.Reference ref = result.reference;
+                    String when = (ref.capturedAt != null && !ref.capturedAt.isEmpty()) ? ref.capturedAt : ref.referenceDate;
+                    int shownBalance = currentBalance != null ? currentBalance : ref.balance;
+                    message = YesterdayDayEnd.buildMessage(ref, shownBalance, result.newlySaved, formatDayEndDate(when));
+                }
+            } catch (Exception e) {
+                android.util.Log.e("Variables", "resolveYesterdayDayEndReference error: " + e.getMessage(), e);
+                message = "The Yesterday Dayend Balance could not be loaded. Please try again.";
+            }
+
+            final String text = message;
+            mKittyHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                new android.app.AlertDialog.Builder(CCD_GUI_CD_CIF1.this)
+                        .setTitle("Yesterday Dayend Balance")
+                        .setMessage(text)
+                        .setPositiveButton("OK", null)
+                        .show();
+            });
+        });
+    }
+
+    /** "yyyy-MM-dd[ HH:mm:ss]" → "dd MMM yyyy[, HH:mm]" for display; unchanged if it cannot be parsed. */
+    private static String formatDayEndDate(String value) {
+        if (value == null) return "";
+        try {
+            boolean hasTime = value.length() > 10;
+            java.text.SimpleDateFormat in = new java.text.SimpleDateFormat(hasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd", java.util.Locale.US);
+            java.text.SimpleDateFormat out = new java.text.SimpleDateFormat(hasTime ? "dd MMM yyyy, HH:mm" : "dd MMM yyyy", java.util.Locale.getDefault());
+            return out.format(in.parse(value));
+        } catch (Exception e) {
+            return value;
+        }
     }
 
     /**

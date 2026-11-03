@@ -449,6 +449,9 @@
             <item
                 android:id="@+id/variables_steps_challenge"
                 android:title="Steps Challenge" />
+            <item
+                android:id="@+id/variables_yesterday_dayend_balance"
+                android:title="Yesterday Dayend Balance" />
         </menu>
     </item>
 
