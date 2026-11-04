@@ -4030,6 +4030,42 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         return total;
     }
 
+    /**
+     * Food Notes for the Interim Kitty (see InterimKitty): notes dated yesterday or today that the
+     * Sums Calories total would include (not transferred, not a recalibrate separator, after the
+     * last separator). InterimKitty.sum narrows them to yesterday 4 PM → today 4 PM.
+     */
+    public List<InterimKitty.Note> getFoodNotesForInterimKitty() {
+        List<InterimKitty.Note> notes = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        String todayPrefix = sdf.format(cal.getTime());
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        String yesterdayPrefix = sdf.format(cal.getTime());
+        Cursor cursor = null;
+        try {
+            int lastSeparatorId = getLastRecalibrateSeparatorId();
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_QUICK_FOOD_NOTE_ID + ", "
+                    + COLUMN_QUICK_FOOD_NOTE_DATE + ", " + COLUMN_QUICK_FOOD_NOTE_CALORIES + ", "
+                    + "COALESCE(" + COLUMN_IS_4PM_PROCESSED + ", 0), " + COLUMN_FINAL_CALORIES
+                    + " FROM " + TABLE_QUICK_FOOD_NOTE
+                    + " WHERE " + COLUMN_IS_TRANSFERRED + " = 0"
+                    + " AND COALESCE(" + COLUMN_NOTE_TYPE + ", 0) = 0"
+                    + " AND " + COLUMN_QUICK_FOOD_NOTE_ID + " > " + lastSeparatorId
+                    + " AND (" + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ? OR " + COLUMN_QUICK_FOOD_NOTE_DATE + " LIKE ?)",
+                    new String[]{yesterdayPrefix + "%", todayPrefix + "%"});
+            while (cursor.moveToNext()) {
+                Integer confirmed = (cursor.getInt(3) == 1 && !cursor.isNull(4)) ? Integer.valueOf(cursor.getInt(4)) : null;
+                notes.add(new InterimKitty.Note(cursor.getInt(0), cursor.getString(1), cursor.getString(2), confirmed));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[getFoodNotesForInterimKitty] " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return notes;
+    }
+
     public CountdownToZeroDayCiF1004 Retrieve_CountdownToZeroDayCiF1004() {
         //Go through Table DayEnd2, Retreive and convert each row to a DayTypeCiF1003 add
         //to a newly created CountdownToZeroDayType1004 and return as OUTPUT of this
@@ -6198,6 +6234,24 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             return null;
         } finally {
             db.endTransaction();
+        }
+    }
+
+    /**
+     * Today's Yesterday Dayend reference without saving anything: today's Recalibrated Balance,
+     * else yesterday's Day End Balance, else a No Record baseline already saved today, else null.
+     * Used by the Countdown Day End Report.
+     */
+    public YesterdayDayEnd.Reference findYesterdayDayEndReference(String today, String yesterday,
+                                                                 Integer prefsRecalibrated) {
+        if (!DayEndBalance.isDateKey(today) || !DayEndBalance.isDateKey(yesterday)) return null;
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            return YesterdayDayEnd.resolve(today, yesterday, getDayEndBalanceRecord(db, today), prefsRecalibrated,
+                    getDayEndBalanceRecord(db, yesterday), getYesterdayDayEndReference(db, today), null, null);
+        } catch (Exception e) {
+            android.util.Log.e("YesterdayDayEnd", "[find] " + e.getMessage(), e);
+            return null;
         }
     }
 
