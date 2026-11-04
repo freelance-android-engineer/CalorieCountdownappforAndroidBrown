@@ -1038,7 +1038,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 markDebitUpdatePerformed();
                 int newBalance = Get_currentBalanceInt();
                 android.util.Log.d("DebitFlow", "[DEBIT] Debit complete. prev=" + previousBalance + ", new=" + newBalance);
-                showCountdownReport(previousBalance, newBalance);
+                // Steps entry (manual or Sensor) → Countdown Day End Report against Yesterday's Day End Balance
+                String dayEndSection = DayEndReport.KIND_STEPS.equals(data.getStringExtra(DayEndReport.EXTRA_DEBIT_KIND))
+                        ? buildDayEndReportSection(newBalance, data.getIntExtra(DayEndReport.EXTRA_STEPS, 0),
+                                data.getStringExtra(DayEndReport.EXTRA_STEPS_SOURCE))
+                        : null;
+                showCountdownReport(previousBalance, newBalance, dayEndSection);
                 applyMaintenanceMode();
                 android.util.Log.d("DebitFlow", "[DEBIT] Debit flow completed successfully");
             } catch (NumberFormatException e) {
@@ -2955,7 +2960,54 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      *   Estimated Zero Date
      *   Encouragement text
      */
+    /**
+     * Countdown Day End Report section (see DayEndReport): today's final balance compared with
+     * Yesterday's Day End Balance (today's Recalibrated Balance if the Subscriber recalibrated today).
+     * Read only; returns null if it cannot be built so the Countdown Report still shows.
+     */
+    private String buildDayEndReportSection(int finalBalance, int steps, String source) {
+        try {
+            long now = System.currentTimeMillis();
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(now);
+            String today = DayEndBalance.dateKey(now);
+            String todayDdMm = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(cal.getTime());
+            cal.add(Calendar.DAY_OF_YEAR, -1);
+            String yesterday = DayEndBalance.dateKey(cal.getTimeInMillis());
+            String yesterdayDdMm = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(cal.getTime());
+
+            SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(getApplicationContext());
+            YesterdayDayEnd.Reference ref = db.findYesterdayDayEndReference(today, yesterday, todaysRecalibratedBalance(prefs));
+            String label = null;
+            if (ref != null) {
+                String when = (ref.capturedAt != null && !ref.capturedAt.isEmpty()) ? ref.capturedAt : ref.referenceDate;
+                label = (YesterdayDayEnd.TYPE_RECALIBRATED_TODAY.equals(ref.type) ? "Today's Recalibrated Balance ("
+                        : YesterdayDayEnd.TYPE_PREVIOUS_DAY_END.equals(ref.type) ? "Yesterday's Day End Balance ("
+                        : "Previous Day Dayend, no record — baseline (") + formatDayEndDate(when) + ")";
+            }
+            java.util.List<String> missing = DayEndReport.missingDebits(prefs, todayDdMm, yesterdayDdMm,
+                    db.getRecordedStepsForDate(yesterdayDdMm));
+            return DayEndReport.buildSection(ref != null ? Integer.valueOf(ref.balance) : null, label, finalBalance,
+                    steps, source != null ? source : DayEndReport.SOURCE_MANUAL, missing);
+        } catch (Exception e) {
+            android.util.Log.e("DayEndReport", "buildDayEndReportSection: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /** Today's recalibrated balance kept for the Kitty, or null if the Subscriber did not recalibrate today. */
+    private Integer todaysRecalibratedBalance(SharedPreferences prefs) {
+        String kittyToday = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(new Date());
+        return RecalibratedKitty.isRecalibrated(prefs, kittyToday)
+                ? Integer.valueOf(prefs.getInt(RecalibratedKitty.KEY_RECALIBRATED_BALANCE, 0)) : null;
+    }
+
     private void showCountdownReport(int previousBalance, int newBalance) {
+        showCountdownReport(previousBalance, newBalance, null);
+    }
+
+    private void showCountdownReport(int previousBalance, int newBalance, String dayEndSection) {
         // Get client name from preferences
         String clientName = "Client";
         SharedPreferences pref = getSharedPreferences("Calorie_Countdown", 0);
@@ -2971,17 +3023,31 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
                 now.getMonth().toString().substring(1).toLowerCase() +
                 " " + now.getYear();
 
-        // Kitty value: gender-based budget - food calories consumed today
+        // Kitty value: gender-based budget - food calories consumed.
+        // Confirmed: today's Sums Calories credit. Before that (interim): Food Notes from
+        // yesterday 4 PM to today 4 PM (see InterimKitty).
         String gender = pref.getString("Gender_Type", "male");
         int dailyBudget = "female".equalsIgnoreCase(gender) ? 2000 : 2500;
         int todayFoodCals = 0;
-        try {
-            SQLDatabase_Food_Items_CIF6 db = new SQLDatabase_Food_Items_CIF6(this);
-            todayFoodCals = db.getTotalFoodNoteCaloriesToday();
-        } catch (Exception e) {
-            android.util.Log.e("ReportKitty", "Failed to get today food cals: " + e.getMessage());
+        String kittyNote = null;
+        String todayDdMm = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(new Date());
+        Integer confirmedFood = FoodConsumed.forDate(pref, todayDdMm);
+        if (confirmedFood != null) {
+            todayFoodCals = confirmedFood;
+            kittyNote = "Confirmed by today's Sums Calories.";
+        } else {
+            try {
+                InterimKitty.Sum interim = InterimKitty.sum(
+                        new SQLDatabase_Food_Items_CIF6(this).getFoodNotesForInterimKitty(), System.currentTimeMillis());
+                todayFoodCals = interim.calories;
+                kittyNote = "Interim: Food Notes from yesterday 4 PM to today 4 PM, until Sums Calories is confirmed."
+                        + (interim.notesWithoutCalories > 0
+                                ? " " + interim.notesWithoutCalories + " note(s) without calories not counted." : "");
+            } catch (Exception e) {
+                android.util.Log.e("ReportKitty", "Failed to get interim food cals: " + e.getMessage());
+            }
         }
-        int kittyValue = dailyBudget - todayFoodCals;
+        int kittyValue = InterimKitty.kitty(dailyBudget, todayFoodCals);
 
         // Estimated zero date at 250-point/day countdown rate
         int daysToZero = (newBalance > 0) ? (int) Math.ceil((double) newBalance / 250.0) : 0;
@@ -3014,6 +3080,9 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         } else {
             report.append("Kitty Deficit:     ").append(new RoundingCIF13().IntToString(Math.abs(kittyValue))).append(" cal over budget\n");
         }
+        if (kittyNote != null) report.append("(").append(kittyNote).append(")\n");
+
+        if (dayEndSection != null) report.append("\n").append(dayEndSection);
 
         report.append("\n── Zero Date ──\n");
         report.append("Estimated Zero:    ").append(estimatedZeroDate);
@@ -3192,10 +3261,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         cal.add(Calendar.DAY_OF_YEAR, -1);
         final String yesterdayKey = DayEndBalance.dateKey(cal.getTimeInMillis());
         // Recalibrated balance kept for the Kitty — used only if the SQLite capture is missing
-        SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
-        String kittyToday = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(new Date(now));
-        final Integer prefsRecalibrated = RecalibratedKitty.isRecalibrated(prefs, kittyToday)
-                ? Integer.valueOf(prefs.getInt(RecalibratedKitty.KEY_RECALIBRATED_BALANCE, 0)) : null;
+        final Integer prefsRecalibrated = todaysRecalibratedBalance(getSharedPreferences("Calorie_Countdown", 0));
 
         mBgExecutor.execute(() -> {
             String message;

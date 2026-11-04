@@ -34,6 +34,7 @@ class Debit_Steps : AppCompatActivity() {
             val debitPoints = (stepsEntered * 0.089).toInt()
             val result = android.content.Intent()
             result.putExtra(Debit_Activity_CiF003_fragment_box.TOTAL_DEBIT_VALUE, debitPoints)
+            result.putExtra(DayEndReport.EXTRA_STEPS, stepsEntered)
             setResult(android.app.Activity.RESULT_OK, result)
             finish()
         }

@@ -69,7 +69,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             public void onClick(View view) {
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 // .setAction("Action", null).show();
-                Update_with_Step_Count();
+                confirmDailyDebitsThen(() -> Update_with_Step_Count());
 
             }
         });
@@ -126,6 +126,9 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                     mCountdown.ConvertSpinnerItem(s);
 
                     StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                    // Countdown Day End Report: Physical Activity has been entered today
+                    getSharedPreferences("Calorie_Countdown", 0).edit()
+                            .putString(DayEndReport.KEY_PHYSICAL_ACTIVITY_DATE, todayKey()).apply();
                     BackToParent(GetCountdownDebit(mCountdown));
 
                 } catch (NumberFormatException e) {
@@ -144,14 +147,14 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             @Override
             public void onClick(View v) {
                 //Steps_Activity_CiF1003_fragment_box_Class get_Steps = new Steps_Activity_CiF1003_fragment_box_Class();
-                Update_with_Step_Count();
+                confirmDailyDebitsThen(() -> Update_with_Step_Count());
             }
         });
 
         mStepsManaul.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                launchManual();
+                confirmDailyDebitsThen(() -> launchManual());
             }
         });
 
@@ -309,7 +312,55 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
         fizz.setmCalorie_Debit_Value(new RoundingCIF13().DoubleToInt(Steps * 0.089));
         SummaryBoxCIF12 summy = SummaryBoxCIF12.get(getApplicationContext());
         summy.Set_mFitnessItems(fizz);
-        BackToParent(fizz.getmCalorie_Debit_Value());
+        // Final Steps of the day, kept for the next day's Midnight Scrape (same table as manual entry)
+        if (Steps > 0) {
+            try {
+                new SQLDatabase_Food_Items_CIF6(getApplicationContext()).storeRecordedSteps(todayKey(), Steps);
+            } catch (Exception e) {
+                android.util.Log.e("DebitSteps", "storeRecordedSteps (sensor) failed: " + e.getMessage(), e);
+            }
+        }
+        BackToParentSteps(fizz.getmCalorie_Debit_Value(), Steps, DayEndReport.SOURCE_SENSOR);
+    }
+
+    private static String todayKey() {
+        return new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(new java.util.Date());
+    }
+
+    private static String yesterdayKey() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -1);
+        return new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(cal.getTime());
+    }
+
+    /**
+     * Countdown Day End Report: before the day's Steps are entered, check that today's other daily
+     * Debits (BMR, Midnight Scrape, Physical Activity) are in. Nothing is applied automatically;
+     * the Subscriber can go back to enter them or continue.
+     */
+    private void confirmDailyDebitsThen(Runnable next) {
+        java.util.List<String> missing;
+        try {
+            missing = DayEndReport.missingDebits(getSharedPreferences("Calorie_Countdown", 0), todayKey(), yesterdayKey(),
+                    new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getRecordedStepsForDate(yesterdayKey()));
+        } catch (Exception e) {
+            android.util.Log.e("DayEndReport", "missingDebits: " + e.getMessage(), e);
+            missing = java.util.Collections.emptyList();
+        }
+        if (missing.isEmpty()) {
+            next.run();
+            return;
+        }
+        StringBuilder msg = new StringBuilder("Your Countdown Day End Report is made when you enter today's Steps. "
+                + "These daily Debits are not recorded yet today:\n\n");
+        for (String item : missing) msg.append("• ").append(item).append("\n");
+        msg.append("\nGo back to enter them first, or continue with your Steps.");
+        new AlertDialog.Builder(this)
+                .setTitle("Countdown Day End Report")
+                .setMessage(msg.toString())
+                .setPositiveButton("Continue with Steps", (d, w) -> next.run())
+                .setNegativeButton("Go Back", null)
+                .show();
     }
 
     // ── Add New Debit Item ────────────────────────────────────────────────────
@@ -397,6 +448,17 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    /** Steps debit: same as BackToParent, marked so the main screen adds the Countdown Day End Report. */
+    private void BackToParentSteps(int debit, int steps, String source) {
+        Intent i2 = new Intent();
+        i2.putExtra(TOTAL_DEBIT_VALUE, debit);
+        i2.putExtra(DayEndReport.EXTRA_DEBIT_KIND, DayEndReport.KIND_STEPS);
+        i2.putExtra(DayEndReport.EXTRA_STEPS, steps);
+        i2.putExtra(DayEndReport.EXTRA_STEPS_SOURCE, source);
+        setResult(RESULT_OK, i2);
+        finish();
+    }
 
     private void BackToParent(int debit) {
         //return intent call with intent packed with value of Debit or Credit and Summary String as well as summarybox ready
@@ -494,7 +556,7 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
                     }
                 }
 
-                BackToParent(debitValue);
+                BackToParentSteps(debitValue, data.getIntExtra(DayEndReport.EXTRA_STEPS, 0), DayEndReport.SOURCE_MANUAL);
             }
         }
     }
@@ -683,6 +745,17 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
      */
     private void showMidnightScrapeDialog() {
         try {
+            // Client rule: the following day, debit yesterday's Steps walked after the final entry
+            String yesterday = yesterdayKey();
+            int savedFinal = new SQLDatabase_Food_Items_CIF6(getApplicationContext()).getRecordedStepsForDate(yesterday);
+            if (MidnightScrape.isPending(getSharedPreferences("Calorie_Countdown", 0), yesterday, savedFinal)) {
+                withStepsNumeratorChoice(() -> showFinalStepsScrapeDialog(yesterday, savedFinal));
+                return;
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MidnightScrape", "final Steps check: " + e.getMessage(), e);
+        }
+        try {
             // 1. Fetch recorded steps for today from SQLite
             String today = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault())
                     .format(new java.util.Date());
@@ -751,6 +824,86 @@ public class Debit_Activity_CiF003_fragment_box extends AppCompatActivity implem
             android.util.Log.e("MidnightScrape", "showMidnightScrapeDialog: " + e.getMessage(), e);
             Toast.makeText(this, "Midnight Scrape error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Midnight Scrape — final Steps comparison: the Subscriber enters yesterday's actual final Steps;
+     * Steps above the saved final entry are debited with the Steps Numerator. Once per date.
+     */
+    private void showFinalStepsScrapeDialog(final String date, final int savedFinal) {
+        final EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        input.setHint("Yesterday's actual final Steps");
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Midnight Scrape")
+                .setMessage("Your final Steps saved for " + date + ": " + String.format("%,d", savedFinal) + "\n\n"
+                        + "Enter yesterday's actual final Steps from your step app. Any Steps above your saved "
+                        + "final entry are debited from your Countdown Balance.")
+                .setView(input)
+                .setPositiveButton("Submit", null) // set below so invalid input keeps the dialog open
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Integer actual = Accountability.parseMissedSteps(input.getText().toString());
+            if (actual == null) {
+                Toast.makeText(this, "Please enter a whole number of steps greater than 0.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            dialog.dismiss();
+            applyFinalStepsScrape(date, savedFinal, actual);
+        }));
+        dialog.show();
+    }
+
+    private void applyFinalStepsScrape(String date, int savedFinal, int actual) {
+        final android.content.SharedPreferences prefs = getSharedPreferences("Calorie_Countdown", 0);
+        int missed = MidnightScrape.missedSteps(savedFinal, actual);
+        String steps = "Saved final Steps : " + String.format("%,d", savedFinal) + "\n"
+                + "Actual final Steps: " + String.format("%,d", actual) + "\n";
+        if (missed == 0) {
+            MidnightScrape.claim(prefs, date);
+            showAccountabilityResult("Midnight Scrape", steps + "\nNo extra Steps after your final entry, "
+                    + "so nothing is debited.");
+            return;
+        }
+
+        Double stepsNumerator = loadStepsEnumerator();
+        Integer points = Accountability.toPoints(missed, stepsNumerator);
+        if (points == null) {
+            showAccountabilityResult("Midnight Scrape", "Your Steps Numerator is not set or not valid, so your "
+                    + "Countdown Balance was not changed.");
+            return;
+        }
+        String calculation = steps + "Extra Steps       : " + String.format("%,d", missed) + "\n\n"
+                + String.format("%,d", missed) + " × " + stepsNumerator + " (Steps Numerator) = "
+                + String.format("%,d", points) + " points";
+        if (points == 0) {
+            MidnightScrape.claim(prefs, date);
+            showAccountabilityResult("Midnight Scrape", calculation + "\n\nThere are no points to debit.");
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Midnight Scrape")
+                .setMessage(calculation + "\n\nApply this debit to your Countdown Balance?")
+                .setPositiveButton("Yes, Apply Debit", (d, w) -> {
+                    if (!MidnightScrape.claim(prefs, date)) {
+                        Toast.makeText(this, "Midnight Scrape for " + date + " has already been applied.",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    try {
+                        new SQLDatabase_Food_Items_CIF6(getApplicationContext()).storeRecordedSteps(date, actual);
+                    } catch (Exception e) {
+                        android.util.Log.e("MidnightScrape", "storeRecordedSteps: " + e.getMessage(), e);
+                    }
+                    StoreDayEnd2(CCD_GUI_CD_CIF1.instance.Get_currentBalanceInt());
+                    BackToParent(points);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showAccountabilityDialog() {
