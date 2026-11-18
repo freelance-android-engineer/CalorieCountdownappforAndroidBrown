@@ -40,7 +40,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private final String TAG = " SQLite App Data";
 
     private static final String DB_NAME = "food_items.sqlite";
-    private static final int VERSION = 20; // v19: day_end_balance_def, diet planner tables, steps_numerator source; v20: yesterday_dayend_reference
+    private static final int VERSION = 22; // v19: day_end_balance_def, diet planner tables, steps_numerator source; v20: yesterday_dayend_reference; v21: day_zero_forecast; v22: 12 monthly expense tables
 
     private static final String TABLE_FOODITEMS = "food_items";
 
@@ -313,6 +313,24 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
     private static final String COLUMN_YDR_REFERENCE_DATE   = "ydr_reference_date"; // date of the balance
     private static final String COLUMN_YDR_CAPTURED_AT      = "ydr_captured_at";    // "yyyy-MM-dd HH:mm:ss"
     private static final String COLUMN_YDR_SAVED_AT         = "ydr_saved_at";
+
+    // Forecast mDayZero backup (added in DB version 21) — one row per forecast day, see DayZeroForecast
+    private static final String TABLE_DAY_ZERO_FORECAST     = "day_zero_forecast";
+    private static final String COLUMN_DZF_DAY_NUMBER       = "dzf_day_number";      // 1-based, PRIMARY KEY
+    private static final String COLUMN_DZF_DATE             = "dzf_date";            // "yyyy-MM-dd" UNIQUE
+    private static final String COLUMN_DZF_DATE_TIME        = "dzf_date_time";       // ISO LocalDateTime of the day
+    private static final String COLUMN_DZF_BUDGET_BALANCE   = "dzf_budget_balance";
+    private static final String COLUMN_DZF_ACTUAL_BALANCE   = "dzf_actual_balance";  // NULL = no Day End Balance yet
+    private static final String COLUMN_DZF_OPENING_BALANCE  = "dzf_opening_balance";
+    private static final String COLUMN_DZF_START_DATE       = "dzf_start_date";      // ISO LocalDateTime of Start Weight Loss
+
+    // Expense Tracking (added in DB version 22) — 12 monthly tables expense_january … expense_december,
+    // see ExpenseTracking. Day, Description, Amount (exact decimal text), Currency + _id.
+    private static final String COLUMN_EXP_ID               = "_id";
+    private static final String COLUMN_EXP_DAY              = "day";
+    private static final String COLUMN_EXP_DESCRIPTION      = "description";
+    private static final String COLUMN_EXP_AMOUNT           = "amount";
+    private static final String COLUMN_EXP_CURRENCY         = "currency";
 
     // Diet Planner (added in DB version 19) — see Diet_Planner_CIF0116
     private static final String TABLE_DIET_PLAN             = "diet_plan";
@@ -1183,7 +1201,43 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
 
         // v20: Yesterday Dayend Balance reference
         createYesterdayDayEndReferenceTable(db);
+        createDayZeroForecastTable(db);
+        createExpenseTables(db);
 
+    }
+
+    /** v22 tables; IF NOT EXISTS so they are safe from both onCreate and onUpgrade. */
+    private void createExpenseTables(SQLiteDatabase db) {
+        for (String table : ExpenseTracking.allTables()) {
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS " + table + " ("
+                        + COLUMN_EXP_ID          + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_EXP_DAY         + " INTEGER NOT NULL, "
+                        + COLUMN_EXP_DESCRIPTION + " TEXT NOT NULL, "
+                        + COLUMN_EXP_AMOUNT      + " TEXT NOT NULL, "
+                        + COLUMN_EXP_CURRENCY    + " TEXT NOT NULL)");
+                android.util.Log.d("Table creation", "created " + table);
+            } catch (Exception e) {
+                android.util.Log.w("Table creation", table + " creation: " + e.getMessage());
+            }
+        }
+    }
+
+    /** v21 table; IF NOT EXISTS so it is safe from both onCreate and onUpgrade. */
+    private void createDayZeroForecastTable(SQLiteDatabase db) {
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DAY_ZERO_FORECAST + " ("
+                    + COLUMN_DZF_DAY_NUMBER      + " INTEGER PRIMARY KEY, "
+                    + COLUMN_DZF_DATE            + " TEXT NOT NULL UNIQUE, "
+                    + COLUMN_DZF_DATE_TIME       + " TEXT NOT NULL, "
+                    + COLUMN_DZF_BUDGET_BALANCE  + " INTEGER NOT NULL, "
+                    + COLUMN_DZF_ACTUAL_BALANCE  + " INTEGER, "
+                    + COLUMN_DZF_OPENING_BALANCE + " INTEGER NOT NULL, "
+                    + COLUMN_DZF_START_DATE      + " TEXT NOT NULL)");
+            android.util.Log.d("Table creation", "created " + TABLE_DAY_ZERO_FORECAST);
+        } catch (Exception e) {
+            android.util.Log.w("Table creation", TABLE_DAY_ZERO_FORECAST + " creation: " + e.getMessage());
+        }
     }
 
     /** v20 table; IF NOT EXISTS so it is safe from both onCreate and onUpgrade. */
@@ -1575,6 +1629,14 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         // v20: Yesterday Dayend Balance reference table. Additive only, no existing rows change.
         if (oldVersion < 20) {
             createYesterdayDayEndReferenceTable(db);
+        }
+
+        if (oldVersion < 21) {
+            createDayZeroForecastTable(db);
+        }
+
+        if (oldVersion < 22) {
+            createExpenseTables(db);
         }
 
         android.util.Log.d("DB_UPGRADE", "Database upgrade completed");
@@ -6064,6 +6126,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
             android.util.Log.d("DayEndBalance", "[saveDayEndBalance] date=" + date + " balance=" + balance
                     + " source=" + source + " replaced=" + (existing != null));
+            CCD_GUI_CD_CIF1.updateMDayZeroActual(date, balance);
             return true;
         } catch (Exception e) {
             android.util.Log.e("DayEndBalance", "[saveDayEndBalance] " + e.getMessage(), e);
@@ -6082,7 +6145,105 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
         cv.put(COLUMN_DEB_CAPTURED_AT, capturedAt);
         if (recalibrated != null) cv.put(COLUMN_DEB_RECALIBRATED, recalibrated);
         else cv.putNull(COLUMN_DEB_RECALIBRATED);
-        return db.insertWithOnConflict(TABLE_DAY_END_BALANCE_DEF, null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+        long id = db.insertWithOnConflict(TABLE_DAY_END_BALANCE_DEF, null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+        if (id != -1) updateDayZeroForecastActual(db, date, balance);
+        return id;
+    }
+
+    /**
+     * Forecast: copies a saved Day End Balance to the forecast day of the same date, inside the
+     * caller's transaction. Dates outside the forecast are not touched; no row is ever inserted.
+     */
+    private void updateDayZeroForecastActual(SQLiteDatabase db, String date, int balance) {
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_DZF_ACTUAL_BALANCE, balance);
+            int rows = db.update(TABLE_DAY_ZERO_FORECAST, cv, COLUMN_DZF_DATE + " = ?", new String[]{date});
+            if (rows > 0) android.util.Log.d("DayZeroForecast", "[actual] date=" + date + " balance=" + balance);
+        } catch (Exception e) {
+            android.util.Log.e("DayZeroForecast", "[actual] " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Saves the whole mDayZero forecast, replacing the previous journey's forecast (a new Start
+     * Weight Loss starts a new journey). Day End Balances already saved for forecast dates are
+     * copied in as Actual Balances. One transaction: either the whole forecast is saved or none.
+     *
+     * @return true if saved; false for an empty list (an existing forecast is then kept)
+     */
+    public boolean saveDayZeroForecast(java.util.List<DayCiF1005> days) {
+        if (days == null || days.isEmpty()) return false;
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            int opening = days.get(0).getStartBalanceBFWD();
+            String start = days.get(0).getDay().toString();
+            db.delete(TABLE_DAY_ZERO_FORECAST, null, null);
+            android.database.sqlite.SQLiteStatement insert = db.compileStatement("INSERT INTO " + TABLE_DAY_ZERO_FORECAST
+                    + " (" + COLUMN_DZF_DAY_NUMBER + ", " + COLUMN_DZF_DATE + ", " + COLUMN_DZF_DATE_TIME + ", "
+                    + COLUMN_DZF_BUDGET_BALANCE + ", " + COLUMN_DZF_OPENING_BALANCE + ", " + COLUMN_DZF_START_DATE
+                    + ") VALUES (?, ?, ?, ?, ?, ?)");
+            for (int i = 0; i < days.size(); i++) {
+                DayCiF1005 day = days.get(i);
+                insert.clearBindings();
+                insert.bindLong(1, i + 1);
+                insert.bindString(2, DayZeroForecast.dateKey(day));
+                insert.bindString(3, day.getDay().toString());
+                insert.bindLong(4, day.getEndBalanceCFWD());
+                insert.bindLong(5, opening);
+                insert.bindString(6, start);
+                if (insert.executeInsert() == -1) return false;
+            }
+            db.execSQL("UPDATE " + TABLE_DAY_ZERO_FORECAST + " SET " + COLUMN_DZF_ACTUAL_BALANCE
+                    + " = (SELECT " + COLUMN_DEB_BALANCE + " FROM " + TABLE_DAY_END_BALANCE_DEF
+                    + " WHERE " + COLUMN_DEB_DATE + " = " + COLUMN_DZF_DATE + ")");
+            db.setTransactionSuccessful();
+            android.util.Log.d("DayZeroForecast", "[save] days=" + days.size() + " opening=" + opening + " start=" + start);
+            return true;
+        } catch (Exception e) {
+            android.util.Log.e("DayZeroForecast", "[save] " + e.getMessage(), e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    /**
+     * Restores the forecast saved by {@link #saveDayZeroForecast}, oldest day first, with the
+     * Actual Balances saved so far (a day without a Day End Balance keeps an empty actual, not 0).
+     *
+     * @return the forecast, or an empty list when none is saved
+     */
+    public java.util.List<DayCiF1005> loadDayZeroForecast() {
+        java.util.List<DayCiF1005> days = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_DZF_DATE_TIME + ", "
+                    + COLUMN_DZF_BUDGET_BALANCE + ", " + COLUMN_DZF_ACTUAL_BALANCE + ", " + COLUMN_DZF_OPENING_BALANCE
+                    + " FROM " + TABLE_DAY_ZERO_FORECAST + " ORDER BY " + COLUMN_DZF_DAY_NUMBER + " ASC", null);
+            int previousBudget = -1;
+            while (cursor.moveToNext()) {
+                java.time.LocalDateTime date = java.time.LocalDateTime.parse(cursor.getString(0));
+                int budget = cursor.getInt(1);
+                int opening = cursor.getInt(3);
+                int startOfDay = previousBudget < 0 ? opening : previousBudget;
+                DayCiF1005 day = new DayCiF1005(days.size(), startOfDay, opening, budget, date,
+                        String.valueOf(budget), "");
+                day.setBudgetedDayEndBalanceStartWeightLoss(opening);
+                day.setBudgetedDayEndBalanceStartPreviousDay(startOfDay);
+                day.setBudgetedDayEndBalanceForThisDay(budget);
+                DayZeroForecast.setActual(day, cursor.isNull(2) ? null : Integer.valueOf(cursor.getInt(2)));
+                days.add(day);
+                previousBudget = budget;
+            }
+        } catch (Exception e) {
+            android.util.Log.e("DayZeroForecast", "[load] " + e.getMessage(), e);
+            days.clear();
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return days;
     }
 
     /** The definitive Day End Balance stored for a date ("yyyy-MM-dd"), or null if none was stored. */
@@ -6146,6 +6307,7 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
      */
     public int recoverMissedDayEndBalances(String today) {
         int recovered = 0;
+        java.util.Map<String, Integer> recoveredActuals = new java.util.LinkedHashMap<>();
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = null;
         db.beginTransaction();
@@ -6164,9 +6326,13 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                 String capturedAt = (updatedAt != null && !updatedAt.isEmpty()) ? updatedAt : date + " 23:59:00";
                 replaceDayEndBalance(db, date, balance, DayEndBalance.SOURCE_RECOVERED, capturedAt,
                         existing != null ? existing.recalibratedBalance : null);
+                recoveredActuals.put(date, balance);
                 recovered++;
             }
             db.setTransactionSuccessful();
+            for (java.util.Map.Entry<String, Integer> actual : recoveredActuals.entrySet()) {
+                CCD_GUI_CD_CIF1.updateMDayZeroActual(actual.getKey(), actual.getValue());
+            }
             android.util.Log.d("DayEndBalance", "[recoverMissedDayEndBalances] recovered=" + recovered);
         } catch (Exception e) {
             android.util.Log.e("DayEndBalance", "[recoverMissedDayEndBalances] " + e.getMessage(), e);
@@ -6264,6 +6430,58 @@ public class SQLDatabase_Food_Items_CIF6 extends SQLiteOpenHelper {
                     cursor.getString(2), cursor.getString(3), cursor.getString(4)) : null;
         } finally {
             cursor.close();
+        }
+    }
+
+    // ── Expense Tracking (v22) ───────────────────────────────────────────────
+
+    /**
+     * Saves one expense in its month's table (values are bound, never concatenated into SQL).
+     *
+     * @param calendarMonth Calendar.JANUARY … Calendar.DECEMBER
+     * @return the new row id, or -1 on failure
+     */
+    public long insertExpense(int calendarMonth, int day, String description, java.math.BigDecimal amount,
+                              String currency) {
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_EXP_DAY, day);
+            cv.put(COLUMN_EXP_DESCRIPTION, description);
+            cv.put(COLUMN_EXP_AMOUNT, ExpenseTracking.toStored(amount));
+            cv.put(COLUMN_EXP_CURRENCY, currency);
+            long id = this.getWritableDatabase().insert(ExpenseTracking.tableForMonth(calendarMonth), null, cv);
+            android.util.Log.d("ExpenseTracking", "[insert] month=" + calendarMonth + " day=" + day + " id=" + id);
+            return id;
+        } catch (Exception e) {
+            android.util.Log.e("ExpenseTracking", "[insert] " + e.getMessage(), e);
+            return -1;
+        }
+    }
+
+    /**
+     * All expenses of a month's table, by day then entry order.
+     *
+     * @param calendarMonth Calendar.JANUARY … Calendar.DECEMBER
+     * @return the expenses, or null if the table could not be read
+     */
+    public List<ExpenseTracking.Entry> getExpenses(int calendarMonth) {
+        List<ExpenseTracking.Entry> result = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            cursor = this.getReadableDatabase().rawQuery("SELECT " + COLUMN_EXP_ID + ", " + COLUMN_EXP_DAY + ", "
+                    + COLUMN_EXP_DESCRIPTION + ", " + COLUMN_EXP_AMOUNT + ", " + COLUMN_EXP_CURRENCY
+                    + " FROM " + ExpenseTracking.tableForMonth(calendarMonth)
+                    + " ORDER BY " + COLUMN_EXP_DAY + " ASC, " + COLUMN_EXP_ID + " ASC", null);
+            while (cursor.moveToNext()) {
+                result.add(new ExpenseTracking.Entry(cursor.getLong(0), cursor.getInt(1), cursor.getString(2),
+                        ExpenseTracking.fromStored(cursor.getString(3)), cursor.getString(4)));
+            }
+            return result;
+        } catch (Exception e) {
+            android.util.Log.e("ExpenseTracking", "[read] " + e.getMessage(), e);
+            return null;
+        } finally {
+            if (cursor != null) cursor.close();
         }
     }
 

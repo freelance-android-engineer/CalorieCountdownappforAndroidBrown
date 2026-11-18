@@ -2129,6 +2129,8 @@ public class Meal_Type
                 ? startDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
                 : java.time.LocalDateTime.now();
         CCD_GUI_CD_CIF1.buildMDayZeroList(IN.getStartCountdown(), start);
+        // Forecast backup: a new Start Weight Loss replaces the saved journey (an empty list keeps it)
+        new SQLDatabase_Food_Items_CIF6(context).saveDayZeroForecast(CCD_GUI_CD_CIF1.mDayZero);
     }
 
     // ── Exercise Items (Cardio + Strength Training) ───────────────────────────

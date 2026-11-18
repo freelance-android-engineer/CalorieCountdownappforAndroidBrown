@@ -408,6 +408,18 @@
                 android:backgroundTint="#37474F"
                 android:textColor="@android:color/white" />
 
+            <Button
+                android:id="@+id/btnAddNewExpense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add New Expense" />
+
+            <Button
+                android:id="@+id/btnShowExpense"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Expense" />
+
         </LinearLayout>
     </ScrollView>
 

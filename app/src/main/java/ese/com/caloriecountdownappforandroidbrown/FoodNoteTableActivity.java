@@ -294,6 +294,10 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         btnViewRecordingsAndMemos.setOnClickListener(v ->
                 startActivity(new Intent(FoodNoteTableActivity.this, MediaLibraryActivity.class)));
 
+        // Expense Tracking — money expenses, separate from calorie Debits
+        findViewById(R.id.btnAddNewExpense).setOnClickListener(v -> ExpenseTrackingDialogs.showAddExpense(this));
+        findViewById(R.id.btnShowExpense).setOnClickListener(v -> ExpenseTrackingDialogs.showExpenses(this));
+
         // Select All / Deselect All button
         btnSelectAll = findViewById(R.id.btnSelectAll);
         btnSelectAll.setOnClickListener(v -> toggleSelectAll());

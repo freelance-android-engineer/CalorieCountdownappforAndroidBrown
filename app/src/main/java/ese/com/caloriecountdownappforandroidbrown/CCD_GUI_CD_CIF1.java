@@ -104,11 +104,13 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     /**
      * mDayZero — flat list of DayCiF1005 objects spanning from the Start Weight-Loss date to
      * the estimated zero date. Empty until Start Weight-Loss calculates the Opening Balance.
-     * Rule: budget falls 25 CR/day until 0 (10,000 CR → 400 days); see DayZeroForecast.
+     * Rule: budget falls 100 CR/day until 0 (77,000 CR → 770 days); see DayZeroForecast.
      * Populated by buildMDayZeroList() from MIF4_Data_Model_Adapter after the Opening Balance is stored.
      * Use mDaysToZero for the richer CountdownToZeroDayCiF1004 collection.
+     * Backed up in SQLite (day_zero_forecast, DB v21) and restored by restoreMDayZero().
      */
     public static java.util.List<DayCiF1005> mDayZero = new java.util.ArrayList<>();
+    private static final Object M_DAY_ZERO_LOCK = new Object();
 
     private int mBalance;
     private java.util.Date mBalanceLastUpdated;
@@ -168,6 +170,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         final String dayEndToday = DayEndBalance.dateKey(System.currentTimeMillis());
         mBgExecutor.execute(() -> new SQLDatabase_Food_Items_CIF6(getApplicationContext())
                 .recoverMissedDayEndBalances(dayEndToday));
+        // Forecast: restore the mDayZero backup from SQLite (after recovery, so its actuals are current)
+        mBgExecutor.execute(() -> restoreMDayZero(getApplicationContext()));
 
         // One-time notice of the recommended Client Step Challenge (skipped once shown)
         StepChallengeUpdateNotifier.notifyIfTargetChanged(this);
@@ -2455,7 +2459,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
     {
         mDaysToZero = new CountdownToZeroDayCiF1004(IN.getStartCountdown(), IN);
-        // Also build the flat mDayZero list (Opening Balance / 25 = number of days)
+        // Also build the flat mDayZero list (Opening Balance / 100 = number of days)
         buildMDayZeroList(IN.getStartCountdown());
     }
 
@@ -2472,8 +2476,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     /**
      * Build the mDayZero flat list of DayCiF1005 objects.
      *
-     * Rule (per client spec): the budget falls 25 CR per day until it reaches 0.
-     * Example: 10,000 CR → Day 1 budget 9,975, Day 2 9,950 ... Day 400 budget 0.
+     * Rule (per client spec): the budget falls 100 CR per day until it reaches 0.
+     * Example: 77,000 CR → Day 1 budget 76,900, Day 2 76,800 ... Day 770 budget 0.
      * See {@link DayZeroForecast} for the calculation.
      *
      * Day 1 is the Start Weight-Loss date; each following object advances one day.
@@ -2484,6 +2488,12 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
      * @param startDate      the Start Weight-Loss date
      */
     public static void buildMDayZeroList(int openingBalance, java.time.LocalDateTime startDate) {
+        synchronized (M_DAY_ZERO_LOCK) {
+            buildMDayZeroListLocked(openingBalance, startDate);
+        }
+    }
+
+    private static void buildMDayZeroListLocked(int openingBalance, java.time.LocalDateTime startDate) {
         if (DayZeroForecast.isSameForecast(mDayZero, openingBalance, startDate)) {
             android.util.Log.d("mDayZero", "[buildMDayZeroList] Already built for openingBalance="
                     + openingBalance + ", startDate=" + startDate + "; skipping.");
@@ -2500,6 +2510,40 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
         android.util.Log.d("mDayZero", "[buildMDayZeroList] openingBalance=" + openingBalance
                 + ", startDate=" + startDate + " → Built " + mDayZero.size() + " DayCiF1005 entries."
                 + " Last date: " + (mDayZero.isEmpty() ? "N/A" : mDayZero.get(mDayZero.size() - 1).getDay()));
+    }
+
+    /**
+     * Forecast: restores mDayZero from its SQLite backup (app start, Forecast screen). The saved
+     * journey is never rebuilt or reset here; with no backup the current list is left as it is.
+     */
+    public static void restoreMDayZero(android.content.Context context) {
+        java.util.List<DayCiF1005> before;
+        synchronized (M_DAY_ZERO_LOCK) {
+            before = mDayZero;
+        }
+        java.util.List<DayCiF1005> saved = new SQLDatabase_Food_Items_CIF6(context).loadDayZeroForecast();
+        synchronized (M_DAY_ZERO_LOCK) {
+            // A Start Weight Loss that rebuilt the list meanwhile wins over this older read
+            if (!saved.isEmpty() && mDayZero == before) {
+                mDayZero = saved;
+                android.util.Log.d("mDayZero", "[restore] " + saved.size() + " days restored from SQLite");
+            }
+        }
+    }
+
+    /**
+     * Forecast: sets the Actual Balance of the in-memory forecast day for a saved Day End Balance
+     * ("yyyy-MM-dd"). The SQLite backup is updated by the same Day End save.
+     */
+    public static void updateMDayZeroActual(String date, int dayEndBalance) {
+        synchronized (M_DAY_ZERO_LOCK) {
+            try {
+                int index = DayZeroForecast.indexOf(mDayZero, java.time.LocalDate.parse(date));
+                if (index >= 0) DayZeroForecast.setActual(mDayZero.get(index), dayEndBalance);
+            } catch (Exception e) {
+                android.util.Log.e("mDayZero", "[updateActual] " + e.getMessage(), e);
+            }
+        }
     }
 
     private void ResetAlarmTimer(ObjectWithAllTheTimesCIF10 obj)

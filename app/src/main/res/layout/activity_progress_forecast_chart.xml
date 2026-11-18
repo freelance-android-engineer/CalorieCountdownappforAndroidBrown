@@ -33,6 +33,33 @@
             android:orientation="vertical"
             android:padding="8dp">
 
+            <!-- Forecast (v2.0.1): Budget vs Actual Balance from mDayZero, scrolls horizontally -->
+            <TextView
+                android:id="@+id/forecast_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:text="Forecast: Budget vs Actual Balance"
+                android:textColor="#2E7D32"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/forecast_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="4dp"
+                android:text="Loading forecast…"
+                android:textColor="#555555"
+                android:textSize="13sp" />
+
+            <ese.com.caloriecountdownappforandroidbrown.ForecastChartView
+                android:id="@+id/forecast_chart_view"
+                android:layout_width="match_parent"
+                android:layout_height="320dp"
+                android:visibility="gone" />
+
             <!-- Loading indicator -->
             <ProgressBar
                 android:id="@+id/chart_progress_bar"

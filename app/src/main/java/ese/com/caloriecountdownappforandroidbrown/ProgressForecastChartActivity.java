@@ -33,6 +33,8 @@ public class ProgressForecastChartActivity extends AppCompatActivity {
     private TextView    mStatusText;
     private ChartView   mChartView;
     private ScrollView  mScrollView;
+    private ForecastChartView mForecastChart;
+    private TextView    mForecastStatus;
 
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     private final Handler         mMainHandler = new Handler(Looper.getMainLooper());
@@ -55,7 +57,10 @@ public class ProgressForecastChartActivity extends AppCompatActivity {
         mStatusText  = findViewById(R.id.chart_status_text);
         mChartView   = findViewById(R.id.chart_view);
         mScrollView  = findViewById(R.id.chart_scroll_view);
+        mForecastChart  = findViewById(R.id.forecast_chart_view);
+        mForecastStatus = findViewById(R.id.forecast_status);
 
+        loadForecastAsync();
         loadDataAsync();
     }
 
@@ -72,6 +77,42 @@ public class ProgressForecastChartActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mExecutor.shutdownNow();
+    }
+
+    // ── Forecast (mDayZero) ───────────────────────────────────────────────────
+
+    /** Restores mDayZero from SQLite and shows Budget vs Actual Balance. Read-only. */
+    private void loadForecastAsync() {
+        mExecutor.execute(() -> {
+            List<DayCiF1005> days;
+            try {
+                CCD_GUI_CD_CIF1.restoreMDayZero(getApplicationContext());
+                days = new java.util.ArrayList<>(CCD_GUI_CD_CIF1.mDayZero);
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "Error loading forecast: " + e.getMessage(), e);
+                days = new java.util.ArrayList<>();
+            }
+            final List<DayCiF1005> finalDays = days;
+            final java.time.LocalDate today = java.time.LocalDate.now();
+            mMainHandler.post(() -> {
+                if (isFinishing() || mForecastChart == null) return;
+                if (finalDays.isEmpty()) {
+                    mForecastStatus.setText("No forecast yet. It is created when you use Start Weight Loss.");
+                    mForecastChart.setVisibility(View.GONE);
+                    return;
+                }
+                DayCiF1005 last = finalDays.get(finalDays.size() - 1);
+                mForecastStatus.setText(String.format(java.util.Locale.getDefault(),
+                        "Opening Balance %,d → 0 in %d days (−%d per day). Goal date: %s.\n"
+                                + "Swipe left/right to scroll; tap a day to see its values.",
+                        finalDays.get(0).getStartBalanceBFWD(), finalDays.size(),
+                        DayZeroForecast.DAILY_BUDGET_DECREMENT,
+                        last.getDay().toLocalDate().format(java.time.format.DateTimeFormatter
+                                .ofPattern("dd MMM yyyy", java.util.Locale.getDefault()))));
+                mForecastChart.setData(finalDays, today);
+                mForecastChart.setVisibility(View.VISIBLE);
+            });
+        });
     }
 
     // ── Data loading ──────────────────────────────────────────────────────────

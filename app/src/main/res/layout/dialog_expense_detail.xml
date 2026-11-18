@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expense Tracking: Detailed view — header, scrolling rows, Grand Total at the bottom -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <include
+        android:id="@+id/expenseHeader"
+        layout="@layout/item_expense_row" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#BDBDBD" />
+
+    <ListView
+        android:id="@+id/lvExpenses"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:divider="#EEEEEE"
+        android:dividerHeight="1dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#BDBDBD" />
+
+    <TextView
+        android:id="@+id/tvExpenseGrandTotal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:gravity="end"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+</LinearLayout>
