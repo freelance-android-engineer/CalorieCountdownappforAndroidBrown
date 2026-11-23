@@ -24,14 +24,17 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
     public static final String ACTION_DEBIT_DAY_END = "ese.com.caloriecountdownappforandroidbrown.DEBIT_DAY_END";
     public static final String ACTION_4PM_FOOD_NOTES = "ese.com.caloriecountdownappforandroidbrown.FOURPM_FOOD_NOTES";
     public static final String ACTION_DAY_END_BALANCE = "ese.com.caloriecountdownappforandroidbrown.DAY_END_BALANCE";
+    public static final String ACTION_BALANCE_REMINDER = "ese.com.caloriecountdownappforandroidbrown.BALANCE_REMINDER";
 
     private static final String CHANNEL_ID_CREDIT = "credit_day_end_channel";
     private static final String CHANNEL_ID_DEBIT = "debit_day_end_channel";
     private static final String CHANNEL_ID_4PM = "fourpm_food_notes_channel";
+    private static final String CHANNEL_ID_BALANCE_REMINDER = "balance_reminder_channel";
 
     private static final int NOTIFICATION_ID_CREDIT = 4000;
     private static final int NOTIFICATION_ID_DEBIT = 2159;
     private static final int NOTIFICATION_ID_4PM = 1600;
+    private static final int NOTIFICATION_ID_BALANCE_REMINDER = 2158;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -60,6 +63,10 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 captureDayEndBalance(context, intent);
                 // Re-schedule for tomorrow
                 DailyAlarmScheduler.scheduleDayEndBalanceAlarm(context);
+            } else if (ACTION_BALANCE_REMINDER.equals(action)) {
+                showBalanceReminderNotification(context);
+                // Re-schedule for tomorrow
+                DailyAlarmScheduler.scheduleBalanceReminderAlarm(context);
             }
         } finally {
             pendingResult.finish();
@@ -166,6 +173,41 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             manager.notify(NOTIFICATION_ID_4PM, builder.build());
+        }
+    }
+
+    /**
+     * 9:58 PM Notification - Daily Countdown Balance Reminder (notification only, no data changes).
+     * Uses a fixed notification ID so a repeat delivery replaces rather than duplicates it.
+     */
+    private void showBalanceReminderNotification(Context context) {
+        Log.d(TAG, "Showing Daily Countdown Balance Reminder notification (9:58 PM)");
+
+        createNotificationChannel(context, CHANNEL_ID_BALANCE_REMINDER,
+                "Daily Countdown Balance Reminder", "Daily 9:58 PM reminder to review ledger entries and update Countdown Balance");
+
+        // Open main activity when tapped
+        Intent openIntent = new Intent(context, CCD_GUI_CD_CIF1.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NOTIFICATION_ID_BALANCE_REMINDER,
+                openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        String message = "Please review and tabulate all your Debit and Credit Ledger entries, accurately update "
+                + "your Countdown Balance, and memorize your final balance. Get ready for another app cycle tomorrow!";
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_BALANCE_REMINDER)
+                .setSmallIcon(R.drawable.ic_launcher2)
+                .setContentTitle("Daily Countdown Balance Reminder")
+                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setDefaults(NotificationCompat.DEFAULT_ALL);
+
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID_BALANCE_REMINDER, builder.build());
         }
     }
 

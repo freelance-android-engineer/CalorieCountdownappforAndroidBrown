@@ -27,6 +27,7 @@ public class DailyAlarmScheduler {
     private static final int REQUEST_CODE_DEBIT_DAY_END = 2159;
     private static final int REQUEST_CODE_4PM_FOOD_NOTES = 1600;
     private static final int REQUEST_CODE_DAY_END_BALANCE = 2359;
+    private static final int REQUEST_CODE_BALANCE_REMINDER = 2158;
 
     /** Intent extra: the time the Day End Balance alarm was scheduled for, so a late alarm keeps its date. */
     static final String EXTRA_SCHEDULED_AT = "scheduled_at_millis";
@@ -40,6 +41,9 @@ public class DailyAlarmScheduler {
     private static final int FOURPM_HOUR = 16;
     private static final int FOURPM_MINUTE = 0;
 
+    static final int BALANCE_REMINDER_HOUR = 21;   // 9:58 PM
+    static final int BALANCE_REMINDER_MINUTE = 58;
+
     /**
      * Schedule all daily alarms. Call this from main activity onCreate and from BootAlarmReceiver.
      */
@@ -48,7 +52,8 @@ public class DailyAlarmScheduler {
         scheduleDebitDayEndAlarm(context);
         schedule4PMFoodNotesAlarm(context);
         scheduleDayEndBalanceAlarm(context);
-        Log.d(TAG, "All daily alarms scheduled (3:50 PM, 4:00 PM, 9:00 PM, 11:59 PM)");
+        scheduleBalanceReminderAlarm(context);
+        Log.d(TAG, "All daily alarms scheduled (3:50 PM, 4:00 PM, 9:00 PM, 9:58 PM, 11:59 PM)");
     }
 
     /**
@@ -127,6 +132,26 @@ public class DailyAlarmScheduler {
     }
 
     /**
+     * Schedule the 9:58 PM Daily Countdown Balance Reminder (notification only).
+     * Fires once per day; DailyAlarmReceiver re-schedules it for the next day.
+     * FLAG_UPDATE_CURRENT with a fixed request code replaces any pending alarm, so no duplicates.
+     */
+    public static void scheduleBalanceReminderAlarm(Context context) {
+        Calendar calendar = getNextAlarmTime(BALANCE_REMINDER_HOUR, BALANCE_REMINDER_MINUTE);
+
+        Intent intent = new Intent(context, DailyAlarmReceiver.class);
+        intent.setAction(DailyAlarmReceiver.ACTION_BALANCE_REMINDER);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_BALANCE_REMINDER, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        setExactAlarm(context, calendar.getTimeInMillis(), pendingIntent);
+
+        Log.d(TAG, "Balance Reminder alarm scheduled for: " + calendar.getTime());
+    }
+
+    /**
      * Cancel all alarms.
      */
     public static void cancelBothAlarms(Context context) {
@@ -160,6 +185,13 @@ public class DailyAlarmScheduler {
                 REQUEST_CODE_DAY_END_BALANCE, dayEndIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         alarmManager.cancel(dayEndPi);
+
+        Intent reminderIntent = new Intent(context, DailyAlarmReceiver.class);
+        reminderIntent.setAction(DailyAlarmReceiver.ACTION_BALANCE_REMINDER);
+        PendingIntent reminderPi = PendingIntent.getBroadcast(context,
+                REQUEST_CODE_BALANCE_REMINDER, reminderIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        alarmManager.cancel(reminderPi);
 
         Log.d(TAG, "All daily alarms cancelled");
     }

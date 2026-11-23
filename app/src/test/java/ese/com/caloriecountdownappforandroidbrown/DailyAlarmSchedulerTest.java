@@ -56,4 +56,25 @@ public class DailyAlarmSchedulerTest {
         assertFiresAt(DailyAlarmScheduler.getNextAlarmTime(15, 30, at(9, 0, 0)), 15, 15, 30);
         assertFiresAt(DailyAlarmScheduler.getNextAlarmTime(16, 0, at(9, 0, 0)), 15, 16, 0);
     }
+
+    @Test
+    public void balanceReminderIsNineFiftyEightPm() {
+        assertEquals(21, DailyAlarmScheduler.BALANCE_REMINDER_HOUR);
+        assertEquals(58, DailyAlarmScheduler.BALANCE_REMINDER_MINUTE);
+    }
+
+    @Test
+    public void balanceReminderBeforeNineFiftyEightFiresTonight() {
+        Calendar next = DailyAlarmScheduler.getNextAlarmTime(
+                DailyAlarmScheduler.BALANCE_REMINDER_HOUR, DailyAlarmScheduler.BALANCE_REMINDER_MINUTE, at(21, 57, 59));
+        assertFiresAt(next, 15, 21, 58);
+    }
+
+    @Test
+    public void balanceReminderAtOrAfterNineFiftyEightFiresTomorrow() {
+        assertFiresAt(DailyAlarmScheduler.getNextAlarmTime(
+                DailyAlarmScheduler.BALANCE_REMINDER_HOUR, DailyAlarmScheduler.BALANCE_REMINDER_MINUTE, at(21, 58, 0)), 16, 21, 58);
+        assertFiresAt(DailyAlarmScheduler.getNextAlarmTime(
+                DailyAlarmScheduler.BALANCE_REMINDER_HOUR, DailyAlarmScheduler.BALANCE_REMINDER_MINUTE, at(23, 0, 0)), 16, 21, 58);
+    }
 }
