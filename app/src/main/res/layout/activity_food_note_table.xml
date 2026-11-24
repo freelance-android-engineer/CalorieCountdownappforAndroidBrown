@@ -238,7 +238,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="AI"
+                android:text="SI"
                 android:textSize="14sp" />
 
         </LinearLayout>
@@ -313,13 +313,13 @@
                 android:id="@+id/btnFoodNoteAi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Ai" />
+                android:text="SI" />
 
             <Button
                 android:id="@+id/btnCreateAiPrompt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Create AI Prompt" />
+                android:text="Create SI Prompt" />
 
             <Button
                 android:id="@+id/btnDeleteNote"

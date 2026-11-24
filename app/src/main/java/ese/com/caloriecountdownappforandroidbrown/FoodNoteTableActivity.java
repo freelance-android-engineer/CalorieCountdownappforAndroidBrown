@@ -391,7 +391,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                     showMacroResultDialog(foodName, portion, result.trim());
                                 } else {
                                     Toast.makeText(FoodNoteTableActivity.this,
-                                            "AI check failed. Please check connection and try again.",
+                                            "SI check failed. Please check connection and try again.",
                                             Toast.LENGTH_LONG).show();
                                 }
                             });
@@ -736,7 +736,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         // Show loading dialog
         android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
-        progressDialog.setMessage("Analyzing memo with AI...");
+        progressDialog.setMessage("Analyzing memo with SI...");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
@@ -751,14 +751,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                             if (result != null && !result.trim().isEmpty()) {
                                 android.util.Log.d("MemoAI", "AI result received successfully");
                                 new AlertDialog.Builder(FoodNoteTableActivity.this)
-                                        .setTitle("AI Analysis")
+                                        .setTitle("SI Analysis")
                                         .setMessage(result.trim())
                                         .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                                         .show();
                             } else {
                                 android.util.Log.e("MemoAI", "AI returned null or empty result");
                                 Toast.makeText(FoodNoteTableActivity.this,
-                                        "AI analysis failed. Please check your internet connection and try again.",
+                                        "SI analysis failed. Please check your internet connection and try again.",
                                         Toast.LENGTH_LONG).show();
                             }
                         });
@@ -1080,7 +1080,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
                 // Show loading
                 android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(FoodNoteTableActivity.this);
-                progressDialog.setMessage("AI is estimating calories...");
+                progressDialog.setMessage("SI is estimating calories...");
                 progressDialog.setCancelable(false);
                 progressDialog.show();
 
@@ -1098,19 +1098,19 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                     try {
                                         int calorieValue = (int) Math.round(Double.parseDouble(matcher.group()));
                                         etCalories.setText(String.valueOf(calorieValue));
-                                        Toast.makeText(FoodNoteTableActivity.this, "AI estimated: " + calorieValue + " calories", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(FoodNoteTableActivity.this, "SI estimated: " + calorieValue + " calories", Toast.LENGTH_SHORT).show();
                                     } catch (NumberFormatException e) {
                                         android.util.Log.e("FoodNoteAI", "Number parse failed for: " + result.trim());
                                         etCalories.setText("");
-                                        Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(FoodNoteTableActivity.this, "Could not parse SI response. Try again.", Toast.LENGTH_SHORT).show();
                                     }
                                 } else {
                                     android.util.Log.w("FoodNoteAI", "No number found in AI response: " + result.trim());
-                                    Toast.makeText(FoodNoteTableActivity.this, "Could not parse AI response. Try again.", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(FoodNoteTableActivity.this, "Could not parse SI response. Try again.", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
                                 android.util.Log.e("FoodNoteAI", "AI returned null or empty for food: " + etFood.getText().toString() + " (possible network/DNS failure)");
-                                Toast.makeText(FoodNoteTableActivity.this, "AI estimation failed. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
+                                Toast.makeText(FoodNoteTableActivity.this, "SI estimation failed. Please check your internet connection and try again.", Toast.LENGTH_LONG).show();
                             }
                         });
                     }
@@ -1285,7 +1285,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void handleRecalibrateButtonClick() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Recalibrate")
-                .setMessage("Insert a Recalibrate marker here?\n\nAll food items above this marker will be ignored for calorie calculations, AI processing, and food summaries. Only items below the latest marker will count.")
+                .setMessage("Insert a Recalibrate marker here?\n\nAll food items above this marker will be ignored for calorie calculations, SI processing, and food summaries. Only items below the latest marker will count.")
                 .setPositiveButton("Yes, Recalibrate", (dialog, which) -> {
                     String currentDateTime = new java.text.SimpleDateFormat(
                             "dd-MM-yyyy HH:mm", java.util.Locale.getDefault())
@@ -1697,7 +1697,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     if (isAi) {
                         // Show loading indicator
                         android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
-                        progressDialog.setMessage("Calculating calories with AI...");
+                        progressDialog.setMessage("Calculating calories with SI...");
                         progressDialog.setCancelable(false);
                         progressDialog.show();
 
@@ -1776,7 +1776,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
     private void showCaloriesResult(String response, List<Map<String, String>> selectedFoods) {
         String message = (response != null && !response.trim().isEmpty())
                 ? response.trim()
-                : "AI did not return a result. Please try again.";
+                : "SI did not return a result. Please try again.";
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle("Calorie Estimation")
@@ -1791,7 +1791,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                 List<Integer> parsed = parseCaloriesFromAiResponse(response, selectedFoods.size());
                 if (parsed.isEmpty()) {
                     Toast.makeText(this,
-                            "Could not extract calorie values from AI response. Edit notes manually.",
+                            "Could not extract calorie values from SI response. Edit notes manually.",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -1872,7 +1872,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                           List<Map<String, String>> selectedFoods,
                                           int totalCalories) {
         int count = Math.min(parsedCalories.size(), selectedFoods.size());
-        StringBuilder sb = new StringBuilder("Apply these AI calorie values and credit the total to your Countdown Balance?\n\n");
+        StringBuilder sb = new StringBuilder("Apply these SI calorie values and credit the total to your Countdown Balance?\n\n");
         for (int i = 0; i < count; i++) {
             String foodName = selectedFoods.get(i).getOrDefault("food", "(unknown)");
             sb.append(foodName).append(": ").append(parsedCalories.get(i)).append(" cal\n");
@@ -1914,7 +1914,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     if (remainder > 0) {
                         String now = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm",
                                 java.util.Locale.getDefault()).format(new java.util.Date());
-                        databaseHelper.insertFoodNote(now, "AI Credit Adjustment",
+                        databaseHelper.insertFoodNote(now, "SI Credit Adjustment",
                                 String.valueOf(remainder), "");
                         android.util.Log.d("FoodNoteAI", "Reconciliation note inserted: "
                                 + remainder + " cal (credited=" + totalCalories
@@ -2004,7 +2004,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                                         int totalCredited,
                                         int notesUpdated) {
         StringBuilder sb = new StringBuilder();
-        sb.append("AI Calorie Estimation applied successfully.\n\n");
+        sb.append("SI Calorie Estimation applied successfully.\n\n");
         sb.append("Notes updated: ").append(notesUpdated).append("\n");
         sb.append("Total calories credited: ").append(totalCredited).append(" cal\n\n");
         sb.append("Breakdown:\n");
@@ -2173,8 +2173,8 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         String[] options = {"Open ChatGPT in Browser", "Open Gemini in Browser", "Install ChatGPT from Play Store"};
 
         new AlertDialog.Builder(this)
-            .setTitle("No AI App Found")
-            .setMessage("No AI assistant app is installed. Choose an option:")
+            .setTitle("No SI App Found")
+            .setMessage("No SI assistant app is installed. Choose an option:")
             .setItems(options, (dialog, which) -> {
                 Intent intent;
                 switch (which) {
@@ -3101,7 +3101,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         String previewMessage = "Found " + notes.size() + " food note(s) from yesterday.\n";
         if (missingCaloriesCount > 0) {
-            previewMessage += "AI will estimate calories for " + missingCaloriesCount + " note(s) with missing values.\n";
+            previewMessage += "SI will estimate calories for " + missingCaloriesCount + " note(s) with missing values.\n";
         } else {
             previewMessage += "All notes already have calorie values.\n";
         }
@@ -3705,7 +3705,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         // Send to AI button
         Button btnSendToAi = new Button(this);
-        btnSendToAi.setText("Send to AI");
+        btnSendToAi.setText("Send to SI");
         btnSendToAi.setTextSize(14f);
         btnSendToAi.setTextColor(android.graphics.Color.WHITE);
         androidx.core.view.ViewCompat.setBackgroundTintList(btnSendToAi,
@@ -3736,7 +3736,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         // Helper: restore "has recording" button states
         Runnable restoreHasRecordingState = () -> {
-            tvStatus.setText("Recording saved. Play it back or send to AI.");
+            tvStatus.setText("Recording saved. Play it back or send to SI.");
             btnRecord.setText("● Re-record");
             btnRecord.setEnabled(true);
             btnStop.setEnabled(false);
@@ -3846,7 +3846,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         android.util.Log.d("VoiceNoteAI", "Sending prompt to AI: " + prompt);
 
         android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
-        progressDialog.setMessage("Calculating calories with AI…");
+        progressDialog.setMessage("Calculating calories with SI…");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
@@ -3857,14 +3857,14 @@ public class FoodNoteTableActivity extends AppCompatActivity {
                     progressDialog.dismiss();
                     if (result != null && !result.trim().isEmpty()) {
                         new AlertDialog.Builder(FoodNoteTableActivity.this)
-                                .setTitle("AI Calorie Estimate")
+                                .setTitle("SI Calorie Estimate")
                                 .setMessage("You said: \"" + transcribedText + "\"\n\n"
                                         + result.trim())
                                 .setPositiveButton("OK", (d, w) -> d.dismiss())
                                 .show();
                     } else {
                         Toast.makeText(FoodNoteTableActivity.this,
-                                "AI analysis failed. Please check your internet connection and try again.",
+                                "SI analysis failed. Please check your internet connection and try again.",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
@@ -4092,7 +4092,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         layout.addView(tvPrompt);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Generated AI Prompt")
+                .setTitle("Generated SI Prompt")
                 .setView(layout)
                 .setPositiveButton("Copy then Paste", null)
                 .setNegativeButton("Cancel", (d, w) -> d.dismiss())
@@ -4104,7 +4104,7 @@ public class FoodNoteTableActivity extends AppCompatActivity {
             android.content.ClipboardManager clipboard =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             android.content.ClipData clip =
-                    android.content.ClipData.newPlainText("AI Prompt", prompt);
+                    android.content.ClipData.newPlainText("SI Prompt", prompt);
             clipboard.setPrimaryClip(clip);
             Toast.makeText(this, "Prompt copied to clipboard.", Toast.LENGTH_SHORT).show();
             dialog.dismiss();

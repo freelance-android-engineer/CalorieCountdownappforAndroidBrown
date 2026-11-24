@@ -394,8 +394,8 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
         etActivity.setPadding(pad, pad / 2, pad, pad / 2);
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("AI Calorie Debit")
-                .setMessage("Describe your activity and AI will estimate calories burned:")
+                .setTitle("SI Calorie Debit")
+                .setMessage("Describe your activity and SI will estimate calories burned:")
                 .setView(etActivity)
                 .setPositiveButton("Calculate", (dlg, which) -> {
                     String activity = etActivity.getText().toString().trim();
@@ -415,7 +415,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
         if (!isAdded() || getActivity() == null) return;
 
         android.app.ProgressDialog progress = new android.app.ProgressDialog(requireContext());
-        progress.setMessage("AI is estimating calories burned...");
+        progress.setMessage("SI is estimating calories burned...");
         progress.setCancelable(false);
         progress.show();
 
@@ -434,7 +434,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
                 if (result == null || result.trim().isEmpty()) {
                     android.util.Log.e("DebitAI", "AI returned null or empty");
                     Toast.makeText(requireContext(),
-                            "AI estimation failed. Please check your connection and try again.",
+                            "SI estimation failed. Please check your connection and try again.",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -444,7 +444,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
                 if (!matcher.find()) {
                     android.util.Log.w("DebitAI", "No number found in AI response: " + result.trim());
                     Toast.makeText(requireContext(),
-                            "Could not parse AI response. Please try again.",
+                            "Could not parse SI response. Please try again.",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -452,7 +452,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
                     int debitValue = (int) Math.round(Double.parseDouble(matcher.group()));
                     if (debitValue <= 0) {
                         Toast.makeText(requireContext(),
-                                "AI returned an invalid value. Please try again.",
+                                "SI returned an invalid value. Please try again.",
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -460,7 +460,7 @@ public class Debit_Activity_CIF13Fragment extends Fragment {
                 } catch (NumberFormatException e) {
                     android.util.Log.e("DebitAI", "Number parse failed: " + result.trim());
                     Toast.makeText(requireContext(),
-                            "Could not parse AI response. Please try again.",
+                            "Could not parse SI response. Please try again.",
                             Toast.LENGTH_LONG).show();
                 }
             }

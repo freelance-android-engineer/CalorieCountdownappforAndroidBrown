@@ -1620,6 +1620,11 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
             // Previous days are never modified.
             new SQLDatabase_Food_Items_CIF6(getApplicationContext()).upsertDailyHistory(balanceInt);
 
+            // Noir – Final Countdown: celebrate once when the balance comes down to 10,000 Cr or below
+            if (Balance != null && !Balance.trim().isEmpty()) {
+                FinalCountdown.onBalanceUpdated(this, balanceInt);
+            }
+
             // Azure backend sync — fire-and-forget, never blocks UI, failures logged only
             final int finalBalanceInt = balanceInt;
             final String finalBalance = cleanBalance;

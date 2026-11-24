@@ -95,7 +95,7 @@
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
-            android:text="AI"
+            android:text="SI"
             android:textSize="12sp" />
 
         <!-- Add to Cloud Button -->

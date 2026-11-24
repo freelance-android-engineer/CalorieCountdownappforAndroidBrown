@@ -130,7 +130,7 @@
     <string name="clear_all">Clear</string>
     <string name="search">Multi Search</string>
     <string name="uploadImage">Upload Food or Drink Image</string>
-    <string name="scanWithAi">Scan with AI</string>
+    <string name="scanWithAi">Scan with SI</string>
     <string name="weight">Add Food item Weight</string>
     <string name="just">Just Add Raw Calories</string>
     <string name="guesstimate">Guesstimate Calories</string>
@@ -2547,7 +2547,7 @@
     <string name="title_foodnoteitem_detail">FoodNoteItem Detail</string>
     <string name="title_activity_raw_calories">Raw_Calories</string>
     <string name="gemini_api_key"></string>
-    <string name="ai">AI</string>
+    <string name="ai">SI</string>
     <string name="processing">Processing…</string>
 
     <!-- Guide Texts   -->
@@ -2591,7 +2591,7 @@
     <string name="blood_sugar_title">Blood Sugar</string>
     <string name="food_note_memo_title">Memo eaten and/or about to eat Food item name:</string>
     <string name="btn_save_notes">Save Note(s)</string>
-    <string name="btn_nearest_ai">Nearest AI</string>
+    <string name="btn_nearest_ai">Nearest SI</string>
 
     <!-- Drop 100 Points Workout Feature -->
     <string name="drop_100_points">Drop 100 Points from Balance</string>
@@ -2616,7 +2616,7 @@
     <string name="btn_add_new_debit_item">Add New Debit Item</string>
     <string name="btn_accountability">Accountability</string>
     <string name="btn_de_accountability">de-Accountability</string>
-    <string name="btn_ai_debit">AI</string>
+    <string name="btn_ai_debit">SI</string>
 
     <!-- New Cardio Item Screen -->
     <string name="new_cardio_item_title">New Cardio Item</string>

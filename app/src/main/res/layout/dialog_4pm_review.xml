@@ -53,7 +53,7 @@
         <TextView
             android:layout_width="30dp"
             android:layout_height="wrap_content"
-            android:text="AI"
+            android:text="SI"
             android:textSize="12sp"
             android:textStyle="bold"
             android:gravity="center" />
@@ -132,7 +132,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="* Orange values were estimated by AI"
+        android:text="* Orange values were estimated by SI"
         android:textSize="11sp"
         android:textColor="#E65100"
         android:layout_marginBottom="8dp" />

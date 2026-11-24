@@ -164,7 +164,7 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 .setContentText("Time to process yesterday's food notes!")
                 .setStyle(new NotificationCompat.BigTextStyle()
                         .bigText("It's 4:00 PM — tap to open your Food Notes and process yesterday's entries. "
-                                + "The AI will estimate any missing calorie values, and you can review the totals before confirming."))
+                                + "The SI will estimate any missing calorie values, and you can review the totals before confirming."))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
