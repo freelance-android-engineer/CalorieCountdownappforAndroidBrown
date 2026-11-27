@@ -104,7 +104,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     /**
      * mDayZero — flat list of DayCiF1005 objects spanning from the Start Weight-Loss date to
      * the estimated zero date. Empty until Start Weight-Loss calculates the Opening Balance.
-     * Rule: budget falls 100 CR/day until 0 (77,000 CR → 770 days); see DayZeroForecast.
+     * Rule: budget falls 5 CR per object until 0 (10,000 CR → 2,000 objects); see DayZeroForecast.
      * Populated by buildMDayZeroList() from MIF4_Data_Model_Adapter after the Opening Balance is stored.
      * Use mDaysToZero for the richer CountdownToZeroDayCiF1004 collection.
      * Backed up in SQLite (day_zero_forecast, DB v21) and restored by restoreMDayZero().
@@ -2464,7 +2464,7 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     public void InitializeCountdownToXeroDayType1004inCiF001asStatic(HealthProfileCiF3 IN)
     {
         mDaysToZero = new CountdownToZeroDayCiF1004(IN.getStartCountdown(), IN);
-        // Also build the flat mDayZero list (Opening Balance / 100 = number of days)
+        // Also build the flat mDayZero list (Opening Balance / 5 = number of days)
         buildMDayZeroList(IN.getStartCountdown());
     }
 
@@ -2481,8 +2481,8 @@ public class CCD_GUI_CD_CIF1 extends AppCompatActivity {
     /**
      * Build the mDayZero flat list of DayCiF1005 objects.
      *
-     * Rule (per client spec): the budget falls 100 CR per day until it reaches 0.
-     * Example: 77,000 CR → Day 1 budget 76,900, Day 2 76,800 ... Day 770 budget 0.
+     * Rule (per client spec): the budget falls a minimum of 5 CR per object until it reaches 0.
+     * Example: 10,000 CR → Day 1 budget 9,995, Day 2 9,990 ... Day 2,000 budget 0.
      * See {@link DayZeroForecast} for the calculation.
      *
      * Day 1 is the Start Weight-Loss date; each following object advances one day.

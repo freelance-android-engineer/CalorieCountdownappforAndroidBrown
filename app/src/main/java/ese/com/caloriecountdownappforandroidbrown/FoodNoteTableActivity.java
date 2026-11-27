@@ -236,6 +236,9 @@ public class FoodNoteTableActivity extends AppCompatActivity {
         Button btnCreateAiPrompt = findViewById(R.id.btnCreateAiPrompt);
         btnCreateAiPrompt.setOnClickListener(v -> handleCreateAiPromptButtonClick());
 
+        Button btnMacros = findViewById(R.id.btnMacros);
+        btnMacros.setOnClickListener(v -> handleMacrosButtonClick(btnMacros));
+
         btnDeleteFoodNote.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -4055,6 +4058,81 @@ public class FoodNoteTableActivity extends AppCompatActivity {
 
         String prompt = buildAiPromptSentence(selectedFoods);
         showAiPromptDialog(prompt);
+    }
+
+    /** True while a Macros SI request is running, so repeated taps do not send duplicates. */
+    private boolean macrosRequestInProgress = false;
+
+    /**
+     * Macros button: sends the selected Food Note(s) to the existing SI integration and shows the
+     * estimated nutritional information per note and, for several notes, combined.
+     */
+    private void handleMacrosButtonClick(Button btnMacros) {
+        if (macrosRequestInProgress) return;
+
+        ArrayList<Map<String, String>> selectedFoods = new ArrayList<>();
+        for (int i = 1; i < tableLayout.getChildCount(); i++) {
+            TableRow row = (TableRow) tableLayout.getChildAt(i);
+
+            // Skip recalibrate separator rows — they have no checkbox or food data
+            if (SEPARATOR_TAG.equals(row.getTag())) continue;
+            View firstChild = row.getChildAt(0);
+            if (!(firstChild instanceof CheckBox)) continue;
+
+            CheckBox checkBox = (CheckBox) firstChild;
+            TextView foodText = (TextView) row.getChildAt(2);
+            TextView quantityText = (TextView) row.getChildAt(4);
+
+            if (checkBox.isChecked()) {
+                Map<String, String> foodMap = new HashMap<>();
+                foodMap.put("food", foodText != null ? foodText.getText().toString() : "");
+                foodMap.put("quantity", quantityText != null ? quantityText.getText().toString() : "");
+                selectedFoods.add(foodMap);
+            }
+        }
+
+        if (selectedFoods.isEmpty()) {
+            showNoSelectionDialog();
+            return;
+        }
+
+        macrosRequestInProgress = true;
+        btnMacros.setEnabled(false);
+
+        android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+        progress.setMessage("SI is estimating macros...");
+        progress.setCancelable(false);
+        progress.show();
+
+        GeminiApiService.calculateCalories(this, FoodNoteMacros.buildPrompt(selectedFoods),
+                new GeminiApiService.CalorieCallback() {
+                    @Override
+                    public void onResult(String result) {
+                        runOnUiThread(() -> {
+                            macrosRequestInProgress = false;
+                            btnMacros.setEnabled(true);
+                            if (isFinishing() || isDestroyed()) return;
+                            progress.dismiss();
+                            if (result == null || result.trim().isEmpty()) {
+                                Toast.makeText(FoodNoteTableActivity.this,
+                                        "SI estimation failed. Please check your internet connection and try again.",
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            List<Double[]> items = FoodNoteMacros.parse(result, selectedFoods.size());
+                            if (FoodNoteMacros.isEmpty(items)) {
+                                Toast.makeText(FoodNoteTableActivity.this,
+                                        "Could not parse SI response. Try again.", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            new AlertDialog.Builder(FoodNoteTableActivity.this)
+                                    .setTitle("Macros (SI estimate)")
+                                    .setMessage(FoodNoteMacros.buildReport(selectedFoods, items))
+                                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                                    .show();
+                        });
+                    }
+                });
     }
 
     private String buildAiPromptSentence(List<Map<String, String>> foods) {

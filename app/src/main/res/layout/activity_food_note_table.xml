@@ -322,6 +322,12 @@
                 android:text="Create SI Prompt" />
 
             <Button
+                android:id="@+id/btnMacros"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Macros" />
+
+            <Button
                 android:id="@+id/btnDeleteNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

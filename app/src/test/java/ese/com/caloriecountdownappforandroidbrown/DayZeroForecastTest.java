@@ -17,28 +17,28 @@ public class DayZeroForecastTest {
     private static final LocalDateTime START = LocalDateTime.of(2026, 10, 12, 9, 30);
 
     @Test
-    public void clientExample_77000OpeningBalance_is770DaysCountingDown100() {
-        List<DayCiF1005> days = DayZeroForecast.build(77_000, START);
+    public void clientExample_10000OpeningBalance_is2000ObjectsCountingDown5() {
+        List<DayCiF1005> days = DayZeroForecast.build(10_000, START);
 
-        assertEquals(770, days.size());
-        assertEquals("76900", days.get(0).getBudget());
-        assertEquals("76800", days.get(1).getBudget());
-        assertEquals("76700", days.get(2).getBudget());
-        assertEquals("0", days.get(769).getBudget());
-        assertEquals(0, days.get(769).getBudgetedDayEndBalanceForThisDay());
+        assertEquals(2000, days.size());
+        assertEquals("9995", days.get(0).getBudget());
+        assertEquals("9990", days.get(1).getBudget());
+        assertEquals("9985", days.get(2).getBudget());
+        assertEquals("0", days.get(1999).getBudget());
+        assertEquals(0, days.get(1999).getBudgetedDayEndBalanceForThisDay());
         for (int i = 1; i < days.size(); i++) {
-            assertEquals(100, days.get(i - 1).getEndBalanceCFWD() - days.get(i).getEndBalanceCFWD());
+            assertEquals(5, days.get(i - 1).getEndBalanceCFWD() - days.get(i).getEndBalanceCFWD());
         }
     }
 
     @Test
     public void dates_startOnStartWeightLossDateAndAdvanceOneDayPerObject() {
-        List<DayCiF1005> days = DayZeroForecast.build(77_000, START);
+        List<DayCiF1005> days = DayZeroForecast.build(10_000, START);
 
         assertEquals(START, days.get(0).getDay());
         assertEquals(START.plusDays(1), days.get(1).getDay());
-        assertEquals(START.plusDays(769), days.get(769).getDay());
-        assertEquals("2028-11-19", DayZeroForecast.dateKey(days.get(769))); // goal date, across a leap year
+        assertEquals(START.plusDays(1999), days.get(1999).getDay());
+        assertEquals("2032-04-02", DayZeroForecast.dateKey(days.get(1999))); // goal date, across leap years
     }
 
     @Test
@@ -46,9 +46,9 @@ public class DayZeroForecastTest {
         DayCiF1005 day2 = DayZeroForecast.build(77_000, START).get(1);
 
         assertEquals(77_000, day2.getStartBalanceBFWD());
-        assertEquals(76_900, day2.getCurrentBalance());
-        assertEquals(76_800, day2.getEndBalanceCFWD());
-        assertEquals(76_800, day2.getBudgetedDayEndBalanceForThisDay());
+        assertEquals(76_995, day2.getCurrentBalance());
+        assertEquals(76_990, day2.getEndBalanceCFWD());
+        assertEquals(76_990, day2.getBudgetedDayEndBalanceForThisDay());
     }
 
     @Test
@@ -62,11 +62,11 @@ public class DayZeroForecastTest {
 
     @Test
     public void nonDivisibleOpeningBalance_addsFinalDayClampedToZero() {
-        List<DayCiF1005> days = DayZeroForecast.build(77_050, START);
+        List<DayCiF1005> days = DayZeroForecast.build(10_003, START);
 
-        assertEquals(771, days.size());
-        assertEquals("50", days.get(769).getBudget());
-        assertEquals("0", days.get(770).getBudget());
+        assertEquals(2001, days.size());
+        assertEquals("3", days.get(1999).getBudget());
+        assertEquals("0", days.get(2000).getBudget());
     }
 
     @Test
@@ -116,10 +116,10 @@ public class DayZeroForecastTest {
 
     @Test
     public void indexOfFindsForecastDayByDate() {
-        List<DayCiF1005> days = DayZeroForecast.build(77_000, START);
+        List<DayCiF1005> days = DayZeroForecast.build(10_000, START);
         assertEquals(0, DayZeroForecast.indexOf(days, LocalDate.of(2026, 10, 12)));
-        assertEquals(769, DayZeroForecast.indexOf(days, LocalDate.of(2028, 11, 19)));
+        assertEquals(1999, DayZeroForecast.indexOf(days, LocalDate.of(2032, 4, 2)));
         assertEquals(-1, DayZeroForecast.indexOf(days, LocalDate.of(2026, 10, 11)));
-        assertEquals(-1, DayZeroForecast.indexOf(days, LocalDate.of(2028, 11, 20)));
+        assertEquals(-1, DayZeroForecast.indexOf(days, LocalDate.of(2032, 4, 3)));
     }
 }

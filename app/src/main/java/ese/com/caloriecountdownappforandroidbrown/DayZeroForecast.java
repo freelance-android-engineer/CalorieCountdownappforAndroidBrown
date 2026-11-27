@@ -9,9 +9,9 @@ import java.util.Map;
 /**
  * Pure forecast logic behind {@link CCD_GUI_CD_CIF1#mDayZero}.
  *
- * Rule (client spec, Version 2.0.1): the budgeted Countdown Balance falls by
- * {@link #DAILY_BUDGET_DECREMENT} CR per day from the Opening Balance until it reaches 0.
- *   Opening Balance 77,000 → 770 days: Day 1 budget 76,900, Day 2 76,800 ... Day 770 budget 0.
+ * Rule (client spec): the budgeted Countdown Balance falls by a minimum of
+ * {@link #DAILY_BUDGET_DECREMENT} CR per DayCiF1005 object from the Opening Balance until it reaches 0.
+ *   Opening Balance 10,000 → 2,000 objects: Day 1 budget 9,995, Day 2 9,990 ... Day 2,000 budget 0.
  *
  * Day N is dated Start Weight-Loss date + (N - 1) days. Actual balances are unknown for
  * forecast days, so actualDayEnd is left empty ("" = no record, never 0) and actualDayEndBalance
@@ -20,12 +20,12 @@ import java.util.Map;
 final class DayZeroForecast {
 
     /** Budgeted CR countdown per day for the mDayZero forecast. */
-    static final int DAILY_BUDGET_DECREMENT = 100;
+    static final int DAILY_BUDGET_DECREMENT = 5;
 
     private DayZeroForecast() {}
 
     /**
-     * Number of forecast days until the budget reaches 0. A remainder (e.g. 77,050 CR)
+     * Number of forecast days until the budget reaches 0. A remainder (e.g. 10,003 CR)
      * adds one final day whose budget is clamped to 0.
      */
     static int numberOfDays(int openingBalance) {

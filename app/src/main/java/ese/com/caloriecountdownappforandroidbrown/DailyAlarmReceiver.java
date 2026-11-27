@@ -193,7 +193,10 @@ public class DailyAlarmReceiver extends BroadcastReceiver {
                 openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String message = "Please review and tabulate all your Debit and Credit Ledger entries, accurately update "
-                + "your Countdown Balance, and memorize your final balance. Get ready for another app cycle tomorrow!";
+                + "your Countdown Balance, and memorize your final balance. Get ready for another app cycle tomorrow! "
+                + "... and perform the day's Countdown Cycle Bookkeeping to generate your final and accurate Countdown "
+                + "Report, memorize your DayEnd Countdown Balance number to motivate you to perform and meet the "
+                + "challenge of counting down to zero tomorrow.";
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_BALANCE_REMINDER)
                 .setSmallIcon(R.drawable.ic_launcher2)
